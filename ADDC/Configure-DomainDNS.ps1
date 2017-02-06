@@ -9,7 +9,7 @@
   Example syntax
   #>
 
-Param($addresses)
+Param($addresses, $domain)
 
 Process {
     Try {
@@ -26,6 +26,8 @@ Process {
                     Write-Host $element.ServerAddresses
                 }
             }
+        Add-Computer -DomainName $domain
+        Restart-Computer
         } Catch {
             Write-Host "Install failed:"
             Write-Host $_.Exception.Message
