@@ -11,22 +11,24 @@
 
 Param($addresses)
 
-Begin {
-}
-
 Process {
-    $interface = Get-NetAdapter | Select ifIndex,InterfaceDescription
-    #Logging
-    Write-Host "Configuring DNS on adapter $($interface[0].InterfaceDescription)"
+    Try {
+        $interface = Get-NetAdapter | Select ifIndex,InterfaceDescription
+        #Logging
+        Write-Host "Configuring DNS on adapter $($interface[0].InterfaceDescription)"
 
-    Set-DnsClientServerAddress -InterfaceIndex $interface.ifIndex -ServerAddresses($addresses)
+        Set-DnsClientServerAddress -InterfaceIndex $interface.ifIndex -ServerAddresses($addresses)
 
-    $dns = Get-DnsClientServerAddress | Select InterfaceIndex,AddressFamily,ServerAddresses
-    foreach ($element in $dns) {
-        If ($element.InterfaceIndex -eq $interface[0].ifIndex -and $element.AddressFamily -eq 2){
-            #Logging
-            Write-Host $element.ServerAddresses
+        $dns = Get-DnsClientServerAddress | Select InterfaceIndex,AddressFamily,ServerAddresses
+            foreach ($element in $dns) {
+                If ($element.InterfaceIndex -eq $interface[0].ifIndex -and $element.AddressFamily -eq 2){
+                    #Logging
+                    Write-Host $element.ServerAddresses
+                }
+            }
+        } Catch {
+            Write-Host "Install failed:"
+            Write-Host $_.Exception.Message
         }
     }
-}
 }
