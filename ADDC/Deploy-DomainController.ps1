@@ -30,15 +30,15 @@ Process {
     If ($result.status -eq "Success") {
         Write-Host "Prerequisites for ADDS Forest Installation was tested successfully."
         $confirm = ""
-        While ($confirm -notmatch "[y|n]"){
-            $confirm = read-host "Do you want to continue? (Y/N)"
-        }
+        #While ($confirm -notmatch "[y|n]"){
+        #    $confirm = read-host "Do you want to continue? (Y/N)"
+        #}
     } Else {
         Write-Host "Test failed:"
         Write-Host $result.Message
     }
 
-    If ($confirm -eq "y"){
+    #If ($confirm -eq "y"){
         Try {
             Write-Host "Installing"
             Install-ADDSForest -DomainName $domainname `
@@ -56,7 +56,6 @@ Process {
             Write-Host "Install failed:"
             Write-Host $_.Exception.Message
         }
-    }
-
+    #}
 }
 }

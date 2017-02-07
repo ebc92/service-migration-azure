@@ -1,15 +1,6 @@
 ﻿Function Configure-DomainDNS {
 
-<#
-  .SYNOPSIS
-  Configure and verify new DNS addresses.
-  .DESCRIPTION
-  Assumes there is only 1 valid ethernet interface.
-  .EXAMPLE
-  Example syntax
-  #>
-
-Param($addresses, $domain)
+Param($addresses, $domain, $ComputerName)
 
 Process {
     Try {
@@ -26,11 +17,24 @@ Process {
                     Write-Host $element.ServerAddresses
                 }
             }
-        Add-Computer -DomainName $domain
-        Restart-Computer
+        
         } Catch {
-            Write-Host "Install failed:"
+            Write-Host "DNS config failed:"
             Write-Host $_.Exception.Message
         }
+        Add-Computer -DomainName $domain
+        Share-and-Deploy -computer $ComputerName
     }
+}
+Workflow Share-and-Deploy {
+Param($computer)
+    Restart-Computer -PSComputerName $computer -Wait
+    New-Item -PSComputerName $computer -Name "Scripts" -ItemType Directory
+ 
+    InlineScript {New-SMBShare –Name “Scripts” –Path “C:\Scripts” –FullAccess amstel\Administrator } -PSComputerName $computer
+    Start-sleep 2
+    New-PSDrive -Name "E" -PSProvider FileSystem -Root \\TESTSRV-2016\Scripts
+    Copy-Item C:\Users\Administrator\Desktop\service-migration-azure\ADDC\Deploy-DomainController.ps1 E:
+    Start-sleep 2
+    InlineScript {. C:\Scripts\Deploy-DomainController.ps1 -domainname amstel.local -netbiosname amstel -pw "p455w0rd"} -PSComputerName $computer
 }
