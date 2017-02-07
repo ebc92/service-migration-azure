@@ -26,15 +26,27 @@ Process {
         Share-and-Deploy -computer $ComputerName
     }
 }
+
 Workflow Share-and-Deploy {
 Param($computer)
-    Restart-Computer -PSComputerName $computer -Wait
-    New-Item -PSComputerName $computer -Name "Scripts" -ItemType Directory
- 
-    InlineScript {New-SMBShare –Name “Scripts” –Path “C:\Scripts” –FullAccess amstel\Administrator } -PSComputerName $computer
-    Start-sleep 2
-    New-PSDrive -Name "E" -PSProvider FileSystem -Root \\TESTSRV-2016\Scripts
-    Copy-Item C:\Users\Administrator\Desktop\service-migration-azure\ADDC\Deploy-DomainController.ps1 E:
-    Start-sleep 2
-    InlineScript {. C:\Scripts\Deploy-DomainController.ps1 -domainname amstel.local -netbiosname amstel -pw "p455w0rd"} -PSComputerName $computer
+    #Restart-Computer -PSComputerName $computer -Force -Wait
+    Continue-DCDeployment -computer $computer
 }
+
+Function Continue-DCDeployment {
+Param($computer)
+
+<#
+    New-Item -PSComputerName $computer -Name "Scripts" -ItemType Directory
+    Invoke-Command -ScriptBlock {New-SMBShare –Name “Scripts” –Path “C:\Scripts” –FullAccess amstel\Administrator} -ComputerName $computer
+    Start-sleep 2
+    New-PSDrive -Name "E" -PSProvider FileSystem -Root \\TESTSRV-2016\Scripts -Persist
+    Copy-Item C:\Users\Administrator\Desktop\service-migration-azure\ADDC\Deploy-DomainController.ps1 -Destination E:\
+    Start-sleep 2
+    #>
+    Invoke-Command -Computer $computer -FilePath C:\Users\Administrator\Desktop\service-migration-azure\ADDC\Deploy-DomainController.ps1
+    Invoke-Command -Computer $computer -ScriptBlock {Deploy-DomainController -domainname amstel.local -netbiosname amstel -pw "p455w0rd"}
+
+
+}
+
