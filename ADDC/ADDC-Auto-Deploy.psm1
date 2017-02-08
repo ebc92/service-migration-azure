@@ -42,9 +42,9 @@ Process {
 }
         Configure-DomainDNS -addresses $p1 -domain $p2 -computer $p3 
     }
-
-    Invoke-Command -ComputerName $computer -ScriptBlock $CfgDns -ArgumentList $addresses,$domain,$computer -Credential Administrator
-    Reboot-and-Deploy -computer $computer 
+    $cred = Get-Credential
+    Invoke-Command -ComputerName $computer -ScriptBlock $CfgDns -ArgumentList $addresses,$domain,$computer -Credential $cred
+    Reboot-and-Deploy -computer $computer -credential $cred
     
 } 
 
@@ -54,9 +54,10 @@ Param(
     $addresses,
     $netbios,
     $pw,
-    $computer
+    $computer,
+    $credential
     )
-    Restart-Computer -PSComputerName $computer -Wait -Force
+    #Restart-Computer -PSComputerName $computer -Force -Wait -For WinRM
     InlineScript { 
         $depDC = {
         Param (
@@ -115,7 +116,8 @@ Process {
     #}
 }
 }
-            Deploy-DomainController -pw $pw -domainname $domain -netbiosname $netbios
-        } 
+            Deploy-DomainController -pw $p1 -domainname $p2 -netbiosname $p3
+        }
+        Invoke-Command -Credential $credential -ScriptBlock $depDC -ArgumentList $pw,$domain,$netbios -ComputerName $computer 
     }
 }
