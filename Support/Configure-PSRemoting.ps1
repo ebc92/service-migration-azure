@@ -8,6 +8,7 @@ Process {
     } Else {
     set-item wsman:\localhost\Client\TrustedHosts -value "$computer" -Force
     }
+    netsh advfirewall firewall set rule group="Windows Management Instrumentation (WMI)" new enable=yes
     Restart-Service WinRM
 }
 }

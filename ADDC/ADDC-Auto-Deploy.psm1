@@ -37,52 +37,21 @@ Process {
             Write-Host "DNS config failed:"
             Write-Host $_.Exception.Message
         }
-        Add-Computer -ComputerName $computer -DomainName $domain
-        #Reboot-and-Deploy -computer $computer
+        #Add-Computer -ComputerName $computer -DomainName $domain -Credential Administrator
     }
 }
         Configure-DomainDNS -addresses $p1 -domain $p2 -computer $p3 
     }
 
-    #$func = Configure-DomainDNS
     Invoke-Command -ComputerName $computer -ScriptBlock $CfgDns -ArgumentList $addresses,$domain,$computer -Credential Administrator
+    Reboot-and-Deploy -computer $computer
     
 } 
 
-Function Configure-DomainDNS {
-
-Param($addresses, $domain, $computer)
-
-Process {
-    Try {
-        $interface = Get-NetAdapter | Select ifIndex,InterfaceDescription
-        #Logging
-        Write-Host "Configuring DNS on adapter $($interface[0].InterfaceDescription)"
-
-        Set-DnsClientServerAddress -InterfaceIndex $interface.ifIndex -ServerAddresses($addresses)
-
-        $dns = Get-DnsClientServerAddress | Select InterfaceIndex,AddressFamily,ServerAddresses
-            foreach ($element in $dns) {
-                If ($element.InterfaceIndex -eq $interface[0].ifIndex -and $element.AddressFamily -eq 2){
-                    #Logging
-                    Write-Host $element.ServerAddresses
-                }
-            }
-        
-        } Catch {
-            Write-Host "DNS config failed:"
-            Write-Host $_.Exception.Message
-        }
-        #Add-Computer -ComputerName $computer -DomainName $domain
-        #Reboot-and-Deploy -computer $computer
-    }
-}
-
 Workflow Reboot-and-Deploy {
 Param($computer)
-    #Restart-Computer -PSComputerName $computer -Force -Wait
-    Get-Content Function:\Deploy-DomainController
-    InlineScript {Invoke-Command -ComputerName $computer ${function:Deploy-DomainController -domainname $domain -netbiosname $netbios -pw $pw} -Credential Administrator} 
+    Restart-Computer -PSComputerName $computer -Wait
+   
 }
 
 Function Deploy-DomainController {
