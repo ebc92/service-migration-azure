@@ -6,6 +6,7 @@ Param (
     $pw,
     $computer
     )
+    $domaincred = Get-Credential
 
     $CfgDns = {
         Param(
@@ -37,14 +38,18 @@ Process {
             Write-Host "DNS config failed:"
             Write-Host $_.Exception.Message
         }
-        #Add-Computer -ComputerName $computer -DomainName $domain -Credential Administrator
+    Try {
+        Add-Computer -ComputerName $computer -DomainName $domain -Credential $domaincred
+    } Catch {
+        Write-Host $_.Exception.Message
     }
+}
 }
         Configure-DomainDNS -addresses $p1 -domain $p2 -computer $p3 
     }
     $cred = Get-Credential
     Invoke-Command -ComputerName $computer -ScriptBlock $CfgDns -ArgumentList $addresses,$domain,$computer -Credential $cred
-    Reboot-and-Deploy -computer $computer -credential $cred
+    Reboot-and-Deploy -computer $computer -credential $domaincred -domain $domain -netbios $netbios -pw "p455w0rd"
     
 } 
 
@@ -62,11 +67,12 @@ Param(
         Param (
             $p1,
             $p2,
-            $p3
+            $p3,
+            $p4
             )
             Function Deploy-DomainController {
 
-Param($pw, $domainname, $netbiosname)
+Param($pw, $domainname, $netbiosname, $domaincred)
 
 Begin {
     Add-WindowsFeature -Name “ad-domain-services” -IncludeAllSubFeature -IncludeManagementTools
@@ -97,13 +103,11 @@ Process {
     #If ($confirm -eq "y"){
         Try {
             Write-Host "Installing"
-            Install-ADDSForest -DomainName $domainname `
-            -DomainNetbiosName $netbiosname `
-            -DatabasePath “C:\Windows\NTDS” `
-            -SysvolPath “C:\Windows\SYSVOL” `
-            -LogPath “C:\Windows\NTDS” `
+            Install-ADDSController -DomainName $domainname `
+            -Credential $domaincred `
             -ForestMode “Win2012” `
-            -DomainMode “Win2012” `
+            -DomainMode “Win2016” `
+            -DomainType `
             -InstallDns:$true `
             -CreateDnsDelegation:$false `
             -SafeModeAdministratorPassword $password `
@@ -115,8 +119,8 @@ Process {
     #}
 }
 }
-            Deploy-DomainController -pw $p1 -domainname $p2 -netbiosname $p3
+            Deploy-DomainController -pw $p1 -domainname $p2 -netbiosname $p3 -domaincred $p4
         }      
-        Invoke-Command -Credential $using:credential -ScriptBlock $depDC -ArgumentList $using:pw,$using:domain,$using:netbios -ComputerName $using:computer 
+        Invoke-Command -Credential $using:credential -ScriptBlock $depDC -ArgumentList $using:pw,$using:domain,$using:netbios,$using: -ComputerName $using:computer 
     }
 }
