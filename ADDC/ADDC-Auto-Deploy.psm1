@@ -51,13 +51,12 @@ Process {
 Workflow Reboot-and-Deploy {
 Param(
     $domain,
-    $addresses,
     $netbios,
     $pw,
     $computer,
     $credential
     )
-    #Restart-Computer -PSComputerName $computer -Force -Wait -For WinRM
+    Restart-Computer -PSComputerName $computer -Force -Wait -For WinRM
     InlineScript { 
         $depDC = {
         Param (
@@ -117,7 +116,7 @@ Process {
 }
 }
             Deploy-DomainController -pw $p1 -domainname $p2 -netbiosname $p3
-        }
-        Invoke-Command -Credential $credential -ScriptBlock $depDC -ArgumentList $pw,$domain,$netbios -ComputerName $computer 
+        }      
+        Invoke-Command -Credential $using:credential -ScriptBlock $depDC -ArgumentList $using:pw,$using:domain,$using:netbios -ComputerName $using:computer 
     }
 }
