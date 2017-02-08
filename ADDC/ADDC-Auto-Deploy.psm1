@@ -103,11 +103,8 @@ Process {
     #If ($confirm -eq "y"){
         Try {
             Write-Host "Installing"
-            Install-ADDSController -DomainName $domainname `
+            Install-ADDSDomainController -DomainName $domainname `
             -Credential $domaincred `
-            -ForestMode “Win2012” `
-            -DomainMode “Win2016” `
-            -DomainType `
             -InstallDns:$true `
             -CreateDnsDelegation:$false `
             -SafeModeAdministratorPassword $password `
@@ -117,13 +114,14 @@ Process {
             Write-Host $_.Exception.Message
         }
         #run instant replication and kcc
-        #repadmin /kcc
-        #repadmin /replicate TESTSRV-2016 TESTSRV-2012 DC=amstel,DC=local /full
+        repadmin /kcc
+        repadmin /replicate TESTSRV-2016 TESTSRV-2012 DC=amstel,DC=local /full
     #}
 }
 }
             Deploy-DomainController -pw $p1 -domainname $p2 -netbiosname $p3 -domaincred $p4
         }      
         Invoke-Command -Credential $using:credential -ScriptBlock $depDC -ArgumentList $using:pw,$using:domain,$using:netbios,$using:credential -ComputerName $using:computer 
+        Write-host "EOS"
     }
 }
