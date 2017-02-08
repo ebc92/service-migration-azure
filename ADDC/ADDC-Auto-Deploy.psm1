@@ -44,17 +44,27 @@ Process {
     }
 
     Invoke-Command -ComputerName $computer -ScriptBlock $CfgDns -ArgumentList $addresses,$domain,$computer -Credential Administrator
-    Reboot-and-Deploy -computer $computer
+    Reboot-and-Deploy -computer $computer 
     
 } 
 
 Workflow Reboot-and-Deploy {
-Param($computer)
-    Restart-Computer -PSComputerName $computer -Wait
-   
-}
-
-Function Deploy-DomainController {
+Param(
+    $domain,
+    $addresses,
+    $netbios,
+    $pw,
+    $computer
+    )
+    Restart-Computer -PSComputerName $computer -Wait -Force
+    InlineScript { 
+        $depDC = {
+        Param (
+            $p1,
+            $p2,
+            $p3
+            )
+            Function Deploy-DomainController {
 
 Param($pw, $domainname, $netbiosname)
 
@@ -104,4 +114,8 @@ Process {
         }
     #}
 }
+}
+            Deploy-DomainController -pw $pw -domainname $domain -netbiosname $netbios
+        } 
+    }
 }
