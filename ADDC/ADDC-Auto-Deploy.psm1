@@ -1,4 +1,8 @@
-﻿Function Start-ADDCDeploymentProcess {
+﻿<# TODO
+Update "dNSHostName"-attribute on object: 'CN=TESTSRV-2016,CN=Servers,CN=Default-First-Site-Name,CN=Sites,CN=Configuration,DC=amstel,DC=local'
+#>
+
+Function Start-ADDCDeploymentProcess {
 
 Param (
     $domain,
@@ -62,8 +66,6 @@ Param (
 Workflow Reboot-and-Deploy {
 
 Param(
-    $domain,
-    $netbios,
     $pw,
     $computer,
     $credential
@@ -77,14 +79,12 @@ Param(
 
         Param (
             $p1,
-            $p2,
-            $p3,
-            $p4
+            $p2
         )
             
         Function Deploy-DomainController {
 
-        Param($pw, $domainname, $netbiosname, $domaincred)
+        Param($pw, $domaincred)
 
             Begin {
                 Add-WindowsFeature -Name “ad-domain-services” -IncludeAllSubFeature -IncludeManagementTools
@@ -92,29 +92,39 @@ Param(
             }
 
             Process {
+
+                $domain = Get-ADDomain
                 $password = ConvertTo-SecureString $pw -AsPlainText -Force
+
                 Try {
                     #Log
                     Write-Host "Installing"
-                    Install-ADDSDomainController -DomainName $domainname `
-                    -Credential $domaincred `
-                    -InstallDns:$true `
-                    -CreateDnsDelegation:$false `
-                    -SafeModeAdministratorPassword $password `
-                    -Force:$true
+                    Install-ADDSDomainController -DomainName $domain.Forest -InstallDns -SafeModeAdministratorPassword $password -Force
                 } Catch {
                     Write-Host "Install failed:"
                     Write-Host $_.Exception.Message
                 }
+                
+                $master = netdom query fsmo | select -first 1 | % { $_.Split(" ")} | select -last 1
+
                 repadmin /kcc
-                repadmin /replicate TESTSRV-2016 TESTSRV-2012 DC=amstel,DC=local /full
+                repadmin /replicate $env:COMPUTERNAME $master $domain.DistinguishedName /full
             }
         }
-        Deploy-DomainController -pw $p1 -domainname $p2 -netbiosname $p3 -domaincred $p4
+
+        Deploy-DomainController -pw $p1 -domaincred $p2
         }
               
-        Invoke-Command -Credential $using:credential -ScriptBlock $depDC -ArgumentList $using:pw,$using:domain,$using:netbios,$using:credential -ComputerName $using:computer 
+        Invoke-Command -Credential $using:credential -ScriptBlock $depDC -ArgumentList $using:pw,$using:credential -ComputerName $using:computer 
         
         Write-host "EOS"
     }
+}
+
+Function Move-OperationMasterRoles {
+Param (
+)
+#set DNS attribute
+Move-ADDirectoryServerOperationMasterRole -Identity TESTSRV-2016 -OperationMasterRole 0,1,2,3,4
+#Verify
 }
