@@ -104,8 +104,9 @@ Param(
                     Write-Host "Install failed:"
                     Write-Host $_.Exception.Message
                 }
-                
-                $master = netdom query fsmo | select -first 1 | % { $_.Split(" ")} | select -last 1
+
+                $query = netdom query fsmo
+                $master = $query[0] | % { $_.Split(" ")} | select -last 1
 
                 repadmin /kcc
                 repadmin /replicate $env:COMPUTERNAME $master $domain.DistinguishedName /full
@@ -122,9 +123,24 @@ Param(
 }
 
 Function Move-OperationMasterRoles {
-Param (
+Param(
+    $ComputerName
 )
-#set DNS attribute
-Move-ADDirectoryServerOperationMasterRole -Identity TESTSRV-2016 -OperationMasterRole 0,1,2,3,4
-#Verify
+    Try {
+        #Building the server container DN to get the server reference
+        $siteName = nltest /server:TESTSRV-2016 /dsgetsite
+        $configNCDN = (Get-ADRootDSE).ConfigurationNamingContext
+        $siteContainerDN = (“CN=Sites,” + $configNCDN)
+        $serverContainerDN = “CN=Servers,CN=” + $siteName[0] + “,” + $siteContainerDN
+        $serverReference = Get-ADObject -SearchBase $serverContainerDN –filter {(name -eq $ComputerName)} -Properties "DistinguishedName"
+
+        #Update DNS hostname by server reference
+        Set-ADObject -Identity $serverReference.DistinguishedName -Add @{dNSHostName=$ComputerName}
+
+    } Catch {
+        Write-Host $_.Exception.Message
+    }
+
+    Move-ADDirectoryServerOperationMasterRole -Identity $ComputerName -OperationMasterRole 0,1,2,3,4
+    #Verify netdom query fsmo
 }
