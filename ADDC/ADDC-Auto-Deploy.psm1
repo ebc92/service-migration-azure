@@ -29,7 +29,7 @@ Param (
                 Write-Host "Configuring DNS on adapter $($interface[0].InterfaceDescription)"
 
                 Set-DnsClientServerAddress -InterfaceIndex $interface.ifIndex -ServerAddresses($addresses)
-
+                    
                 $dns = Get-DnsClientServerAddress | Select InterfaceIndex,AddressFamily,ServerAddresses
                 foreach ($element in $dns) {
                     If ($element.InterfaceIndex -eq $interface[0].ifIndex -and $element.AddressFamily -eq 2){
@@ -124,6 +124,7 @@ Function Move-OperationMasterRoles {
 Param(
     $ComputerName
 )
+<#
     Try {
         #Building the server container DN to get the server reference
         $siteName = nltest /server:TESTSRV-2016 /dsgetsite
@@ -142,7 +143,24 @@ Param(
     } Catch {
         Write-Host $_.Exception.Message
     }
-
+    #>
     Move-ADDirectoryServerOperationMasterRole -Identity $ComputerName -OperationMasterRole 0,1,2,3,4
     #Verify netdom query fsmo
+}
+
+Function Start-RebootTest {
+Param (
+    $ComputerName
+)
+
+    $down = $true
+        Do {
+            Try {
+                Test-WSMan -ComputerName testsrv-2 -ErrorAction Stop
+                $down = $false
+            } Catch {
+                Write-Output "There was an error ermagherd"
+            }
+        } While ($down)
+    return $down
 }
