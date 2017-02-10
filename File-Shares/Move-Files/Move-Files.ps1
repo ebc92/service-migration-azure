@@ -3,56 +3,58 @@
         Figure out how to avoid double input of the Path verifying function
         Use values from support module when it is made available.        
 #>
-$script:SourcePath
-$script:DestPath
+
+$script:VerifyPath
 
 Function Move-Files {
 Param(
+    $SourcePath,
+    $DestPath,
     $RobCopyArgs,
     $MoveLog,
-    $ScriptPath,
     $LogPath,
     $Date,
     $MoveFiles
     )
     $Date = (Get-Date -Format ddMMMyyyy_HHmm).ToString()
     $MovLog = "RoboCopy-$Date.log"
-    $ScriptPath = "C:\ServerMigrationLogs\File-Shares"
-    $LogPath = "$ScriptPath\$MovLog"
-    $script:SourcePath = 'D:\Battle.net' #Read-Host('Please input the source path for your network share, ie //fileshares')
-    $script:DestPath = 'D:\RoboCopy\Dest'
+    $LogPath = "C:\ServerMigrationLogs\File-Shares\$MovLog"
+    $DestPath = 'D:\RoboCopy\Dest'
     $RobCopyArgs = "/MT /E /COPYALL /R:1 /W:1 /V /TEE /log:$LogPath"
+
     do { 
-    Verify-FolderSource($script:SourcePath)
-    } until (Verify-FolderSource($true))
-    
+    $SourcePath = Read-Host('Please input the source path for your network share, ie //fileshares')
+    Verify-Path($SourcePath)
+    } until (Verify-Path($script:VerifyPath = $true))
+
+    Write-Verbose -Message "$SourcePath is valid, checking destination path next"
+    $script:VerifyPath = $false
+
     do { 
-    Verify-FolderDest($script:DestPath)
-    } until (Verify-FolderDest($true))
-    $MoveFiles = "$script:SourcePath $script:DestPath $RobCopyArgs"
+    $SourcePath = Read-Host('Please input the destination path for your network share, ie //fileshares')
+    Verify-Path($DestPath)
+    } until (Verify-Path($script:VerifyPath = $true))
+    Write-Verbose -InformationAction Continue "Verification OK, moving files from $script:SourcePath to $DestPath"
+
+    $MoveFiles = "$SourcePath $DestPath $RobCopyArgs"
     Start robocopy -args "$MoveFiles"
     }
 
-Function Verify-FolderSource($verifyPath) {
-    if( $(Try { Test-Path $script:SourcePath.trim() } Catch { $false }) ) 
+Function Verify-Path($script:VerifyPath) {
+    if( 
+        $(Try { 
+           $PathExists = Test-Path "$script:VerifyPath".trim() 
+           } 
+           Catch 
+           { 
+           $PathExists = $true
+           }
+           )) 
         {
-            Write-Host "Source Path is Valid, testing destination next"
-            Return $true
+            Return $script:VerifyPath = $true
         } 
         Else {
-            $script:SourcePath = Read-Host('Please enter a valid source')
-            Return
-        }
-}
-
-Function Verify-FolderDest($verifyPath) {
-    if( $(Try { Test-Path $script:DestPath.trim() } Catch { $false }) ) 
-        {
-            Write-Host "Destination Path is Valid, starting file transfer"
-            Return $true
-        } 
-        Else {
-            $script:DestPath = Read-Host('Please enter a valid destination')
+            Write-Warning -WarningAction Continue "Input validation failed, please enter the correct path"
             Return
         }
 }
