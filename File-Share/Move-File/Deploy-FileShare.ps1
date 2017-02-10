@@ -7,7 +7,7 @@ param(
 
 Function Deploy-FileShare {
 Process {
-Install-windowsfeature
+Install-WindowsFeature -Name "FileAndStorage-Services" -IncludeAllSubFeature
 }
 End {
 }

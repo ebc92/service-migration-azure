@@ -16,7 +16,7 @@ Param(
     )
     #Do until loop that checks if the Path is a container, and valid
     do { 
-        $SourcePath = Read-Host('Please input the source path for your network share, ie //fileshares')
+        $SourcePath = Read-Host('Please input the source path for your network share, ie \\fileshare')
         #Need an if statement, because Test-Path breaks on empty string, so this fills a non valid dummy string to negate this.
         If ([string]::IsNullOrEmpty($SourcePath)) {
             $SourcePath = "SomeString"
@@ -28,7 +28,7 @@ Param(
     Write-Verbose -Message "$SourcePath is valid, checking destination path next"
 
     do { 
-        $DestPath = Read-Host('Please input the destination path for your network share, ie //fileshares')
+        $DestPath = Read-Host('Please input the destination path for your network share, ie \\fileshare')
         If ([string]::IsNullOrEmpty($DestPath)) {
             $DestPath = "SomeString"
         } else {
