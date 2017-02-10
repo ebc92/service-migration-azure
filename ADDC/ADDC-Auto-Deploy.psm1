@@ -1,13 +1,8 @@
-﻿<# TODO
-Update "dNSHostName"-attribute on object: 'CN=TESTSRV-2016,CN=Servers,CN=Default-First-Site-Name,CN=Sites,CN=Configuration,DC=amstel,DC=local'
-#>
-
-Function Start-ADDCDeploymentProcess {
+﻿Function Start-ADDCDeploymentProcess {
 
 Param (
     $domain,
     $addresses,
-    $netbios,
     $pw,
     $computer
 )
@@ -59,7 +54,7 @@ Param (
     }
     
     Invoke-Command -ComputerName $computer -ScriptBlock $CfgDns -ArgumentList $addresses,$domain,$computer -Credential $cred
-    Reboot-and-Deploy -computer $computer -credential $domaincred -domain $domain -netbios $netbios -pw $pw
+    Reboot-and-Deploy -computer $computer -credential $domaincred -pw $pw
     
 } 
 
@@ -122,6 +117,10 @@ Param(
     }
 }
 
+<# TODO
+Update "dNSHostName"-attribute on object: 'CN=TESTSRV-2016,CN=Servers,CN=Default-First-Site-Name,CN=Sites,CN=Configuration,DC=amstel,DC=local'
+#>
+
 Function Move-OperationMasterRoles {
 Param(
     $ComputerName
@@ -133,9 +132,13 @@ Param(
         $siteContainerDN = (“CN=Sites,” + $configNCDN)
         $serverContainerDN = “CN=Servers,CN=” + $siteName[0] + “,” + $siteContainerDN
         $serverReference = Get-ADObject -SearchBase $serverContainerDN –filter {(name -eq $ComputerName)} -Properties "DistinguishedName"
+        Write-Output $serverReference
+
+        $fqdns = $ComputerName + "." + (Get-ADDomain).DNSRoot
 
         #Update DNS hostname by server reference
-        Set-ADObject -Identity $serverReference.DistinguishedName -Add @{dNSHostName=$ComputerName}
+        
+        Set-ADObject -Identity $serverReference.DistinguishedName -Add @{dNSHostName=$fqdns}
 
     } Catch {
         Write-Host $_.Exception.Message
