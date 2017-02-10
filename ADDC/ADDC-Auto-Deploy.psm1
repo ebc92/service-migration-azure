@@ -88,13 +88,12 @@ Param(
 
             Process {
 
-                $domain = Get-ADDomain
                 $password = ConvertTo-SecureString $pw -AsPlainText -Force
 
                 Try {
                     #Log
                     Write-Host "Installing"
-                    Install-ADDSDomainController -DomainName $domain.Forest -InstallDns -SafeModeAdministratorPassword $password -Force
+                    Install-ADDSDomainController -DomainName (Get-WmiObject win32_computersystem).Domain -InstallDns -SafeModeAdministratorPassword $password -Credential $domaincred -Force
                 } Catch {
                     Write-Host "Install failed:"
                     Write-Host $_.Exception.Message
