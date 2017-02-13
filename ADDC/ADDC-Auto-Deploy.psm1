@@ -60,8 +60,7 @@ Param (
     }
     
     Invoke-Command -ComputerName $computer -ScriptBlock $CfgDns -ArgumentList $addresses,$domain,$computer,$DomainCredential -Credential $Credential
-    Reboot-and-Deploy -computer $computer -credential $DomainCredential -pw $pw -functionDeployDC ${Function:Deploy-DomainController}
-    
+    Reboot-and-Deploy -computer $computer -credential $DomainCredential -pw $pw -functionDeployDC ${Function:Deploy-DomainController} -FunctionMoveFSMO ${Function:Move-OperationMasterRoles}
 } 
 
 Workflow Reboot-and-Deploy {
@@ -71,10 +70,10 @@ Param(
     [Parameter(Mandatory=$true)] $computer,
     [Parameter(Mandatory=$true)] $credential,
     $FunctionDeployDC,
-    $FunctionRebootCheck
+    $FunctionMoveFSMO
 )
 
-    Restart-Computer -PSComputerName $computer -Force -Wait -For WinRM -Credential $credential
+    Restart-Computer -PSComputerName $computer -Force -Wait -For WinRM
 
     InlineScript {
      
@@ -104,24 +103,21 @@ Param(
         $postDep = {
 
         Param(
-            $FunctionMoveFSMO,
-            $ComputerName
+            $FunctionMoveFSMO
         )
             
             New-Item -Path function: -Name Move-OperationMasterRoles -Value $FunctionMoveFSMO
-            Move-OperationMasterRoles -ComputerName $ComputerName
-        
+
             $query = netdom query fsmo
             $master = $query[0] | % { $_.Split(" ")} | select -last 1
 
             repadmin /kcc
-            repadmin /replicate $env:COMPUTERNAME $master $domain.DistinguishedName /full
+            repadmin /replicate $env:COMPUTERNAME $master (Get-ADDomain).DistinguishedName /full
 
-            Move-OperationMasterRoles -ComputerName $computer
+            Move-OperationMasterRoles -ComputerName $env:COMPUTERNAME
         }
 
-        Invoke-Command -ComputerName $using:computer -ScriptBlock $postDep -ArgumentList ${function:Move-OperationMasterRoles},$using:computer -Credential $using:credential
-        
+        Invoke-Command -ComputerName $using:computer -ScriptBlock $postDep -ArgumentList $using:FunctionMoveFSMO -Credential $using:credential  
     }
 
     Write-Output "End of script"
@@ -129,27 +125,25 @@ Param(
 
 Function Deploy-DomainController {
 
-        Param($pw, $domaincred)
+Param($pw, $domaincred)
 
-            Begin {
-                Add-WindowsFeature -Name “ad-domain-services” -IncludeAllSubFeature -IncludeManagementTools
-                Import-Module ADDSDeployment
-            }
+Begin {
+    Add-WindowsFeature -Name “ad-domain-services” -IncludeAllSubFeature -IncludeManagementTools
+    Import-Module ADDSDeployment
+}
 
-            Process {
-
-                $password = ConvertTo-SecureString $pw -AsPlainText -Force
-
-                Try {
-                    #Log
-                    Write-Host "Installing"
-                    Install-ADDSDomainController -DomainName (Get-WmiObject win32_computersystem).Domain -InstallDns -SafeModeAdministratorPassword $password -Credential $domaincred -Force
-                } Catch {
-                    Write-Host "Install failed:"
-                    Write-Host $_.Exception.Message
-                } 
-            }
-        }
+Process {
+    $password = ConvertTo-SecureString $pw -AsPlainText -Force
+    Try {
+    #Log
+    Write-Output "Installing"
+    Install-ADDSDomainController -DomainName (Get-WmiObject win32_computersystem).Domain -InstallDns -SafeModeAdministratorPassword $password -Credential $domaincred -Force
+    } Catch {
+        Write-Output "Install failed:"
+        Write-Output $_.Exception.Message
+    } 
+}
+}
 
 Function Move-OperationMasterRoles {
 Param(
@@ -157,7 +151,7 @@ Param(
 )
 <# 
 ########################################################
-Updating the NTDS Object DNS hostname for FSMO migration
+Updating the NTDS Object DNS hostname for FSMO migration.
 ########################################################
     Try {
         $siteName = nltest /server:TESTSRV-2016 /dsgetsite
@@ -168,13 +162,14 @@ Updating the NTDS Object DNS hostname for FSMO migration
         $fqdns = $ComputerName + "." + (Get-ADDomain).DNSRoot    
 
         Set-ADObject -Identity $serverReference.DistinguishedName -Add @{dNSHostName=$fqdns}
-
-        Move-ADDirectoryServerOperationMasterRole -Identity $ComputerName -OperationMasterRole 0,1,2,3,4
     } Catch {
-        Write-Host $_.Exception.Message
+    } #>
+    Try {
+        Move-ADDirectoryServerOperationMasterRole -Identity $ComputerName -OperationMasterRole 0,1,2,3,4 -Confirm:$false -ErrorAction Stop
+        Write-Output "All Operation Master roles were successfully migrated."
+    } Catch {
+            Write-Output $_.Exception.message
     }
-    #>
-    Move-ADDirectoryServerOperationMasterRole -Identity $ComputerName -OperationMasterRole 0,1,2,3,4
 }
 
 Function Get-CredentialObject {
@@ -211,4 +206,4 @@ Function Start-RebootCheck {
                 }
             } While ($down)
         Write-Output "The WinRM service is started and the reboot was successful."
-    }
+}
