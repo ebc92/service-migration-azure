@@ -1,26 +1,32 @@
 ﻿Function Start-ADDCDeploymentProcess {
 
 Param (
-    $domain,
-    $addresses,
-    $pw,
-    $computer
+    [Parameter(Mandatory=$true)]$domain,
+    [Parameter(Mandatory=$true)]$addresses,
+    [Parameter(Mandatory=$true)]$pw,
+    [Parameter(Mandatory=$true)]$computer
 )
 
-    $domaincred = Get-Credential
-    $cred = Get-Credential
+    $DomainCredential = Get-CredentialObject -domain $domain
+    $Credential = Get-CredentialObject
 
     $CfgDns = {
     
         Param(
             $p1,
             $p2,
-            $p3
+            $p3,
+            $p4
         )
         
         Function Configure-DomainDNS {
 
-        Param($addresses, $domain, $computer)
+        Param(
+        $addresses, 
+        $domain, 
+        $computer,
+        $DomainCredential
+        )
 
         Process {
             Try {
@@ -43,27 +49,29 @@ Param (
                 Write-Host $_.Exception.Message
             }
             Try {
-                Add-Computer -ComputerName $computer -DomainName $domain -Credential $domaincred
+                Add-Computer -ComputerName $computer -DomainName $domain -Credential $DomainCredential
             } Catch {
                 Write-Host $_.Exception.Message
             }
         }
         }
 
-    Configure-DomainDNS -addresses $p1 -domain $p2 -computer $p3 
+    Configure-DomainDNS -addresses $p1 -domain $p2 -computer $p3 -DomainCredential $p4
     }
     
-    Invoke-Command -ComputerName $computer -ScriptBlock $CfgDns -ArgumentList $addresses,$domain,$computer -Credential $cred
-    Reboot-and-Deploy -computer $computer -credential $domaincred -pw $pw
+    Invoke-Command -ComputerName $computer -ScriptBlock $CfgDns -ArgumentList $addresses,$domain,$computer,$DomainCredential -Credential $Credential
+    Reboot-and-Deploy -computer $computer -credential $DomainCredential -pw $pw -functionDeployDC ${Function:Deploy-DomainController}
     
 } 
 
 Workflow Reboot-and-Deploy {
 
 Param(
-    $pw,
-    $computer,
-    $credential
+    [Parameter(Mandatory=$true)] $pw,
+    [Parameter(Mandatory=$true)] $computer,
+    [Parameter(Mandatory=$true)] $credential,
+    $FunctionDeployDC,
+    $FunctionRebootCheck
 )
 
     Restart-Computer -PSComputerName $computer -Force -Wait -For WinRM
@@ -73,11 +81,53 @@ Param(
         $depDC = {
 
         Param (
-            $p1,
-            $p2
+            $DeployFunction,
+            $DomainPassword,
+            $DomainCredential
+        )
+
+        New-Item -Path function: -Name Deploy-DomainController -Value $DeployFunction
+
+        Deploy-DomainController -pw $DomainPassword -domaincred $DomainCredential
+
+        }
+              
+        Invoke-Command -ComputerName $using:computer -ScriptBlock $depDC -ArgumentList $using:FunctionDeployDC,$using:pw,$using:credential -Credential $using:credential
+
+        
+    }
+
+    Start-RebootCheck -ComputerName $computer
+
+    InlineScript {
+
+        $postDep = {
+
+        Param(
+            $FunctionMoveFSMO,
+            $ComputerName
         )
             
-        Function Deploy-DomainController {
+            New-Item -Path function: -Name Move-OperationMasterRoles -Value $FunctionMoveFSMO
+            Move-OperationMasterRoles -ComputerName $ComputerName
+        
+            $query = netdom query fsmo
+            $master = $query[0] | % { $_.Split(" ")} | select -last 1
+
+            repadmin /kcc
+            repadmin /replicate $env:COMPUTERNAME $master $domain.DistinguishedName /full
+
+            Move-OperationMasterRoles -ComputerName $computer
+        }
+
+        Invoke-Command -ComputerName $using:computer -ScriptBlock $postDep -ArgumentList ${function:Move-OperationMasterRoles},$using:computer
+        
+    }
+
+    Write-Output "End of script"
+}
+
+Function Deploy-DomainController {
 
         Param($pw, $domaincred)
 
@@ -99,68 +149,69 @@ Param(
                     Write-Host $_.Exception.Message
                 }
 
-                $query = netdom query fsmo
-                $master = $query[0] | % { $_.Split(" ")} | select -last 1
-
-                Start-RebootTest -ComputerName $computer
-
-                repadmin /kcc
-                repadmin /replicate $env:COMPUTERNAME $master $domain.DistinguishedName /full
-
-                Move-OperationMasterRoles -ComputerName $computer
+                
             }
         }
-
-        Deploy-DomainController -pw $p1 -domaincred $p2
-        }
-              
-        Invoke-Command -Credential $using:credential -ScriptBlock $depDC -ArgumentList $using:pw,$using:credential -ComputerName $using:computer 
-        
-        Write-host "EOS"
-    }
-}
 
 Function Move-OperationMasterRoles {
 Param(
     $ComputerName
 )
-<#
+<# 
+########################################################
+Updating the NTDS Object DNS hostname for FSMO migration
+########################################################
     Try {
-        #Building the server container DN to get the server reference
         $siteName = nltest /server:TESTSRV-2016 /dsgetsite
         $configNCDN = (Get-ADRootDSE).ConfigurationNamingContext
         $siteContainerDN = (“CN=Sites,” + $configNCDN)
         $serverContainerDN = “CN=Servers,CN=” + $siteName[0] + “,” + $siteContainerDN
         $serverReference = Get-ADObject -SearchBase $serverContainerDN –filter {(name -eq $ComputerName)} -Properties "DistinguishedName"
-        Write-Output $serverReference
+        $fqdns = $ComputerName + "." + (Get-ADDomain).DNSRoot    
 
-        $fqdns = $ComputerName + "." + (Get-ADDomain).DNSRoot
-
-        #Update DNS hostname by server reference
-        
         Set-ADObject -Identity $serverReference.DistinguishedName -Add @{dNSHostName=$fqdns}
 
+        Move-ADDirectoryServerOperationMasterRole -Identity $ComputerName -OperationMasterRole 0,1,2,3,4
     } Catch {
         Write-Host $_.Exception.Message
     }
     #>
     Move-ADDirectoryServerOperationMasterRole -Identity $ComputerName -OperationMasterRole 0,1,2,3,4
-    #Verify netdom query fsmo
 }
 
-Function Start-RebootTest {
+Function Get-CredentialObject {
 Param (
-    $ComputerName
+    $domain
 )
+    $user = "Administrator"
 
-    $down = $true
-        Do {
-            Try {
-                Test-WSMan -ComputerName testsrv-2 -ErrorAction Stop
-                $down = $false
-            } Catch {
-                Write-Output "There was an error ermagherd"
-            }
-        } While ($down)
-    return $down
+    $password = Read-Host -Prompt "Enter credential password:" -AsSecureString
+
+    if($domain -ne $null) {
+        
+        $username = "$domain\$user"
+    } else {
+    $username = $user
+    }
+    
+    $credential = New-Object System.Management.Automation.PSCredential($username, $password)
+
+    return $credential
 }
+
+Function Start-RebootCheck {
+    Param (
+        $ComputerName
+    )
+
+        $down = $true
+            Do {
+                Try {
+                    Test-WSMan -ComputerName $ComputerName -ErrorAction Stop
+                    $down = $false
+                } Catch {
+                    Write-Output "There was an error ermagherd"
+                }
+            } While ($down)
+        return $down
+    }
