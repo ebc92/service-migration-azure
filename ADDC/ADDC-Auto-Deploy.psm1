@@ -102,8 +102,12 @@ Param(
                 $query = netdom query fsmo
                 $master = $query[0] | % { $_.Split(" ")} | select -last 1
 
+                Start-RebootTest -ComputerName $computer
+
                 repadmin /kcc
                 repadmin /replicate $env:COMPUTERNAME $master $domain.DistinguishedName /full
+
+                Move-OperationMasterRoles -ComputerName $computer
             }
         }
 
@@ -115,10 +119,6 @@ Param(
         Write-host "EOS"
     }
 }
-
-<# TODO
-Update "dNSHostName"-attribute on object: 'CN=TESTSRV-2016,CN=Servers,CN=Default-First-Site-Name,CN=Sites,CN=Configuration,DC=amstel,DC=local'
-#>
 
 Function Move-OperationMasterRoles {
 Param(
