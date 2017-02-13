@@ -74,7 +74,7 @@ Param(
     $FunctionRebootCheck
 )
 
-    Restart-Computer -PSComputerName $computer -Force -Wait -For WinRM
+    Restart-Computer -PSComputerName $computer -Force -Wait -For WinRM -Credential $credential
 
     InlineScript {
      
@@ -183,15 +183,14 @@ Param (
 )
     $user = "Administrator"
 
-    $password = Read-Host -Prompt "Enter credential password:" -AsSecureString
-
-    if($domain -ne $null) {
-        
+    if ($domain -ne $null){
         $username = "$domain\$user"
+        $password = Read-Host -Prompt "Enter domain Administrator password" -AsSecureString
     } else {
-    $username = $user
+        $username = $user
+        $password = Read-Host -Prompt "Enter local Administrator password" -AsSecureString
     }
-    
+        
     $credential = New-Object System.Management.Automation.PSCredential($username, $password)
 
     return $credential
