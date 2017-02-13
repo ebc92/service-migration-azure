@@ -120,7 +120,7 @@ Param(
             Move-OperationMasterRoles -ComputerName $computer
         }
 
-        Invoke-Command -ComputerName $using:computer -ScriptBlock $postDep -ArgumentList ${function:Move-OperationMasterRoles},$using:computer
+        Invoke-Command -ComputerName $using:computer -ScriptBlock $postDep -ArgumentList ${function:Move-OperationMasterRoles},$using:computer -Credential $using:credential
         
     }
 
@@ -147,9 +147,7 @@ Function Deploy-DomainController {
                 } Catch {
                     Write-Host "Install failed:"
                     Write-Host $_.Exception.Message
-                }
-
-                
+                } 
             }
         }
 
@@ -210,8 +208,8 @@ Function Start-RebootCheck {
                     Test-WSMan -ComputerName $ComputerName -ErrorAction Stop
                     $down = $false
                 } Catch {
-                    Write-Output "There was an error ermagherd"
+                    Write-Output "Waiting for reboot to finish."
                 }
             } While ($down)
-        return $down
+        Write-Output "The WinRM service is started and the reboot was successful."
     }
