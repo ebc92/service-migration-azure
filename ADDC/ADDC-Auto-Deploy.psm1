@@ -61,7 +61,7 @@ Param (
     }
     
     Invoke-Command -ComputerName $ComputerName -ScriptBlock $CfgDns -ArgumentList $DNS,$Domain,$ComputerName,$DomainCredential -Credential $Credential
-    Reboot-and-Deploy -computer $ComputerName -credential $DomainCredential -LocalCredential $Credential -pw $Password -functionDeployDC ${Function:Deploy-DomainController}
+    Reboot-and-Deploy -ComputerName $ComputerName -DomainCredential $DomainCredential -LocalCredential $Credential -pw $Password -functionDeployDC ${Function:Deploy-DomainController}
 
             . ..\Support\Start-RebootCheck.ps1
 
@@ -95,13 +95,13 @@ Workflow Reboot-and-Deploy {
 
 Param(
     [Parameter(Mandatory=$true)] $pw,
-    [Parameter(Mandatory=$true)] $computer,
+    [Parameter(Mandatory=$true)] $ComputerName,
     [Parameter(Mandatory=$true)] $LocalCredential,
     [Parameter(Mandatory=$true)] $DomainCredential,
     [Parameter(Mandatory=$true)] $FunctionDeployDC
 )
 
-    Restart-Computer -PSComputerName $computer -Protocol WSMan -Force -Wait -For WinRM -PSCredential $LocalCredential
+    Restart-Computer -PSComputerName $ComputerName -Protocol WSMan -Force -Wait -For WinRM -PSCredential $LocalCredential
 
     InlineScript {
      
@@ -119,7 +119,7 @@ Param(
 
         }
               
-        Invoke-Command -ComputerName $using:computer -ScriptBlock $depDC -ArgumentList $using:FunctionDeployDC,$using:pw,$using:DomainCredential -Credential $using:DomainCredential
+        Invoke-Command -ComputerName $using:ComputerName -ScriptBlock $depDC -ArgumentList $using:FunctionDeployDC,$using:pw,$using:DomainCredential -Credential $using:DomainCredential
 
     }
 
