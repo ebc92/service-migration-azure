@@ -1,10 +1,14 @@
 ﻿Function Start-ADDCDeploymentProcess {
 
 Param (
-    [Parameter(Mandatory=$true)]$Domain,
-    [Parameter(Mandatory=$true)]$DNS,
-    [Parameter(Mandatory=$true)]$Password,
-    [Parameter(Mandatory=$true)]$ComputerName
+    [Parameter(Mandatory=$true)]
+    [string]$Domain,
+    [Parameter(Mandatory=$true)]
+    [string]$DNS,
+    [Parameter(Mandatory=$true)]
+    [string]$Password,
+    [Parameter(Mandatory=$true)]
+    [string]$ComputerName
 )
     . ..\Support\Get-GredentialObject.ps1
 
@@ -61,32 +65,7 @@ Param (
     }
     
     Invoke-Command -ComputerName $ComputerName -ScriptBlock $CfgDns -ArgumentList $DNS,$Domain,$ComputerName,$DomainCredential -Credential $Credential
-    Reboot-and-Deploy -ComputerName $ComputerName -DomainCredential $DomainCredential -LocalCredential $Credential -pw $Password -functionDeployDC ${Function:Deploy-DomainController}
-
-            . ..\Support\Start-RebootCheck.ps1
-
-        Start-RebootCheck -ComputerName $ComputerName
-
-        Start-sleep -s 30
-
-        $postDep = {
-
-        Param(
-            $FunctionMoveFSMO
-        )
-            
-            New-Item -Path function: -Name Move-OperationMasterRoles -Value $FunctionMoveFSMO
-
-            $query = netdom query fsmo
-            $master = $query[0] | % { $_.Split(" ")} | select -last 1
-
-            repadmin /kcc
-            repadmin /replicate $env:COMPUTERNAME $master (Get-ADDomain).DistinguishedName /full
-
-            Move-OperationMasterRoles -ComputerName $env:COMPUTERNAME
-        }
-
-        Invoke-Command -ComputerName $ComputerName -ScriptBlock $postDep -ArgumentList ${Function:Move-OperationMasterRoles} -Credential $DomainCredential
+    Reboot-and-Deploy -ComputerName $ComputerName -DomainCredential $DomainCredential -LocalCredential $Credential -pw $Password -functionDeployDC ${Function:Deploy-DomainController} -FunctionMoveFSMO ${Function:Move-OperationMasterRoles}
 
     Write-Output "End of script"
 } 
@@ -94,14 +73,23 @@ Param (
 Workflow Reboot-and-Deploy {
 
 Param(
-    [Parameter(Mandatory=$true)] $pw,
-    [Parameter(Mandatory=$true)] $ComputerName,
-    [Parameter(Mandatory=$true)] $LocalCredential,
-    [Parameter(Mandatory=$true)] $DomainCredential,
-    [Parameter(Mandatory=$true)] $FunctionDeployDC
+    [Parameter(Mandatory=$true)] 
+    [string]$Password,
+    [Parameter(Mandatory=$true)]
+    [string]$ComputerName,
+    [Parameter(Mandatory=$true)] 
+    [System.Management.Automation.PSCredential]
+    $LocalCredential,
+    [Parameter(Mandatory=$true)]
+    [System.Management.Automation.PSCredential]
+    $DomainCredential,
+    [Parameter(Mandatory=$true)]
+    $FunctionDeployDC,
+    [Parameter(Mandatory=$true)]
+    $FunctionMoveFSMO
 )
 
-    Restart-Computer -PSComputerName $ComputerName -Protocol WSMan -Force -Wait -For WinRM -PSCredential $LocalCredential
+    Restart-Computer -PSComputerName $ComputerName -Protocol WSMan -Force -PSCredential $LocalCredential
 
     InlineScript {
      
@@ -121,6 +109,30 @@ Param(
               
         Invoke-Command -ComputerName $using:ComputerName -ScriptBlock $depDC -ArgumentList $using:FunctionDeployDC,$using:pw,$using:DomainCredential -Credential $using:DomainCredential
 
+    }
+
+    Restart-Computer -ComputerName $ComputerName -Protocol WSMan -Credential $DomainCredential -Force
+
+    InlineScript {
+
+        $postDep = {
+
+        Param(
+            $FunctionMoveFSMO
+        )
+            
+            New-Item -Path function: -Name Move-OperationMasterRoles -Value $FunctionMoveFSMO
+
+            $query = netdom query fsmo
+            $master = $query[0] | % { $_.Split(" ")} | select -last 1
+
+            repadmin /kcc
+            repadmin /replicate $env:COMPUTERNAME $master (Get-ADDomain).DistinguishedName /full
+
+            Move-OperationMasterRoles -ComputerName $env:COMPUTERNAME
+        }
+
+        Invoke-Command -ComputerName $using:ComputerName -ScriptBlock $postDep -ArgumentList $using:FunctionMoveFSMO -Credential $using:DomainCredential
     }
 
 }
