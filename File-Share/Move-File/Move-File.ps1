@@ -17,14 +17,13 @@ Param(
     $Date,
     $MoveFile
     )
-    $Credential = Get-Credential
-    Begin {
-    Invoke-Command -ComputerName $using:TarComputer -Credential $using:credential -ScriptBlock {
-    Install-WindowsFeature -Name "FileAndStorage-Services" -IncludeAllSubFeature -IncludeManagementTools -Restart
-    }
 
-    }
     Process {
+    $Credential = Get-Credential
+    $DeployFileShare = 'Install-WindowsFeature -Name "FileAndStorage-Services" -IncludeAllSubFeature -IncludeManagementTools -Restart'
+    Invoke-Command -ComputerName $TarComputer -Credential $Credential -ScriptBlock { 
+    $DeployFileShare    
+    }
     #Do until loop that checks if the Path is a container, and valid
     do { 
         $SourcePath = Read-Host('Please input the source path for your network share, ie \\fileshare')
