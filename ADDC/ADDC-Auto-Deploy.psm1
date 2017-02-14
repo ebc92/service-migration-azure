@@ -35,10 +35,10 @@ Param (
                 #Logging
                 Write-Host "Configuring DNS on adapter $($interface[0].InterfaceDescription)"
 
-                Set-DnsClientServerAddress -InterfaceIndex $interface.ifIndex -ServerAddresses($addresses)
+                Set-DnsClientServerAddress -InterfaceIndex $interface.ifIndex -ServerAddresses($DNS)
                     
-                $dns = Get-DnsClientServerAddress | Select InterfaceIndex,AddressFamily,ServerAddresses
-                foreach ($element in $dns) {
+                $DNSClient = Get-DnsClientServerAddress | Select InterfaceIndex,AddressFamily,ServerAddresses
+                foreach ($element in $DNSClient) {
                     If ($element.InterfaceIndex -eq $interface[0].ifIndex -and $element.AddressFamily -eq 2){
                             #Logging
                             Write-Host $element.ServerAddresses
@@ -50,7 +50,7 @@ Param (
                 Write-Host $_.Exception.Message
             }
             Try {
-                Add-Computer -ComputerName $computer -DomainName $domain -Credential $DomainCredential
+                Add-Computer -ComputerName $ComputerName -DomainName $domain -Credential $DomainCredential
             } Catch {
                 Write-Host $_.Exception.Message
             }
@@ -61,47 +61,13 @@ Param (
     }
     
     Invoke-Command -ComputerName $ComputerName -ScriptBlock $CfgDns -ArgumentList $DNS,$Domain,$ComputerName,$DomainCredential -Credential $Credential
-    Reboot-and-Deploy -computer $ComputerName -credential $DomainCredential -pw $Password -functionDeployDC ${Function:Deploy-DomainController} -FunctionMoveFSMO ${Function:Move-OperationMasterRoles}
-} 
+    Reboot-and-Deploy -computer $ComputerName -credential $DomainCredential -LocalCredential $Credential -pw $Password -functionDeployDC ${Function:Deploy-DomainController}
 
-Workflow Reboot-and-Deploy {
+            . ..\Support\Start-RebootCheck.ps1
 
-Param(
-    [Parameter(Mandatory=$true)] $pw,
-    [Parameter(Mandatory=$true)] $computer,
-    [Parameter(Mandatory=$true)] $credential,
-    [Parameter(Mandatory=$true)] $FunctionDeployDC,
-    [Parameter(Mandatory=$true)] $FunctionMoveFSMO
-)
+        Start-RebootCheck -ComputerName $ComputerName
 
-    Restart-Computer -PSComputerName $computer -Protocol WSMan -Force -Wait -For WinRM
-
-    InlineScript {
-     
-        $depDC = {
-
-        Param (
-            $DeployFunction,
-            $DomainPassword,
-            $DomainCredential
-        )
-
-        New-Item -Path function: -Name Deploy-DomainController -Value $DeployFunction
-
-        Deploy-DomainController -pw $DomainPassword -domaincred $DomainCredential
-
-        }
-              
-        Invoke-Command -ComputerName $using:computer -ScriptBlock $depDC -ArgumentList $using:FunctionDeployDC,$using:pw,$using:credential -Credential $using:credential
-
-        
-    }
-
-    InlineScript {
-
-        . ..\Support\Start-RebootCheck.ps1
-
-        Start-RebootCheck -ComputerName $computer
+        Start-sleep -s 30
 
         $postDep = {
 
@@ -120,10 +86,43 @@ Param(
             Move-OperationMasterRoles -ComputerName $env:COMPUTERNAME
         }
 
-        Invoke-Command -ComputerName $using:computer -ScriptBlock $postDep -ArgumentList $using:FunctionMoveFSMO -Credential $using:credential  
-    }
+        Invoke-Command -ComputerName $ComputerName -ScriptBlock $postDep -ArgumentList ${Function:Move-OperationMasterRoles} -Credential $DomainCredential
 
     Write-Output "End of script"
+} 
+
+Workflow Reboot-and-Deploy {
+
+Param(
+    [Parameter(Mandatory=$true)] $pw,
+    [Parameter(Mandatory=$true)] $computer,
+    [Parameter(Mandatory=$true)] $LocalCredential,
+    [Parameter(Mandatory=$true)] $DomainCredential,
+    [Parameter(Mandatory=$true)] $FunctionDeployDC
+)
+
+    Restart-Computer -PSComputerName $computer -Protocol WSMan -Force -Wait -For WinRM -PSCredential $LocalCredential
+
+    InlineScript {
+     
+        $depDC = {
+
+        Param (
+            $DeployFunction,
+            $DomainPassword,
+            $DomainCredential
+        )
+
+        New-Item -Path function: -Name Deploy-DomainController -Value $DeployFunction
+
+        Deploy-DomainController -pw $DomainPassword -domaincred $DomainCredential
+
+        }
+              
+        Invoke-Command -ComputerName $using:computer -ScriptBlock $depDC -ArgumentList $using:FunctionDeployDC,$using:pw,$using:DomainCredential -Credential $using:DomainCredential
+
+    }
+
 }
 
 Function Deploy-DomainController {
@@ -139,8 +138,8 @@ Process {
     $password = ConvertTo-SecureString $pw -AsPlainText -Force
     Try {
     #Log
-    Write-Output "Installing"
-    Install-ADDSDomainController -DomainName (Get-WmiObject win32_computersystem).Domain -InstallDns -SafeModeAdministratorPassword $password -Credential $domaincred -Force
+    Write-Output "Installing domain and promoting DC"
+    Install-ADDSDomainController -DomainName (Get-WmiObject win32_computersystem).Domain -InstallDns -SafeModeAdministratorPassword $password -Credential $domaincred -ErrorAction Stop -Force
     } Catch {
         Write-Output "Install failed:"
         Write-Output $_.Exception.Message
