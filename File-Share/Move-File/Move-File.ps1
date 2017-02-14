@@ -18,6 +18,7 @@ Param(
     $MoveFile
     )
 Process {
+    $Credential = Get-Credential
     Deploy-FileShare($TarComputer, $Credential)
     #Do until loop that checks if the Path is a container, and valid
     do { 
@@ -65,9 +66,10 @@ Workflow Deploy-FileShare {
     [parameter(Mandatory)]$TarComputer,
     [parameter(Mandatory)]$Credential
     )
-    $Credential = Get-Credential
-    $DeployFileShare = 'Install-WindowsFeature -Name "FileAndStorage-Services" -IncludeAllSubFeature -IncludeManagementTools -Restart'
-    Invoke-Command -ComputerName $TarComputer -Credential $Credential -ScriptBlock { 
-    $DeployFileShare    
+    InlineScript {
+        $DeployFileShare = 'Install-WindowsFeature -Name "FileAndStorage-Services" -IncludeAllSubFeature -IncludeManagementTools -Restart'
+        Invoke-Command -ComputerName $TarComputer -Credential $Credential -ScriptBlock { 
+            $DeployFileShare    
+        }
     }
 }
