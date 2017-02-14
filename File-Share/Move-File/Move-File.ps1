@@ -17,13 +17,8 @@ Param(
     $Date,
     $MoveFile
     )
-
-    Process {
-    $Credential = Get-Credential
-    $DeployFileShare = 'Install-WindowsFeature -Name "FileAndStorage-Services" -IncludeAllSubFeature -IncludeManagementTools -Restart'
-    Invoke-Command -ComputerName $TarComputer -Credential $Credential -ScriptBlock { 
-    $DeployFileShare    
-    }
+Process {
+    Deploy-FileShare($TarComputer, $Credential)
     #Do until loop that checks if the Path is a container, and valid
     do { 
         $SourcePath = Read-Host('Please input the source path for your network share, ie \\fileshare')
@@ -62,5 +57,17 @@ Param(
         $MoveFile
         )
         Start-Process robocopy -NoNewWindow -Wait -args "$MoveFile" } -ArgumentList $MoveFile
+    }
+}
+
+Workflow Deploy-FileShare {
+    param(
+    [parameter(Mandatory)]$TarComputer,
+    [parameter(Mandatory)]$Credential
+    )
+    $Credential = Get-Credential
+    $DeployFileShare = 'Install-WindowsFeature -Name "FileAndStorage-Services" -IncludeAllSubFeature -IncludeManagementTools -Restart'
+    Invoke-Command -ComputerName $TarComputer -Credential $Credential -ScriptBlock { 
+    $DeployFileShare    
     }
 }
