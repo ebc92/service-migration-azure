@@ -8,19 +8,21 @@ Function Move-File {
 Param(
     [parameter(Mandatory=$true)]$SourcePath,
     [parameter(Mandatory=$true)]$DestPath,
-    [parameter(Mandatory=$true)]$Credential,
+    [parameter(Mandatory=$true)]$SourceComputer,
+    [parameter(Mandatory=$true)]$TarComputer,
+    $Credential,
     $RobCopyArgs,
     $MoveLog,
     $LogPath,
     $Date,
     $MoveFile
     )
+    $Credential = Get-Credential
     Begin {
-    Invoke-Command -ComputerName $using:computer -Credential $using:credential -ScriptBlock {
-    Function
+    Invoke-Command -ComputerName $using:TarComputer -Credential $using:credential -ScriptBlock {
     Install-WindowsFeature -Name "FileAndStorage-Services" -IncludeAllSubFeature -IncludeManagementTools -Restart
     }
-    
+
     }
     Process {
     #Do until loop that checks if the Path is a container, and valid
@@ -56,6 +58,10 @@ Param(
 
     Write-Verbose -Message "Running robocopy with the following args: $MoveFile"
 
-    Start-Process robocopy -args "$MoveFile"
+    Invoke-Command -ComputerName $using:SourceComputer -Credential $using:credential -ScriptBlock {
+        Param(
+        $MoveFile
+        )
+        Start-Process robocopy -NoNewWindow -Wait -args "$MoveFile" } -ArgumentList $MoveFile
     }
 }
