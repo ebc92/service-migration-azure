@@ -6,6 +6,7 @@ Param (
     [Parameter(Mandatory=$true)]$pw,
     [Parameter(Mandatory=$true)]$computer
 )
+    . ..\Support\Get-GredentialObject.ps1
 
     $DomainCredential = Get-CredentialObject -domain $domain
     $Credential = Get-CredentialObject
@@ -69,8 +70,8 @@ Param(
     [Parameter(Mandatory=$true)] $pw,
     [Parameter(Mandatory=$true)] $computer,
     [Parameter(Mandatory=$true)] $credential,
-    $FunctionDeployDC,
-    $FunctionMoveFSMO
+    [Parameter(Mandatory=$true)] $FunctionDeployDC,
+    [Parameter(Mandatory=$true)] $FunctionMoveFSMO
 )
 
     Restart-Computer -PSComputerName $computer -Force -Wait -For WinRM
@@ -96,9 +97,11 @@ Param(
         
     }
 
-    Start-RebootCheck -ComputerName $computer
-
     InlineScript {
+
+        . ..\Support\Start-RebootCheck.ps1
+
+        Start-RebootCheck -ComputerName $computer
 
         $postDep = {
 
@@ -170,40 +173,4 @@ Updating the NTDS Object DNS hostname for FSMO migration.
     } Catch {
             Write-Output $_.Exception.message
     }
-}
-
-Function Get-CredentialObject {
-Param (
-    $domain
-)
-    $user = "Administrator"
-
-    if ($domain -ne $null){
-        $username = "$domain\$user"
-        $password = Read-Host -Prompt "Enter domain Administrator password" -AsSecureString
-    } else {
-        $username = $user
-        $password = Read-Host -Prompt "Enter local Administrator password" -AsSecureString
-    }
-        
-    $credential = New-Object System.Management.Automation.PSCredential($username, $password)
-
-    return $credential
-}
-
-Function Start-RebootCheck {
-    Param (
-        $ComputerName
-    )
-
-        $down = $true
-            Do {
-                Try {
-                    Test-WSMan -ComputerName $ComputerName -ErrorAction Stop
-                    $down = $false
-                } Catch {
-                    Write-Output "Waiting for reboot to finish."
-                }
-            } While ($down)
-        Write-Output "The WinRM service is started and the reboot was successful."
 }
