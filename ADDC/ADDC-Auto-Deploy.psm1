@@ -1,31 +1,31 @@
 ﻿Function Start-ADDCDeploymentProcess {
 
 Param (
-    [Parameter(Mandatory=$true)]$domain,
-    [Parameter(Mandatory=$true)]$addresses,
-    [Parameter(Mandatory=$true)]$pw,
-    [Parameter(Mandatory=$true)]$computer
+    [Parameter(Mandatory=$true)]$Domain,
+    [Parameter(Mandatory=$true)]$DNS,
+    [Parameter(Mandatory=$true)]$Password,
+    [Parameter(Mandatory=$true)]$ComputerName
 )
     . ..\Support\Get-GredentialObject.ps1
 
-    $DomainCredential = Get-CredentialObject -domain $domain
+    $DomainCredential = Get-CredentialObject -domain $Domain
     $Credential = Get-CredentialObject
 
     $CfgDns = {
     
         Param(
-            $p1,
-            $p2,
-            $p3,
-            $p4
+            $DNS,
+            $Domain,
+            $ComputerName,
+            $DomainCredential
         )
         
         Function Configure-DomainDNS {
 
         Param(
-        $addresses, 
-        $domain, 
-        $computer,
+        $DNS, 
+        $Domain, 
+        $ComputerName,
         $DomainCredential
         )
 
@@ -57,11 +57,11 @@ Param (
         }
         }
 
-    Configure-DomainDNS -addresses $p1 -domain $p2 -computer $p3 -DomainCredential $p4
+    Configure-DomainDNS -DNS $DNS -Domain $Domain -ComputerName $ComputerName -DomainCredential $DomainCredential
     }
     
-    Invoke-Command -ComputerName $computer -ScriptBlock $CfgDns -ArgumentList $addresses,$domain,$computer,$DomainCredential -Credential $Credential
-    Reboot-and-Deploy -computer $computer -credential $DomainCredential -pw $pw -functionDeployDC ${Function:Deploy-DomainController} -FunctionMoveFSMO ${Function:Move-OperationMasterRoles}
+    Invoke-Command -ComputerName $ComputerName -ScriptBlock $CfgDns -ArgumentList $DNS,$Domain,$ComputerName,$DomainCredential -Credential $Credential
+    Reboot-and-Deploy -computer $ComputerName -credential $DomainCredential -pw $Password -functionDeployDC ${Function:Deploy-DomainController} -FunctionMoveFSMO ${Function:Move-OperationMasterRoles}
 } 
 
 Workflow Reboot-and-Deploy {
@@ -74,7 +74,7 @@ Param(
     [Parameter(Mandatory=$true)] $FunctionMoveFSMO
 )
 
-    Restart-Computer -PSComputerName $computer -Force -Wait -For WinRM
+    Restart-Computer -PSComputerName $computer -Protocol WSMan -Force -Wait -For WinRM
 
     InlineScript {
      
