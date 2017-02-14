@@ -65,7 +65,7 @@ Param (
     }
     
     Invoke-Command -ComputerName $ComputerName -ScriptBlock $CfgDns -ArgumentList $DNS,$Domain,$ComputerName,$DomainCredential -Credential $Credential
-    Reboot-and-Deploy -ComputerName $ComputerName -DomainCredential $DomainCredential -LocalCredential $Credential -pw $Password -functionDeployDC ${Function:Deploy-DomainController} -FunctionMoveFSMO ${Function:Move-OperationMasterRoles}
+    Reboot-and-Deploy -ComputerName $ComputerName -DomainCredential $DomainCredential -LocalCredential $Credential -Password $Password -functionDeployDC ${Function:Deploy-DomainController} -FunctionMoveFSMO ${Function:Move-OperationMasterRoles}
 
     Write-Output "End of script"
 } 
@@ -89,7 +89,7 @@ Param(
     $FunctionMoveFSMO
 )
 
-    Restart-Computer -PSComputerName $ComputerName -Protocol WSMan -Force -PSCredential $LocalCredential
+    Restart-Computer -PSComputerName $ComputerName -Protocol WSMan -Wait -Force -PSCredential $LocalCredential
 
     InlineScript {
      
@@ -107,11 +107,11 @@ Param(
 
         }
               
-        Invoke-Command -ComputerName $using:ComputerName -ScriptBlock $depDC -ArgumentList $using:FunctionDeployDC,$using:pw,$using:DomainCredential -Credential $using:DomainCredential
+        Invoke-Command -ComputerName $using:ComputerName -ScriptBlock $depDC -ArgumentList $using:FunctionDeployDC,$using:Password,$using:DomainCredential -Credential $using:DomainCredential
 
     }
 
-    Restart-Computer -ComputerName $ComputerName -Protocol WSMan -Credential $DomainCredential -Force
+    Restart-Computer -PSComputerName $ComputerName -Protocol WSMan -Wait -Force -PSCredential $DomainCredential 
 
     InlineScript {
 
@@ -123,11 +123,14 @@ Param(
             
             New-Item -Path function: -Name Move-OperationMasterRoles -Value $FunctionMoveFSMO
 
-            $query = netdom query fsmo
-            $master = $query[0] | % { $_.Split(" ")} | select -last 1
-
             repadmin /kcc
-            repadmin /replicate $env:COMPUTERNAME $master (Get-ADDomain).DistinguishedName /full
+
+            $FSMO = netdom query fsmo
+            $Master = $FSMO[0] | % { $_.Split(" ")} | select -last 1
+            $Root = [ADSI]"LDAP://RootDSE"
+            $DomainDN = $Root.Get("rootDomainNamingContext")
+
+            repadmin /replicate $env:COMPUTERNAME $Master $DomainDN /full
 
             Move-OperationMasterRoles -ComputerName $env:COMPUTERNAME
         }
