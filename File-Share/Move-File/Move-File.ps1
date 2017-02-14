@@ -6,14 +6,23 @@
 
 Function Move-File {
 Param(
-    $SourcePath,
-    $DestPath,
+    [parameter(Mandatory=$true)]$SourcePath,
+    [parameter(Mandatory=$true)]$DestPath,
+    [parameter(Mandatory=$true)]$Credential,
     $RobCopyArgs,
     $MoveLog,
     $LogPath,
     $Date,
     $MoveFile
     )
+    Begin {
+    Invoke-Command -ComputerName $using:computer -Credential $using:credential -ScriptBlock {
+    Function
+    Install-WindowsFeature -Name "FileAndStorage-Services" -IncludeAllSubFeature -IncludeManagementTools -Restart
+    }
+    
+    }
+    Process {
     #Do until loop that checks if the Path is a container, and valid
     do { 
         $SourcePath = Read-Host('Please input the source path for your network share, ie \\fileshare')
@@ -41,11 +50,12 @@ Param(
     #Writes all info to a $RobCopyArgs, and starts robocopy. This also saves a logfile locally to C:\ServerMigrationLogs\File-Shares
     $MovLog = "RoboCopy-$Date.log"
     $LogPath = "C:\ServerMigrationLogs\File-Shares\$MovLog"
-    $RobCopyArgs = "/MT /E /COPYALL /R:1 /W:1 /V /TEE /log:$LogPath"
+    $RobCopyArgs = "/MT /Z /E /COPYALL /R:60 /W:1 /V /TEE /log:$LogPath"
     $Date = (Get-Date -Format ddMMMyyyy_HHmm).ToString()
     $MoveFile = "$SourcePath $DestPath $RobCopyArgs"
 
     Write-Verbose -Message "Running robocopy with the following args: $MoveFile"
 
     Start-Process robocopy -args "$MoveFile"
+    }
 }
