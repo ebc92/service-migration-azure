@@ -168,6 +168,7 @@ Param(
 )
 <# 
 ########################################################
+Commmented out for possible later use with legacy support
 Updating the NTDS Object DNS hostname for FSMO migration.
 ########################################################
     Try {
