@@ -18,12 +18,14 @@ Param(
     $Date,
     $MoveFile
     )
+
 Process {
     $username = Read-Host("Username plx")    
     $pw = Read-Host("password plx") -AsSecureString
     $Credential = New-Object System.Management.Automation.PSCredential -ArgumentList $username,$pw
 
     Deploy-FileShare -TarComputer $TarComputer -credential $Credential
+
     #Do until loop that checks if the Path is a container, and valid
     do { 
         $SourcePath = Read-Host('Please input the source path for your network share, ie \\fileshare')
@@ -65,6 +67,7 @@ Process {
         Start-Sleep -s 30
         RoboCopy-End -LogPath $LogPath
     } until (RoboCopy-End -LogPath $LogPath = True)
+
     Write-Output("Files moved successfully")       
     }      
 }
@@ -75,13 +78,16 @@ Workflow Deploy-FileShare {
     [parameter(Mandatory)]$Credential
     )
     InlineScript {
-        Install-WindowsFeature -ComputerName $using:TarComputer -Credential $using:Credential -Name "FileAndStorage-Services" -IncludeAllSubFeature -IncludeManagementTools -Restart
+        Install-WindowsFeature -ComputerName $using:TarComputer -Credential $using:Credential -Name "FileAndStorage-Services" -IncludeAllSubFeature -IncludeManagementTools
+        Restart-Computer -PSComputerName $using:TarComputer -PSCredential $Credential -Force -Wait
         }
     }
+
 Function RoboCopy-End {
     Param(
         [string]$LogPath
     )
+
     Process {
         $tailLog = Get-Content $LogPath -tail 2
         If ($tailLog -like '*Ended :*') {
