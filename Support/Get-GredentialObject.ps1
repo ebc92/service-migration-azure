@@ -6,7 +6,9 @@ Param (
 
     if ($domain -ne $null){
         $domainname = $domain | % {$_.Split(".")}
-        $username = "$domainname[0]\$user"
+        $result = $domainname[0]
+        $username = "$result\$user"
+        Write-Output $username
         $password = Read-Host -Prompt "Enter domain Administrator password" -AsSecureString
     } else {
         $username = $user
