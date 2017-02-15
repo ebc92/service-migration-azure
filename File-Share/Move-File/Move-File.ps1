@@ -56,10 +56,17 @@ Process {
     $MoveFile = "$SourcePath $DestPath $RobCopyArgs"
 
     Write-Verbose -Message "Running robocopy with the following args: $MoveFile"
+
     Start-Process robocopy -args "$MoveFile"
     #Invoke-Command -ComputerName $SourceComputer -Credential $credential -ScriptBlock {
     #    Start-Process robocopy -args "$using:MoveFile" }
-    }
+    
+    do {
+        Start-Sleep -s 30
+        RoboCopy-End -LogPath $LogPath
+    } until (RoboCopy-End -LogPath $LogPath = True)
+    Write-Output("Files moved successfully")       
+    }      
 }
 
 Workflow Deploy-FileShare {
@@ -67,8 +74,20 @@ Workflow Deploy-FileShare {
     [parameter(Mandatory)]$TarComputer,
     [parameter(Mandatory)]$Credential
     )
-    Write-Output("$Credential")
     InlineScript {
         Install-WindowsFeature -ComputerName $using:TarComputer -Credential $using:Credential -Name "FileAndStorage-Services" -IncludeAllSubFeature -IncludeManagementTools -Restart
         }
     }
+Function RoboCopy-End {
+    Param(
+        [string]$LogPath
+    )
+    Process {
+        $tailLog = Get-Content $LogPath -tail 2
+        If ($tailLog -like '*Ended :*') {
+        Return $true
+        } else {
+        Return
+        }
+    }
+}
