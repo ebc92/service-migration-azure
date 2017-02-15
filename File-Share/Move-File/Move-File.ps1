@@ -68,7 +68,7 @@ Workflow Deploy-FileShare {
     )
     InlineScript {
         $DeployFileShare = 'Install-WindowsFeature -Name "FileAndStorage-Services" -IncludeAllSubFeature -IncludeManagementTools -Restart'
-        Invoke-Command -ComputerName $TarComputer -Credential $Credential -ScriptBlock { 
+        Invoke-Command -ComputerName $using:TarComputer -Credential $using:Credential -ScriptBlock { 
             $DeployFileShare    
         }
     }
