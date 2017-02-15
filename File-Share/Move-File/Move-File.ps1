@@ -67,10 +67,8 @@ Workflow Deploy-FileShare {
     [parameter(Mandatory)]$TarComputer,
     [parameter(Mandatory)]$Credential
     )
+    Write-Output("$Credential")
     InlineScript {
-        $DeployFileShare = 'Install-WindowsFeature -Name "FileAndStorage-Services" -IncludeAllSubFeature -IncludeManagementTools -Restart'
-        Invoke-Command -ComputerName $using:TarComputer -Credential $using:Credential -ScriptBlock { 
-            $DeployFileShare    
+        Install-WindowsFeature -ComputerName $using:TarComputer -Credential $using:Credential -Name "FileAndStorage-Services" -IncludeAllSubFeature -IncludeManagementTools -Restart
         }
     }
-}
