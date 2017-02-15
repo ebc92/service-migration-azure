@@ -58,7 +58,7 @@ Process {
     Write-Verbose -Message "Running robocopy with the following args: $MoveFile"
     Start-Process robocopy -args "$MoveFile"
     #Invoke-Command -ComputerName $SourceComputer -Credential $credential -ScriptBlock {
-    #    Start-Process -runas "$using:Credential" robocopy -args "$using:MoveFile" }
+    #    Start-Process robocopy -args "$using:MoveFile" }
     }
 }
 
