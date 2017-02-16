@@ -65,8 +65,33 @@ Param (
     }
     
     Invoke-Command -ComputerName $ComputerName -ScriptBlock $CfgDns -ArgumentList $DNS,$Domain,$ComputerName,$DomainCredential -Credential $Credential
-    Reboot-and-Deploy -ComputerName $ComputerName -DomainCredential $DomainCredential -LocalCredential $Credential -Password $Password -functionDeployDC ${Function:Deploy-DomainController} -FunctionMoveFSMO ${Function:Move-OperationMasterRoles}
+    Reboot-and-Deploy -ComputerName $ComputerName -DomainCredential $DomainCredential -LocalCredential $Credential -Password $Password -functionDeployDC ${Function:Deploy-DomainController}
 
+    . ..\Support\Start-RebootCheck.ps1
+    Start-RebootCheck -ComputerName $ComputerName -DomainCredential $DomainCredential
+
+    $postDep = {
+
+        Param(
+            $FunctionMoveFSMO
+        )
+            
+            New-Item -Path function: -Name Move-OperationMasterRoles -Value $FunctionMoveFSMO
+
+            repadmin /kcc
+
+            $FSMO = netdom query fsmo
+            $Master = $FSMO[0] | % { $_.Split(" ")} | select -last 1 | % {$_.Split(".")}
+            $Root = [ADSI]"LDAP://RootDSE"
+            $DomainDN = $Root.Get("rootDomainNamingContext")
+
+            repadmin /replicate $env:COMPUTERNAME $Master[0] $DomainDN /full
+
+            Move-OperationMasterRoles -ComputerName $env:COMPUTERNAME
+        }
+
+    Invoke-Command -ComputerName $ComputerName -ScriptBlock $postDep -ArgumentList ${Function:Move-OperationMasterRoles} -Credential $DomainCredential
+    
     Write-Output "End of script"
 } 
 
@@ -84,9 +109,7 @@ Param(
     [System.Management.Automation.PSCredential]
     $DomainCredential,
     [Parameter(Mandatory=$true)]
-    $FunctionDeployDC,
-    [Parameter(Mandatory=$true)]
-    $FunctionMoveFSMO
+    $FunctionDeployDC
 )
 
     Restart-Computer -PSComputerName $ComputerName -Protocol WSMan -Wait -Force -PSCredential $LocalCredential
@@ -111,35 +134,11 @@ Param(
 
     }
 
-    InlineScript {
-        . ..\Support\Start-RebootCheck.ps1
-        Start-RebootCheck -ComputerName $using:ComputerName -DomainCredential $using:DomainCredential
-    }
+    
+     
+    
 
-    InlineScript {
-
-        $postDep = {
-
-        Param(
-            $FunctionMoveFSMO
-        )
-            
-            New-Item -Path function: -Name Move-OperationMasterRoles -Value $FunctionMoveFSMO
-
-            repadmin /kcc
-
-            $FSMO = netdom query fsmo
-            $Master = $FSMO[0] | % { $_.Split(" ")} | select -last 1
-            $Root = [ADSI]"LDAP://RootDSE"
-            $DomainDN = $Root.Get("rootDomainNamingContext")
-
-            repadmin /replicate $env:COMPUTERNAME $Master $DomainDN /full
-
-            Move-OperationMasterRoles -ComputerName $env:COMPUTERNAME
-        }
-
-        Invoke-Command -ComputerName $using:ComputerName -ScriptBlock $postDep -ArgumentList $using:FunctionMoveFSMO -Credential $using:DomainCredential
-    }
+    
 
 }
 
