@@ -111,7 +111,10 @@ Param(
 
     }
 
-    Restart-Computer -PSComputerName $ComputerName -Protocol WSMan -Wait -Force -PSCredential $DomainCredential 
+    InlineScript {
+        . ..\Support\Start-RebootCheck.ps1
+        Start-RebootCheck -ComputerName $using:ComputerName -DomainCredential $using:DomainCredential
+    }
 
     InlineScript {
 
@@ -154,7 +157,7 @@ Process {
     Try {
     #Log
     Write-Output "Installing domain and promoting DC"
-    Install-ADDSDomainController -DomainName (Get-WmiObject win32_computersystem).Domain -InstallDns -SafeModeAdministratorPassword $password -Credential $domaincred -ErrorAction Stop -Force
+    Install-ADDSDomainController -DomainName (Get-WmiObject win32_computersystem).Domain -InstallDns -SafeModeAdministratorPassword $password -Credential $domaincred -Force
     } Catch {
         Write-Output "Install failed:"
         Write-Output $_.Exception.Message
