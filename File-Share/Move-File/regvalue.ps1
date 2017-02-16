@@ -1,28 +1,30 @@
 ﻿Function Get-RegValue {
-#args(
-#)
-
+Param(
+    [parameter(Mandatory=$true)]$SourceComputer,
+    [parameter(Mandatory=$true)]$TarComputer,
+    [parameter(Mandatory=$true)]$Credential,
+    [parameter(Mandatory=$true)]$RegPath,
+    $regvalue
+    )
 Process {
-    $sourcecomp = "158.38.43.115"
-    $tarcomp = "158.38.43.116"
-    $username = "administrator"
-    $passord = ConvertTo-SecureString "swEn5ce?" -AsPlainText -Force
-    $credential = New-Object System.Management.Automation.PSCredential -ArgumentList $username,$passord
 
-
-
-    $regname = (Invoke-Command -ComputerName $sourcecomp -Credential $credential -ScriptBlock { 
+    $RegName = (Invoke-Command -ComputerName $SourceComp -Credential $Credential -ScriptBlock { 
         Get-Item -path Registry::hklm\SYSTEM\CurrentControlSet\Services\LanmanServer\Shares\ | Select-Object -ExpandProperty Property
         } )
 
-    foreach($element in $regname) {
-        Invoke-Command -ComputerName $sourcecomp -Credential $credential -ScriptBlock {
-                $regvalue = (Get-ItemProperty -Path Registry::hklm\SYSTEM\CurrentControlSet\Services\LanmanServer\Shares\).$using:element
-                write-host("navn på export regkey er: $using:element og regname er $regname, value er `n $regvalue ")
+    foreach($element in $RegName) {
+        $RegValue = Invoke-Command -ComputerName $SourCecomp -Credential $Credential -ScriptBlock {
+                (Get-ItemProperty -Path Registry::hklm\SYSTEM\CurrentControlSet\Services\LanmanServer\Shares\).$using:element
+                #write-host("navn på export regkey er: $using:element og regname er $regname, value er `n $regvalue ")
             }
-        Invoke-Command -ComputerName $tarcomp -Credential $credential -ScriptBlock {
-                New-ItemProperty -Path Registry::hklm\SYSTEM\CurrentControlSet\Services\LanmanServer\Shares\ -Name $using:element -PropertyType String -Value $using:regvalue
-                Write-Host("Navn på import regkey er: $using:element og regname er $using:regname value er `n $using:regvalue")
+        Invoke-Command -ComputerName $TarComp -Credential $Credential -ScriptBlock {
+            if(Get-ItemProperty -name $using:element -Path $using:RegPath -ErrorAction SilentlyContinue) {
+                    Set-ItemProperty -Path $using:RegPath -Name $using:element -Value $using:RegValue
+                    #Write-Host("Fann en key, oppdaterer denne. Navn på import regkey er: $using:element og regname er $using:regname value er `n $using:regvalue")
+                } else {
+                    New-ItemProperty -Path $using:RegPath -Name $using:element -PropertyType MultiString -Value $using:RegValue
+                    #Write-Host("Ingen key oppdaget, lager ny. Navn på import regkey er: $using:element og regname er $using:regname value er `n $using:regvalue")
+                }
             }
         }
     }
