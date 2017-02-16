@@ -24,7 +24,7 @@ Process {
     $pw = Read-Host("password plx") -AsSecureString
     $Credential = New-Object System.Management.Automation.PSCredential -ArgumentList $username,$pw
 
-    Deploy-FileShare -TarComputer $TarComputer -credential $Credential
+    Deploy-FileShare -TarComputer $TarComputer -SourceComputer $SourceComputer -credential $Credential
 
     #Do until loop that checks if the Path is a container, and valid
     do { 
@@ -75,11 +75,12 @@ Process {
 Workflow Deploy-FileShare {
     Param(
     [parameter(Mandatory)]$TarComputer,
+    [parameter(Mandatory)]$SourceComputer,
     [parameter(Mandatory)]$Credential
     )
     InlineScript {
         Install-WindowsFeature -ComputerName $using:TarComputer -Credential $using:Credential -Name "FileAndStorage-Services" -IncludeAllSubFeature -IncludeManagementTools
-        Restart-Computer -PSComputerName $using:TarComputer -PSCredential $Credential -Force -Wait
+        Restart-Computer -ComputerName $using:TarComputer -Credential $using:Credential -Force -Wait
         }
     }
 
