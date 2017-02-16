@@ -1,0 +1,1 @@
+Set-DnsClientServerAddress -InterfaceIndex (Get-NetAdapter)[0].ifIndex -ServerAddresses thisismydns

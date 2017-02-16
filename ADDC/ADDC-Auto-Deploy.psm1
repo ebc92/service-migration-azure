@@ -1,4 +1,6 @@
-﻿Function Start-ADDCDeploymentProcess {
+﻿
+
+Function Start-ADDCDeploymentProcess {
 
 Param (
     [Parameter(Mandatory=$true)]
@@ -10,7 +12,7 @@ Param (
     [Parameter(Mandatory=$true)]
     [string]$ComputerName
 )
-    . ..\Support\Get-GredentialObject.ps1
+    . .\Support\Get-GredentialObject.ps1
 
     $DomainCredential = Get-CredentialObject -domain $Domain
     $Credential = Get-CredentialObject
@@ -67,7 +69,7 @@ Param (
     Invoke-Command -ComputerName $ComputerName -ScriptBlock $CfgDns -ArgumentList $DNS,$Domain,$ComputerName,$DomainCredential -Credential $Credential
     Reboot-and-Deploy -ComputerName $ComputerName -DomainCredential $DomainCredential -LocalCredential $Credential -Password $Password -functionDeployDC ${Function:Deploy-DomainController}
 
-    . ..\Support\Start-RebootCheck.ps1
+    . .\Support\Start-RebootCheck.ps1
     Start-RebootCheck -ComputerName $ComputerName -DomainCredential $DomainCredential
 
     $postDep = {
@@ -133,13 +135,6 @@ Param(
         Invoke-Command -ComputerName $using:ComputerName -ScriptBlock $depDC -ArgumentList $using:FunctionDeployDC,$using:Password,$using:DomainCredential -Credential $using:DomainCredential
 
     }
-
-    
-     
-    
-
-    
-
 }
 
 Function Deploy-DomainController {
@@ -190,4 +185,27 @@ Updating the NTDS Object DNS hostname for FSMO migration.
     } Catch {
             Write-Output $_.Exception.message
     }
+}
+
+Function Start-GpoCopy {
+Param ($DNS, $Credential )
+    Try {
+        New-Item -Name "Configure-ClientDNS.ps1" -Path '.\Support\GPO\{23479CB6-4EC3-4B0E-8DF3-A5F046CC623F}\DomainSysvol\GPO\Machine\Scripts\Startup\' `
+        -Value "Set-DnsClientServerAddress -InterfaceIndex (Get-NetAdapter)[0].ifIndex -ServerAddresses $DNS" -ErrorAction Stop
+    } Catch {
+        
+    }
+
+    New-PSDrive -PSProvider FileSystem -Name "share" -Root \\158.38.43.115\C$\Share -Credential $Credential -ErrorAction Stop
+    Copy-Item '.\Support\GPO\' -Destination share:\ -Recurse
+}
+
+Function Start-GpoImport {
+Param ($Credential)
+    New-PSDrive -PSProvider FileSystem -Name "share" -Root \\158.38.43.115\C$\Share -Credential $Credential -ErrorAction Stop
+    Copy-Item 'share:\GPO' -Recurse -Destination C:\GPO
+    $GpoName = "Post-Migration DNS GPO"
+    New-GPO -Name $GpoName
+    Import-GPO -BackupGpoName "Post-Migration DNS Update" -Path C:\GPO -TargetName $GpoName
+    New-GPLink -Name $GpoName -Target "OU=DNS Update,DC=amstel,DC=local"
 }
