@@ -26,6 +26,8 @@ Process {
 
     Deploy-FileShare -TarComputer $TarComputer -SourceComputer $SourceComputer -credential $Credential
 
+    Restart-Computer -ComputerName $TarComputer -Credential $Credential -Force -Wait
+
     #Do until loop that checks if the Path is a container, and valid
     do { 
         $SourcePath = Read-Host('Please input the source path for your network share, ie \\fileshare')
@@ -69,7 +71,11 @@ Process {
     } until (RoboCopy-End -LogPath $LogPath = True)
 
     Write-Output("Files moved successfully")       
-    }      
+            
+    Get-RegValue -SourceComputer $SourceComputer -TarComputer $TarComputer -Credential $Credential -RegPath Registry::hklm\SYSTEM\CurrentControlSet\Services\LanmanServer\Shares\
+    
+    Restart-Computer -ComputerName $TarComputer -Credential $Credential -Force -Wait
+    }     
 }
 
 Workflow Deploy-FileShare {
@@ -80,8 +86,6 @@ Workflow Deploy-FileShare {
     )
     InlineScript {
         Install-WindowsFeature -ComputerName $using:TarComputer -Credential $using:Credential -Name "FileAndStorage-Services" -IncludeAllSubFeature -IncludeManagementTools
-        Get-RegValue -SourceComputer $using:SourceComputer -TarComputer $using:TarComputer -Credential $using:Credential -RegPath Registry::hklm\SYSTEM\CurrentControlSet\Services\LanmanServer\Shares\
-        Restart-Computer -ComputerName $using:TarComputer -Credential $using:Credential -Force -Wait
         }
     }
 
