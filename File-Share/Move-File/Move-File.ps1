@@ -57,9 +57,9 @@ Process {
     Start-Process robocopy -args "$MoveFile"
     
     do {
-        Start-Sleep -s 30
-        RoboCopy-End -LogPath $LogPath
-    } until (RoboCopy-End -LogPath $LogPath = True)
+        Start-Sleep -Seconds 30
+        End-RoboCopy -LogPath $LogPath
+    } until (End-RoboCopy -LogPath $LogPath = True)
 
     Write-Output("Files moved successfully")       
             
@@ -80,7 +80,7 @@ Workflow Deploy-FileShare {
         }
     }
 
-Function RoboCopy-End {
+Function End-RoboCopy {
     Param(
         [string]$LogPath
     )
