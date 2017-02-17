@@ -6,13 +6,14 @@
     $NoConnectivity = $true
         do {
             try {
-                Write-Output "trying connection"
-                if (New-PSSession -ComputerName 158.38.43.114 -Credential $DomainCredential -ErrorAction Stop){
+                Write-Output "Trying connection to $ComputerName..."
+                if (New-PSSession -ComputerName $ComputerName -Credential $DomainCredential -ErrorAction Stop){
                 Write-Output "yay" 
                 $NoConnectivity = $false}
             } catch {
-                Write-Output "Cannot establish PowerShell connectivity to the server."
-                start-sleep -s 30
+                $RetryTime = 30
+                Write-Output "Cannot establish PowerShell connectivity to the server. Retrying in $RetryTime seconds."
+                start-sleep -s $RetryTime
             }
-        } while($bool)
+        } while ($NoConnectivity)
 }
