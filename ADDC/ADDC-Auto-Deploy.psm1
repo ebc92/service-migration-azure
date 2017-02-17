@@ -77,10 +77,13 @@ Param (
         Param(
             $FunctionMoveFSMO
         )
+
+            Clear-DnsClientCache
+            Register-DnsClient
             
             New-Item -Path function: -Name Move-OperationMasterRoles -Value $FunctionMoveFSMO
 
-            repadmin /kcc
+            #repadmin /kcc
 
             $FSMO = netdom query fsmo
             $Master = $FSMO[0] | % { $_.Split(" ")} | select -last 1 | % {$_.Split(".")}
