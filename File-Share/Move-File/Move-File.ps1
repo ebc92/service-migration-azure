@@ -41,14 +41,7 @@ Process {
 
     Write-Verbose -Message "$SourcePath is valid, checking destination path next"
 
-   # do { 
-        $DestPath = Read-Host('Please input the destination path for your network share, ie \\fileshare')
-        <#If ([string]::IsNullOrEmpty($DestPath)) {
-            $DestPath = "SomeString"
-        } else {
-            #DoNothing
-        }
-    } until (Test-Path($DestPath) -PathType Container) #>
+    $DestPath = Read-Host('Please input the destination path for your network share, ie \\fileshare')
 
     Write-Verbose -Message "Verification OK, moving files from $SourcePath to $DestPath"
 
@@ -62,8 +55,6 @@ Process {
     Write-Verbose -Message "Running robocopy with the following args: $MoveFile"
 
     Start-Process robocopy -args "$MoveFile"
-    #Invoke-Command -ComputerName $SourceComputer -Credential $credential -ScriptBlock {
-    #    Start-Process robocopy -args "$using:MoveFile" }
     
     do {
         Start-Sleep -s 30
@@ -120,15 +111,12 @@ Function Get-RegValue {
     foreach($element in $RegName) {
         $RegValue = Invoke-Command -ComputerName $SourCecomp -Credential $Credential -ScriptBlock {
                 (Get-ItemProperty -Path Registry::hklm\SYSTEM\CurrentControlSet\Services\LanmanServer\Shares\).$using:element
-                #write-host("navn på export regkey er: $using:element og regname er $regname, value er `n $regvalue ")
                 }
         Invoke-Command -ComputerName $TarComp -Credential $Credential -ScriptBlock {
             if(Get-ItemProperty -name $using:element -Path $using:RegPath -ErrorAction SilentlyContinue) {
                     Set-ItemProperty -Path $using:RegPath -Name $using:element -Value $using:RegValue
-                    #Write-Host("Fann en key, oppdaterer denne. Navn på import regkey er: $using:element og regname er $using:regname value er `n $using:regvalue")
                 } else {
                     New-ItemProperty -Path $using:RegPath -Name $using:element -PropertyType MultiString -Value $using:RegValue
-                    #Write-Host("Ingen key oppdaget, lager ny. Navn på import regkey er: $using:element og regname er $using:regname value er `n $using:regvalue")
                 }
             }
         }
