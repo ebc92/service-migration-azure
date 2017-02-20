@@ -78,8 +78,7 @@ Param (
             $FunctionMoveFSMO
         )
 
-            Clear-DnsClientCache
-            Register-DnsClient
+            Start-sleep -s 180
             
             New-Item -Path function: -Name Move-OperationMasterRoles -Value $FunctionMoveFSMO
 
