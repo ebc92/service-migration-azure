@@ -25,12 +25,24 @@ Function Start-MSSQLMigrationProcess{
   $succeeded
   
   Begin{
+    Remove-Item -Path $sLogFile
     Log-Write -LogPath $sLogFile -LineValue "Starting the MSSQL migration process.."
+    Import-Module -Name Sqlps
   }
   
   Process{
     Try{
-      
+      $ConfigPath = Get-ChildItem -Path 'C:\Program Files\Microsoft SQL Server' -Filter 'ConfigurationFile.ini' -Recurse
+
+      $PSScriptRoot
+      $Destination = '..\Libraries\Get-SQLInstance.ps1'
+      $DestinationPath = Join-Path -Path $PSScriptRoot -ChildPath $Target
+
+      . $DestinationPath
+
+      $SQLInstance = Get-SqlInstance
+
+      Backup-SqlDatabase -ServerInstance $SQLInstance -Database MyDB -BackupAction Database 
     }
     
     Catch{
@@ -46,3 +58,5 @@ Function Start-MSSQLMigrationProcess{
     }
   }
 }
+#-----------------------------------------------------------[Execution]------------------------------------------------------------
+Start-MSSQLMigrationProcess
