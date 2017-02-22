@@ -50,7 +50,7 @@ Function Log-Start{
     }
     
     #Create file and start logging
-    New-Item -Path $LogPath -Value $LogName -ItemType File
+    New-Item -Path $LogPath -Name $LogName -ItemType File
     
     Add-Content -Path $sFullPath -Value "***************************************************************************************************"
     Add-Content -Path $sFullPath -Value "Started processing at [$([DateTime]::Now)]."

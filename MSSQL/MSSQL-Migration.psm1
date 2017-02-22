@@ -13,19 +13,18 @@ $ErrorActionPreference = "Stop"
 $sScriptVersion = "0.1"
 
 #Log File Info
-$sLogPath = "C:\service-migration-azure"
+$sLogPath = "C:\Logs\service-migration-azure"
 $sLogName = "MSSQL-Migration.log"
 $sLogFile = Join-Path -Path $sLogPath -ChildPath $sLogName
 
 #-----------------------------------------------------------[Functions]------------------------------------------------------------
 
 Function Start-MSSQLMigrationProcess{
-  Param()
-
-  $succeeded
+  Param(
+    $InstanceName
+  )
   
   Begin{
-    Remove-Item -Path $sLogFile
     Log-Write -LogPath $sLogFile -LineValue "Starting the MSSQL migration process.."
     Import-Module -Name Sqlps
   }
@@ -34,19 +33,11 @@ Function Start-MSSQLMigrationProcess{
     Try{
       $ConfigPath = Get-ChildItem -Path 'C:\Program Files\Microsoft SQL Server' -Filter 'ConfigurationFile.ini' -Recurse
 
-      $PSScriptRoot
-      $Destination = '..\Libraries\Get-SQLInstance.ps1'
-      $DestinationPath = Join-Path -Path $PSScriptRoot -ChildPath $Target
-
-      . $DestinationPath
-
-      $SQLInstance = Get-SqlInstance
-
-      Backup-SqlDatabase -ServerInstance $SQLInstance -Database MyDB -BackupAction Database 
+      Backup-SqlDatabase -ServerInstance "$env:COMPUTERNAME\$InstanceName"
     }
     
     Catch{
-      Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $True
+      Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $False
       Break
     }
   }
@@ -59,4 +50,6 @@ Function Start-MSSQLMigrationProcess{
   }
 }
 #-----------------------------------------------------------[Execution]------------------------------------------------------------
+Log-Start -LogPath $sLogPath -LogName $sLogName -ScriptVersion $sScriptVersion
 Start-MSSQLMigrationProcess
+Log-Finish -LogPath $sLogFile -NoExit $True
