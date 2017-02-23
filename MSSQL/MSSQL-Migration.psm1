@@ -64,14 +64,38 @@ Function Start-MSSQLDeployment{
     Param(
     [string]$Password, 
     [string]$ConfigPath)
-    #Mount-DiskImage -ImagePath \\158.38.43.115\share\en_sql_server_2016_enterprise_x64_dvd_8701793.iso
-    $ConfigFile = 'C:\Users\Administrator.AMSTEL\Desktop\ConfigurationFile.ini'
-    $Drive = Get-WMIObject Win32_Volume -Filter "Label='SQL2016_x64_ENU'"
-    $InstallConfig = @("/ConfigurationFile=$ConfigPath", "/SAPWD=$Password")
-    $InstallSQL = "$($Drive.Caption)setup.exe" 
-    & $InstallSQL $InstallConfig
 
+    Try {
+        Log-Write -LogPath $sLogFile -LineValue "Sourcing DSC script for SQL install."
+        $DesiredState = Join-Path -Path $PSScriptRoot -ChildPath '\..\Support\DSC\InstallSQL.ps1'
+        . $DesiredState
+
+        Log-Write -LogPath $sLogFile -LineValue "Generating MOF-file from DSC script."
+        $configData = @{
+            AllNodes = @(
+                @{
+                    NodeName = "*"
+                    PSDscAllowPlainTextPassword = $true
+                }, @{
+                    NodeName = "158.38.43.114"
+                    Role = "SqlServer"
+                }
+            );
+        }
+
+        $Credential = Get-Credential
+        SQLInstall -ConfigurationData $configData -PackagePath "\\158.38.43.115\share\MSSQL" -WinSources "d:\sources\sxs" -Credential $Credential
+
+        Log-Write -LogPath $sLogFile -LineValue "Starting DSC configuration."
+        Start-DscConfiguration -ComputerName 158.38.43.114 -Path .\SQLInstall -Verbose -Wait -Force -Credential $Credential -ErrorAction Stop
+        Log-Write -LogPath $sLogFile -LineValue "DSC configuration was succcessfully executed on "
+    } Catch {
+        Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $False
+        Break
+    }
 }
+
+
 #-----------------------------------------------------------[Execution]------------------------------------------------------------
 Log-Start -LogPath $sLogPath -LogName $sLogName -ScriptVersion $sScriptVersion
 Start-MSSQLMigrationProcess -InstanceName "AMSTELSQL"
