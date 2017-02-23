@@ -50,7 +50,7 @@
         File SQLServerIniFile
         {
             Credential = $Credential
-            SourcePath = "$PackagePath\ConfigurationFile.ini"
+            SourcePath = "$PackagePath\DeploymentConfig.ini"
             DestinationPath = "c:\temp"
             Type = "File"
             Ensure = "Present"
@@ -82,7 +82,7 @@
                 Write-Verbose "Drive letter for iso is: $setupDriveLetter"
                  
                 # run the installer using the ini file
-                $cmd = "$setupDriveLetter\Setup.exe /ConfigurationFile=c:\temp\ConfigurationFile.ini /SQLSVCPASSWORD=P2ssw0rd /AGTSVCPASSWORD=P2ssw0rd /SAPWD=P2ssw0rd"
+                $cmd = "$setupDriveLetter\Setup.exe /ConfigurationFile=c:\temp\DeploymentConfig.ini /SQLSVCPASSWORD=P2ssw0rd /AGTSVCPASSWORD=P2ssw0rd /SAPWD=P2ssw0rd"
                 Write-Verbose "Running SQL Install - check %programfiles%\Microsoft SQL Server\120\Setup Bootstrap\Log\ for logs..."
                 Invoke-Expression $cmd | Write-Verbose
             }

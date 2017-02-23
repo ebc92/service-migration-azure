@@ -20,7 +20,10 @@ $sLogFile = Join-Path -Path $sLogPath -ChildPath $sLogName
 #-----------------------------------------------------------[Functions]------------------------------------------------------------
 
 Function Start-MSSQLMigrationProcess{
-  Param()
+  Param(
+    [string]$PackagePath,
+    [PSCredential]$Credential
+  )
   
   Begin{
     Log-Write -LogPath $sLogFile -LineValue "Starting the MSSQL migration process.."
@@ -29,34 +32,36 @@ Function Start-MSSQLMigrationProcess{
   
   Process{
     Try{
+      Log-Write -LogPath $sLogFile -LineValue "Looking for existing SQL ConfigurationFile."
       $ConfigPath = Get-ChildItem -Path 'C:\Program Files\Microsoft SQL Server' -Filter 'ConfigurationFile.ini' -Recurse
-      New-PSDrive -PSProvider FileSystem -Name "share" -Root \\158.38.43.115\C$\Share -Credential $Credential -ErrorAction Stop
-      Copy-Item -Path $ConfigPath.FullName -Destination 'share:\'
-      
-      <# Migration by backup
-      cd SQLServer:\SQL\$env:COMPUTERNAME  
-      $instances = Get-childitem   
-        # loop through each instances and backup up all the  databases -filter out tempdb and model databases  
-  
-        foreach ($instance in $instances)  {  
-            $path = "sqlserver:\sql\$($instance.name)\databases"  
-            $alldatabases = get-childitem -Force -path $path |Where-object {$_.name -ne "tempdb" -and $_.name -ne "model"}   
-  
-            $alldatabases | Backup-SqlDatabase -BackupContainer "C:\Program Files\Microsoft SQL Server\MSSQL13.AMSTELSQL\MSSQL\Backup" -Compression On 
-        } #>  
-    }
-    
-    Catch{
+
+      . Join-Path -Path $PSScriptRoot -ChildPath '\..\Support\Update-IniFile.ps1'
+
+      $Options = (Get-IniContent -filePath $ConfigPath.FullName).OPTIONS
+      $Options.Set_Item('QUIET','"TRUE"')
+      $Options.Set_Item('SUPPRESSPRIVACYSTATEMENTNOTICE','"TRUE"')
+      $Options.Set_Item('IACCEPTROPENLICENSETERMS','"TRUE"')
+
+      $ini= @{"OPTIONS" = $Options}
+      $OriginPath = Split-Path -Path $ConfigPath.FullName
+      Out-IniFile -InputObject $ini -Filepath "$OriginPath\DeploymentConfig.ini"
+
+      New-PSDrive -PSProvider FileSystem -Name "pkg" -Root $PackagePath -Credential $Credential -ErrorAction Stop
+      Copy-Item -Path "$OriginPath\DeploymentConfig.ini" -Destination 'pkg:\'
+ 
+      }  Catch {
       Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $False
+      Log-Write -Logpath $sLogFile -LineValue "No existing configuration file was found, please provide it and rerun."
       Break
     }
   }
   
   End{
-    If($succeeded){
+    If(Test-Path "$PackagePath\DeploymentConfig.ini"){
       Log-Write -LogPath $sLogFile -LineValue "Completed Successfully."
       Log-Write -LogPath $sLogFile -LineValue " "
     }
+
   }
 }
 
@@ -98,5 +103,5 @@ Function Start-MSSQLDeployment{
 
 #-----------------------------------------------------------[Execution]------------------------------------------------------------
 Log-Start -LogPath $sLogPath -LogName $sLogName -ScriptVersion $sScriptVersion
-Start-MSSQLMigrationProcess -InstanceName "AMSTELSQL"
+#Start-MSSQLMigrationProcess -InstanceName "AMSTELSQL"
 Log-Finish -LogPath $sLogFile -NoExit $True
