@@ -69,8 +69,9 @@ Function Start-MSSQLMigrationProcess{
 
 Function Start-MSSQLDeployment{
     Param(
-    [string]$Password, 
-    [string]$PackagePath)
+    [string]$ComputerName,
+    [string]$PackagePath,
+    [PSCredential]$Credential)
 
     Begin {}
     Process {
@@ -80,25 +81,24 @@ Function Start-MSSQLDeployment{
             . $DesiredState
 
             Log-Write -LogPath $sLogFile -LineValue "Generating MOF-file from DSC script."
+
             $configData = @{
                 AllNodes = @(
                     @{
                         NodeName = "*"
                         PSDscAllowPlainTextPassword = $true
                     }, @{
-                        NodeName = "158.38.43.114"
+                        NodeName = $ComputerName
                         Role = "SqlServer"
                     }
                 );
             }
 
-            $Credential = Get-Credential
             SQLInstall -ConfigurationData $configData -PackagePath $PackagePath -WinSources "$PackagePath\sxs" -Credential $Credential
 
             Log-Write -LogPath $sLogFile -LineValue "Starting DSC configuration."
-            Start-DscConfiguration -ComputerName 158.38.43.114 -Path .\SQLInstall -Verbose -Wait -Force -Credential $Credential -ErrorAction Stop
+            Start-DscConfiguration -ComputerName $ComputerName -Path .\SQLInstall -Verbose -Wait -Force -Credential $Credential -ErrorAction Stop
             Log-Write -LogPath $sLogFile -LineValue "DSC configuration was succcessfully executed"
-
 
         } Catch {
             Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $False
@@ -106,23 +106,36 @@ Function Start-MSSQLDeployment{
         }
     }
     End {
+        #TODO: Enable remoting sp_configure remote access 1
+        
         $EnableNP = {
-                $Instance = AMSTELSQL
-                [reflection.assembly]::LoadWithPartialName("Microsoft.SqlServer.Smo")
-                [reflection.assembly]::LoadWithPartialName("Microsoft.SqlServer.SqlWmiManagement")
+            Param(
+                $Instance
+            )
 
-                 $Mc = New-Object ('Microsoft.SQLServer.Management.SMO.WMI.ManagedComputer')"localhost"
+            $Instance = AMSTELSQL
+            [reflection.assembly]::LoadWithPartialName("Microsoft.SqlServer.Smo")
+            [reflection.assembly]::LoadWithPartialName("Microsoft.SqlServer.SqlWmiManagement")
 
-                Write-Output "Enabling Named Pipes for the SQL Service Instance"
-                # Enable the named pipes protocol for the default instance.
-                $uri = "ManagedComputer[@Name='localhost']/ ServerInstance[@Name='AMSTELSQL']/ServerProtocol[@Name='Np']"
-                $Np = $Mc.GetSmoObject($uri)
-                $Np.IsEnabled = $true
-                $Np.Alter()
-                $Np
+            $Mc = New-Object ('Microsoft.SQLServer.Management.SMO.WMI.ManagedComputer')"localhost"
 
-                Restart-Service -name "SQLAgent`$$Instance"
-       
+            Write-Output "Enabling Named Pipes for the SQL Service Instance"
+            # Enable the named pipes protocol for the default instance.
+            $uri = "ManagedComputer[@Name='localhost']/ ServerInstance[@Name='$Instance']/ServerProtocol[@Name='Np']"
+            $Np = $Mc.GetSmoObject($uri)
+            $Np.IsEnabled = $true
+            $Np.Alter()
+            $Np
+
+            Restart-Service -name "SQLAgent`$$Instance"                   
+        }
+        
+        Try {
+            Invoke-Command -ComputerName $ComputerName -ScriptBlock $EnableNP -ArgumentList $Instance -Credential $Credential
+        } Catch {
+            Log-Write -LogPath $sLogFile -LineValue "Failed to enable named pipes protocol."
+            Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $False
+            Break
         }
     }
 }
