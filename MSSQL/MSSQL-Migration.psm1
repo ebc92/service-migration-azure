@@ -97,14 +97,34 @@ Function Start-MSSQLDeployment{
 
             Log-Write -LogPath $sLogFile -LineValue "Starting DSC configuration."
             Start-DscConfiguration -ComputerName 158.38.43.114 -Path .\SQLInstall -Verbose -Wait -Force -Credential $Credential -ErrorAction Stop
-            Log-Write -LogPath $sLogFile -LineValue "DSC configuration was succcessfully executed on "
+            Log-Write -LogPath $sLogFile -LineValue "DSC configuration was succcessfully executed"
+
+
         } Catch {
             Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $False
             Break
         }
     }
-    End {}
+    End {
+        $EnableNP = {
+                $Instance = AMSTELSQL
+                [reflection.assembly]::LoadWithPartialName("Microsoft.SqlServer.Smo")
+                [reflection.assembly]::LoadWithPartialName("Microsoft.SqlServer.SqlWmiManagement")
 
+                 $Mc = New-Object ('Microsoft.SQLServer.Management.SMO.WMI.ManagedComputer')"localhost"
+
+                Write-Output "Enabling Named Pipes for the SQL Service Instance"
+                # Enable the named pipes protocol for the default instance.
+                $uri = "ManagedComputer[@Name='localhost']/ ServerInstance[@Name='AMSTELSQL']/ServerProtocol[@Name='Np']"
+                $Np = $Mc.GetSmoObject($uri)
+                $Np.IsEnabled = $true
+                $Np.Alter()
+                $Np
+
+                Restart-Service -name "SQLAgent`$$Instance"
+       
+        }
+    }
 }
 
 
