@@ -35,16 +35,19 @@ Function Start-MSSQLMigrationProcess{
       Log-Write -LogPath $sLogFile -LineValue "Looking for existing SQL ConfigurationFile."
       $ConfigPath = Get-ChildItem -Path 'C:\Program Files\Microsoft SQL Server' -Filter 'ConfigurationFile.ini' -Recurse
 
-      . Join-Path -Path $PSScriptRoot -ChildPath '\..\Support\Update-IniFile.ps1'
+      $iniUpdate = Join-Path -Path $PSScriptRoot -ChildPath '\..\Support\Update-IniFile.ps1'
+      . $iniUpdate
 
       $Options = (Get-IniContent -filePath $ConfigPath.FullName).OPTIONS
       $Options.Set_Item('QUIET','"TRUE"')
       $Options.Set_Item('SUPPRESSPRIVACYSTATEMENTNOTICE','"TRUE"')
-      $Options.Set_Item('IACCEPTROPENLICENSETERMS','"TRUE"')
+      $Options.Set_Item('IACCEPTSQLSERVERLICENSETERMS','"TRUE"')
+      $Options.Remove("UIMODE")
 
       $ini= @{"OPTIONS" = $Options}
       $OriginPath = Split-Path -Path $ConfigPath.FullName
       Out-IniFile -InputObject $ini -Filepath "$OriginPath\DeploymentConfig.ini"
+      Log-Write -LogPath $sLogFile -LineValue "Unattended config was written to $OriginPath\DeploymentConfig.ini"
 
       New-PSDrive -PSProvider FileSystem -Name "pkg" -Root $PackagePath -Credential $Credential -ErrorAction Stop
       Copy-Item -Path "$OriginPath\DeploymentConfig.ini" -Destination 'pkg:\'
@@ -58,8 +61,7 @@ Function Start-MSSQLMigrationProcess{
   
   End{
     If(Test-Path "$PackagePath\DeploymentConfig.ini"){
-      Log-Write -LogPath $sLogFile -LineValue "Completed Successfully."
-      Log-Write -LogPath $sLogFile -LineValue " "
+      Log-Write -LogPath $sLogFile -LineValue "Unattended configurationfile was successfully transferred to $PackagePath."
     }
 
   }
@@ -68,36 +70,41 @@ Function Start-MSSQLMigrationProcess{
 Function Start-MSSQLDeployment{
     Param(
     [string]$Password, 
-    [string]$ConfigPath)
+    [string]$PackagePath)
 
-    Try {
-        Log-Write -LogPath $sLogFile -LineValue "Sourcing DSC script for SQL install."
-        $DesiredState = Join-Path -Path $PSScriptRoot -ChildPath '\..\Support\DSC\InstallSQL.ps1'
-        . $DesiredState
+    Begin {}
+    Process {
+        Try {
+            Log-Write -LogPath $sLogFile -LineValue "Sourcing DSC script for SQL install."
+            $DesiredState = Join-Path -Path $PSScriptRoot -ChildPath '\..\Support\DSC\InstallSQL.ps1'
+            . $DesiredState
 
-        Log-Write -LogPath $sLogFile -LineValue "Generating MOF-file from DSC script."
-        $configData = @{
-            AllNodes = @(
-                @{
-                    NodeName = "*"
-                    PSDscAllowPlainTextPassword = $true
-                }, @{
-                    NodeName = "158.38.43.114"
-                    Role = "SqlServer"
-                }
-            );
+            Log-Write -LogPath $sLogFile -LineValue "Generating MOF-file from DSC script."
+            $configData = @{
+                AllNodes = @(
+                    @{
+                        NodeName = "*"
+                        PSDscAllowPlainTextPassword = $true
+                    }, @{
+                        NodeName = "158.38.43.114"
+                        Role = "SqlServer"
+                    }
+                );
+            }
+
+            $Credential = Get-Credential
+            SQLInstall -ConfigurationData $configData -PackagePath $PackagePath -WinSources "$PackagePath\sxs" -Credential $Credential
+
+            Log-Write -LogPath $sLogFile -LineValue "Starting DSC configuration."
+            Start-DscConfiguration -ComputerName 158.38.43.114 -Path .\SQLInstall -Verbose -Wait -Force -Credential $Credential -ErrorAction Stop
+            Log-Write -LogPath $sLogFile -LineValue "DSC configuration was succcessfully executed on "
+        } Catch {
+            Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $False
+            Break
         }
-
-        $Credential = Get-Credential
-        SQLInstall -ConfigurationData $configData -PackagePath "\\158.38.43.115\share\MSSQL" -WinSources "d:\sources\sxs" -Credential $Credential
-
-        Log-Write -LogPath $sLogFile -LineValue "Starting DSC configuration."
-        Start-DscConfiguration -ComputerName 158.38.43.114 -Path .\SQLInstall -Verbose -Wait -Force -Credential $Credential -ErrorAction Stop
-        Log-Write -LogPath $sLogFile -LineValue "DSC configuration was succcessfully executed on "
-    } Catch {
-        Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $False
-        Break
     }
+    End {}
+
 }
 
 

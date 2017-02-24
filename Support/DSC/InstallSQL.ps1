@@ -52,6 +52,7 @@
             Credential = $Credential
             SourcePath = "$PackagePath\DeploymentConfig.ini"
             DestinationPath = "c:\temp"
+            Force = $True
             Type = "File"
             Ensure = "Present"
             DependsOn = "[File]SQLServerIso"
