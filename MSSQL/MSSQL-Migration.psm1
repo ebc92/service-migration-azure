@@ -1,4 +1,3 @@
-
 #---------------------------------------------------------[Initialisations]--------------------------------------------------------
 
 #Set Error Action to Stop
@@ -7,10 +6,9 @@ $ErrorActionPreference = "Stop"
 #Dot Source required Function Libraries
 . "C:\service-migration-azure\Libraries\Log-Functions.ps1"
 
-#----------------------------------------------------------[Declarations]----------------------------------------------------------
+#----------------------------------------------------------[Log File Info]----------------------------------------------------------
 
-#Script Version
-$sScriptVersion = "0.1"
+
 
 #Log File Info
 $sLogPath = "C:\Logs\service-migration-azure"
@@ -19,7 +17,7 @@ $sLogFile = Join-Path -Path $sLogPath -ChildPath $sLogName
 
 #-----------------------------------------------------------[Functions]------------------------------------------------------------
 
-Function Start-MSSQLMigrationProcess{
+Function Start-MSSQLInstallConfig{
   Param(
     [string]$PackagePath,
     [PSCredential]$Credential
@@ -69,8 +67,8 @@ Function Start-MSSQLMigrationProcess{
 
 Function Start-MSSQLDeployment{
     Param(
-    [string]$ComputerName,
     [string]$PackagePath,
+    [string]$InstanceName,
     [PSCredential]$Credential)
 
     Begin {}
@@ -106,14 +104,15 @@ Function Start-MSSQLDeployment{
         }
     }
     End {
-        #TODO: Enable remoting sp_configure remote access 1
-        
-        $EnableNP = {
+                
+        $EnableRemoting = {
             Param(
-                $Instance
+                $InstanceName
             )
 
-            $Instance = AMSTELSQL
+            Invoke-Sqlcmd -ServerInstance $ComputerName\$InstanceName -Query "EXEC sp_configure 'remote access', 1;"
+            Invoke-Sqlcmd -ServerInstance $ComputerName\$InstanceName -Query "RECONFIGURE;"
+
             [reflection.assembly]::LoadWithPartialName("Microsoft.SqlServer.Smo")
             [reflection.assembly]::LoadWithPartialName("Microsoft.SqlServer.SqlWmiManagement")
 
@@ -121,27 +120,21 @@ Function Start-MSSQLDeployment{
 
             Write-Output "Enabling Named Pipes for the SQL Service Instance"
             # Enable the named pipes protocol for the default instance.
-            $uri = "ManagedComputer[@Name='localhost']/ ServerInstance[@Name='$Instance']/ServerProtocol[@Name='Np']"
+            $uri = "ManagedComputer[@Name='localhost']/ ServerInstance[@Name='$InstanceName']/ServerProtocol[@Name='Np']"
             $Np = $Mc.GetSmoObject($uri)
             $Np.IsEnabled = $true
             $Np.Alter()
             $Np
 
-            Restart-Service -name "SQLAgent`$$Instance"                   
+            Restart-Service -name "SQLAgent`$$InstanceName"                   
         }
         
         Try {
-            Invoke-Command -ComputerName $ComputerName -ScriptBlock $EnableNP -ArgumentList $Instance -Credential $Credential
+            & $EnableRemoting -InstanceName $InstanceName
         } Catch {
-            Log-Write -LogPath $sLogFile -LineValue "Failed to enable named pipes protocol."
+            Log-Write -LogPath $sLogFile -LineValue "Failed to enable remoting on the destination server."
             Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $False
             Break
         }
     }
 }
-
-
-#-----------------------------------------------------------[Execution]------------------------------------------------------------
-Log-Start -LogPath $sLogPath -LogName $sLogName -ScriptVersion $sScriptVersion
-#Start-MSSQLMigrationProcess -InstanceName "AMSTELSQL"
-Log-Finish -LogPath $sLogFile -NoExit $True
