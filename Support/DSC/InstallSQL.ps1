@@ -10,7 +10,10 @@
         [ValidateNotNullOrEmpty()]
         [String]
         $WinSources,
-        $Credential
+
+        [Parameter(Mandatory=$true)]
+        [ValidateNotNullOrEmpty()]
+        [PSCredential]$Credential
     )
 
     Import-DscResource -ModuleName PSDesiredStateConfiguration
@@ -83,8 +86,8 @@
                 Write-Verbose "Drive letter for iso is: $setupDriveLetter"
                  
                 # run the installer using the ini file
-                $cmd = "$setupDriveLetter\Setup.exe /ConfigurationFile=c:\temp\DeploymentConfig.ini /SQLSVCPASSWORD=P2ssw0rd /AGTSVCPASSWORD=P2ssw0rd /SAPWD=P2ssw0rd"
-                Write-Verbose "Running SQL Install - check %programfiles%\Microsoft SQL Server\120\Setup Bootstrap\Log\ for logs..."
+                $cmd = "$setupDriveLetter\Setup.exe /ConfigurationFile=c:\temp\DeploymentConfig.ini /SQLSVCPASSWORD=P2ssw0rd /AGTSVCPASSWORD=P2ssw0rd /SAPWD=$Credential.getNetworkCredential().Password"
+                Write-Verbose "Running SQL Install - check %programfiles%\Microsoft SQL Server\130\Setup Bootstrap\Log\ for logs..."
                 Invoke-Expression $cmd | Write-Verbose
             }
             TestScript =

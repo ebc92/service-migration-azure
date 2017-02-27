@@ -24,7 +24,7 @@ Function Start-MSSQLInstallConfig{
   )
   
   Begin{
-    Log-Write -LogPath $sLogFile -LineValue "Starting the MSSQL migration process.."
+    Log-Write -LogPath $sLogFile -LineValue "Starting the MSSQL deployment process.."
     Import-Module -Name Sqlps
   }
   
@@ -57,12 +57,11 @@ Function Start-MSSQLInstallConfig{
     }
   }
   
-  End{
-    If(Test-Path "$PackagePath\DeploymentConfig.ini"){
-      Log-Write -LogPath $sLogFile -LineValue "Unattended configurationfile was successfully transferred to $PackagePath."
+    End{
+        If(Test-Path "$PackagePath\DeploymentConfig.ini"){
+        Log-Write -LogPath $sLogFile -LineValue "Unattended configurationfile was successfully transferred to $PackagePath."
+        }
     }
-
-  }
 }
 
 Function Start-MSSQLDeployment{
@@ -136,5 +135,53 @@ Function Start-MSSQLDeployment{
             Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $False
             Break
         }
+    }
+}
+
+Function Start-MSSQLMigration{
+  Param(
+    [String]$Source,
+    [String]$Destination,
+    [String]$InstanceName,
+    [PSCredential]$SqlCredential,
+    [String]$Share
+  )
+  
+  Begin{
+    Log-Write -LogPath $sLogFile -LineValue "Starting the MSSQL migration process.."
+    Try {
+        Log-Write -LogPath $sLogFile -LineValue "Installing dbatools.."
+        . $PSScriptRoot\..\Libraries\Install-DBATools.ps1
+    } Catch {
+        Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $False
+        Log-Write -Logpath $sLogFile -LineValue "dbatools installation failed.."
+        Break
+    }
+  }
+  
+  Process{
+    Try{
+        $ConnectionTest = Test-SqlConnection -SqlServer $Destination\$InstanceName -SqlCredential $SqlCredential
+        If (!ConnectionTest.ConnectSuccess){
+        Log-Write -Logpath $sLogFile -LineValue "Could not establish connection to the destination server."
+        Break
+        }
+    } Catch {
+        Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $False
+        Log-Write -Logpath $sLogFile -LineValue "Could not run the connection test."
+        Break
+    }
+    
+    Try {
+        Start-SqlMigration -Source $Source\$InstanceName -Destination $Destination\$InstanceName -SourceSqlCredential (get-credential) -DestinationSqlCredential $SqlCredential -NetworkShare $Share -BackupRestore
+    } Catch {
+        Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $False
+        Log-Write -Logpath $sLogFile -LineValue "Could not run the migration."
+        Break
+    }
+  }
+  
+    End{
+    
     }
 }
