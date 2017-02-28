@@ -44,6 +44,37 @@ $sLogName = "<script_name>.log"
 $sLogFile = Join-Path -Path $sLogPath -ChildPath $sLogName
 
 #-----------------------------------------------------------[Functions]------------------------------------------------------------
+Function Install-PreRequisites{
+  Param()
+  
+  Begin{
+    Log-Write -LogPath $sLogFile -LineValue "<description of what is going on>..."
+  }
+  
+  Process{
+    $fileshare = \\testsrv-exchang\
+    Try{
+      if (Test-path(!("\\$fileshare\ExchangeInstall"))) {
+        mkdir \\$fileshare\ExchangeInstall
+        "Path not found, made dir"
+      } else {
+        "Path found, i no make path good engles"
+        }
+    }
+    
+    Catch{
+      Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $True
+      Break
+    }
+  }
+  
+  End{
+    If($?){
+      Log-Write -LogPath $sLogFile -LineValue "Completed Successfully."
+      Log-Write -LogPath $sLogFile -LineValue " "
+    }
+  }
+}
 
 Function Install-Exchange{
   Param()
