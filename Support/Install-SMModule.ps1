@@ -37,11 +37,11 @@ Write-Output "Unzipping"
 $shell = New-Object -COM Shell.Application
 $zipPackage = $shell.NameSpace($zipfile)
 $destinationFolder = $shell.NameSpace($temp)
-$destinationFolder.CopyHere($zipPackage.Items())
+$destinationFolder.CopyHere($zipPackage.Items(), 0x14)
 
 Write-Output "Cleaning up"
-Move-Item -Path "$temp\service-migration-azures-master\*" $path
-Remove-Item -Path "$temp\service-migration-azures-master"
+Move-Item -Path "$temp\service-migration-azure-master\*" $path
+Remove-Item -Path "$temp\service-migration-azure-master" -Recurse
 Remove-Item -Path $zipfile
 
 Import-Module "$path\ADDC\ADDC-Migration.psm1" -Force

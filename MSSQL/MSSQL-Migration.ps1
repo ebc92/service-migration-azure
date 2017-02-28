@@ -1,20 +1,32 @@
 ﻿Param($ComputerName, $Source, $PackagePath, $InstanceName, $Credential)
 
-Log-Start -LogPath $sLogFile -LogName $sLogName -ScriptVersion $sScriptVersion
+#---------------------------------------------------------[Initialisations]--------------------------------------------------------
+
+#Set Error Action to Stop
+$ErrorActionPreference = "Stop"
+
+#Dot Source required Function Libraries
+. "C:\service-migration-azure\Libraries\Log-Functions.ps1"
+
+#----------------------------------------------------------[Log File Info]----------------------------------------------------------
+
+$sScriptVersion = "0.1"
+$sLogPath = "C:\Logs\service-migration-azure"
+$sLogName = "MSSQL-Migration.log"
+$sLogFile = Join-Path -Path $sLogPath -ChildPath $sLogName
+
+#-----------------------------------------------------------[Execution]------------------------------------------------------------
 
 Import-Module $PSScriptRoot\MSSQL-Migration.psm1 -Force
 
-#Install modules on remote computer.
-Invoke-Command -ComputerName $ComputerName -ScriptBlock $PSScriptRoot\..\Support\Install-SMModule.ps1 -Credential $Credential
+$ModulePath = Join-Path -Path $PSScriptRoot -ChildPath "..\Support\Install-SMModule.ps1"
 
-$ConfigureSQL = {
-    Param(
-        $PackagePath,
-        $Credential
-    )
-    Start-MSSQLInstallConfig -PackagePath $PackagePath -Credential $Credential
-}
-Invoke-Command -ComputerName $ComputerName -ScriptBlock $ConfigureSQL -ArgumentList $PackagePath, $Credential -Credential $Credential
+Log-Start -LogPath $sLogPath -LogName $sLogName -ScriptVersion $sScriptVersion
+
+#Install modules on remote computer.
+Invoke-Command -ComputerName $ComputerName -FilePath $ModulePath -Credential $Credential 
+
+Start-MSSQLInstallConfig -PackagePath $PackagePath -Credential $Credential
 
 Start-MSSQLDeployment -ComputerName $ComputerName -PackagePath $PackagePath -InstanceName $InstanceName -Credential $Credential
 

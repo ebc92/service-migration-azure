@@ -1,22 +1,3 @@
-#---------------------------------------------------------[Initialisations]--------------------------------------------------------
-
-#Set Error Action to Stop
-$ErrorActionPreference = "Stop"
-
-#Dot Source required Function Libraries
-. "C:\service-migration-azure\Libraries\Log-Functions.ps1"
-
-#----------------------------------------------------------[Log File Info]----------------------------------------------------------
-
-
-
-#Log File Info
-$sLogPath = "C:\Logs\service-migration-azure"
-$sLogName = "MSSQL-Migration.log"
-$sLogFile = Join-Path -Path $sLogPath -ChildPath $sLogName
-
-#-----------------------------------------------------------[Functions]------------------------------------------------------------
-
 Function Start-MSSQLInstallConfig{
   Param(
     [string]$PackagePath,
