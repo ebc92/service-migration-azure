@@ -86,7 +86,7 @@
                 Write-Verbose "Drive letter for iso is: $setupDriveLetter"
                  
                 # run the installer using the ini file
-                $cmd = "$setupDriveLetter\Setup.exe /ConfigurationFile=c:\temp\DeploymentConfig.ini /SQLSVCPASSWORD=P2ssw0rd /AGTSVCPASSWORD=P2ssw0rd /SAPWD=$Credential.getNetworkCredential().Password"
+                $cmd = "$setupDriveLetter\Setup.exe /ConfigurationFile=c:\temp\DeploymentConfig.ini /SQLSVCPASSWORD=P2ssw0rd /AGTSVCPASSWORD=P2ssw0rd /SAPWD=P2ssw0rd"
                 Write-Verbose "Running SQL Install - check %programfiles%\Microsoft SQL Server\130\Setup Bootstrap\Log\ for logs..."
                 Invoke-Expression $cmd | Write-Verbose
             }
@@ -121,11 +121,3 @@ $configData = @{
     );
 
     }
- 
-$Credential = Get-Credential
-# command for RM
-SQLInstall -ConfigurationData $configData -PackagePath "\\158.38.43.115\share\MSSQL" -WinSources "d:\sources\sxs" -Credential $Credential
- 
-# test from command line
-#SQLInstall 
-Start-DscConfiguration -ComputerName 158.38.43.114 -Path .\SQLInstall -Verbose -Wait -Force -Credential $Credential

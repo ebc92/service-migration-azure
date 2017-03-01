@@ -1,5 +1,12 @@
 ﻿Param($ComputerName, $Source, $PackagePath, $InstanceName, $Credential)
 
+$ComputerName = "158.38.43.114"
+$Source = "158.38.43.113"
+$PackagePath = "\\158.38.43.116\share\MSSQL"
+$InstanceName = "AMSTELSQL"
+$Credential = (Get-Credential)
+$SqlCredential = (Get-Credential)
+
 #---------------------------------------------------------[Initialisations]--------------------------------------------------------
 
 #Set Error Action to Stop
@@ -33,6 +40,5 @@ Start-MSSQLDeployment -ComputerName $ComputerName -PackagePath $PackagePath -Ins
 Log-Write -LogPath $sLogFile -LineValue "SQL Server 2016 was successfully deployed on $ComputerName."
 
 Log-Write -LogPath $sLogFile -LineValue "Starting SQL Instance migration from $Source\$InstanceName to $ComputerName\$InstanceName."
-Start-MSSQLMigration -Source $Source -Destination $ComputerName -InstanceName $InstanceName -Share $PackagePath -SqlCredential $Credential.GetNetworkCredential().Password
-
+Start-MSSQLMigration -Source $Source -Destination $ComputerName -InstanceName $InstanceName -Share $PackagePath -SqlCredential $SqlCredential -Credentials $Credential
 Log-Finish -LogPath $sLogFile -NoExit $True

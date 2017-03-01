@@ -1,3 +1,13 @@
+Function Debug-LogPath{
+    Process
+    {
+    Write-Output $sLogFile
+    Log-Write -LogPath $sLogFile -LineValue "reeeee"
+    }
+    
+}
+
+
 Function Start-MSSQLInstallConfig{
   Param(
     [string]$PackagePath,
@@ -5,8 +15,14 @@ Function Start-MSSQLInstallConfig{
   )
   
   Begin{
+    Write-Output $sLogFile
     Log-Write -LogPath $sLogFile -LineValue "Starting the MSSQL deployment process.."
-    Import-Module -Name Sqlps
+    if (Get-Module -ListAvailable -Name Sqlps){
+        Log-write -LogPath $sLogFile -LineValue "SQLPS module is already imported, doing nothing."
+    } else {
+        Log-write -LogPath $sLogFile -LineValue "Importing SQLPS module.."
+        Import-Module -Name Sqlps
+    }
   }
   
   Process{
@@ -49,6 +65,7 @@ Function Start-MSSQLDeployment{
     Param(
     [string]$PackagePath,
     [string]$InstanceName,
+    [string]$ComputerName,
     [PSCredential]$Credential)
 
     Begin {}
@@ -90,8 +107,8 @@ Function Start-MSSQLDeployment{
                 $InstanceName
             )
 
-            Invoke-Sqlcmd -ServerInstance $ComputerName\$InstanceName -Query "EXEC sp_configure 'remote access', 1;"
-            Invoke-Sqlcmd -ServerInstance $ComputerName\$InstanceName -Query "RECONFIGURE;"
+            Invoke-Sqlcmd -ServerInstance localhost\$InstanceName -Query "EXEC sp_configure 'remote access', 1;"
+            Invoke-Sqlcmd -ServerInstance localhost\$InstanceName -Query "RECONFIGURE;"
 
             [reflection.assembly]::LoadWithPartialName("Microsoft.SqlServer.Smo")
             [reflection.assembly]::LoadWithPartialName("Microsoft.SqlServer.SqlWmiManagement")
@@ -110,7 +127,7 @@ Function Start-MSSQLDeployment{
         }
         
         Try {
-            & $EnableRemoting -InstanceName $InstanceName
+            Invoke-Command -ComputerName $ComputerName -ScriptBlock $EnableRemoting -Credential $Credential
         } Catch {
             Log-Write -LogPath $sLogFile -LineValue "Failed to enable remoting on the destination server."
             Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $False
@@ -124,6 +141,7 @@ Function Start-MSSQLMigration{
     [String]$Source,
     [String]$Destination,
     [String]$InstanceName,
+    [PSCredential]$Credential,
     [PSCredential]$SqlCredential,
     [String]$Share
   )
@@ -154,7 +172,7 @@ Function Start-MSSQLMigration{
     }
     
     Try {
-        Start-SqlMigration -Source $Source\$InstanceName -Destination $Destination\$InstanceName -SourceSqlCredential (get-credential) -DestinationSqlCredential $SqlCredential -NetworkShare $Share -BackupRestore
+        Start-SqlMigration -Source $Source\$InstanceName -Destination $Destination\$InstanceName -SourceSqlCredential $Credential -DestinationSqlCredential $SqlCredential -NetworkShare $Share -BackupRestore
     } Catch {
         Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $False
         Log-Write -Logpath $sLogFile -LineValue "Could not run the migration."

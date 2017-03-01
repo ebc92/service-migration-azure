@@ -6,7 +6,7 @@ http://dbatools.io
 
 Remove-Module dbatools -ErrorAction SilentlyContinue
 $url = 'https://github.com/ebc92/service-migration-azure/archive/master.zip'
-$path = Join-Path -Path (Split-Path -Path $profile) -ChildPath '\Modules\service-migration-azure'
+$path = Join-Path -Path 'C:\' -ChildPath 'service-migration-azure'
 $temp = ([System.IO.Path]::GetTempPath()).TrimEnd("\")
 $zipfile = "$temp\service-migration-azure.zip"
 
@@ -46,6 +46,3 @@ Remove-Item -Path $zipfile
 
 Import-Module "$path\ADDC\ADDC-Migration.psm1" -Force
 Import-Module "$path\MSSQL\MSSQL-Migration.psm1" -Force
-
-Get-Command -Module ADDC-Migration
-Get-Command -Module MSSQL-Migration
