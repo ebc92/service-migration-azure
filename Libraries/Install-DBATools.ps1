@@ -8,8 +8,8 @@ if (!(Test-Path -Path $path)){
 	Write-Output "Creating directory: $path"
 	New-Item -Path $path -ItemType Directory | Out-Null 
 } else { 
-	Write-Output "Deleting previously installed module"
-	Remove-Item -Path "$path\*" -Force -Recurse 
+	Write-Output "DBATools is already installed."
+	Break
 }
 
 Write-Output "Downloading archive from github"
@@ -39,7 +39,3 @@ Remove-Item -Path "$temp\dbatools-master"
 Remove-Item -Path $zipfile
 
 Import-Module "$path\dbatools.psd1" -Force
-
-Write-Output "Done! Please report any bugs to clemaire@gmail.com."
-Get-Command -Module dbatools
-Write-Output "`n`nIf you experience any function missing errors after update, please restart PowerShell or reload your profile."
