@@ -9,7 +9,7 @@ if (!(Test-Path -Path $path)){
 	New-Item -Path $path -ItemType Directory | Out-Null 
 } else { 
 	Write-Output "DBATools is already installed."
-	Break
+	Return
 }
 
 Write-Output "Downloading archive from github"

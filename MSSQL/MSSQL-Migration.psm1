@@ -1,13 +1,3 @@
-Function Debug-LogPath{
-    Process
-    {
-    Write-Output $sLogFile
-    Log-Write -LogPath $sLogFile -LineValue "reeeee"
-    }
-    
-}
-
-
 Function Start-MSSQLInstallConfig{
   Param(
     [string]$PackagePath,
@@ -154,12 +144,11 @@ Function Start-MSSQLMigration{
     } Catch {
         Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $False
         Log-Write -Logpath $sLogFile -LineValue "dbatools installation failed.."
-        Break
     }
   }
   
   Process{
-    Try{
+   <# Try{
         $ConnectionTest = Test-SqlConnection -SqlServer $Destination\$InstanceName -SqlCredential $SqlCredential
         If (!ConnectionTest.ConnectSuccess){
         Log-Write -Logpath $sLogFile -LineValue "Could not establish connection to the destination server."
@@ -169,7 +158,7 @@ Function Start-MSSQLMigration{
         Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $False
         Log-Write -Logpath $sLogFile -LineValue "Could not run the connection test."
         Break
-    }
+    } #>
     
     Try {
         Start-SqlMigration -Source $Source\$InstanceName -Destination $Destination\$InstanceName -SourceSqlCredential $Credential -DestinationSqlCredential $SqlCredential -NetworkShare $Share -BackupRestore
