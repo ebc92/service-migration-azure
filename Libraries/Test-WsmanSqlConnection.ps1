@@ -140,7 +140,14 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 	{
 		# Test for WinRM using WSMan connection
 		Write-Output "Checking remote acccess"
-		Test-WSMan -ComputerName $hostname
+
+        if ($sqlserver -like "*\*") {
+        $remotehost = $sqlserver.split("\")[0]
+        } else {
+        $remotehost = $sqlserver
+        }
+
+		Test-WSMan -ComputerName $remotehost
 		if ($?) { $remoting = $true }
 		else { $remoting = $false }
 		

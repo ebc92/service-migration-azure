@@ -141,6 +141,9 @@ Function Start-MSSQLMigration{
     Try {
         Log-Write -LogPath $sLogFile -LineValue "Installing dbatools.."
         . $PSScriptRoot\..\Libraries\Install-DBATools.ps1
+
+        Log-Write -LogPath $sLogFile -LineValue "Importing SQL connection test.."
+        . $PSScriptRoot\..\Libraries\Test-WsmanSqlConnection.ps1
     } Catch {
         Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $False
         Log-Write -Logpath $sLogFile -LineValue "dbatools installation failed.."
@@ -148,8 +151,8 @@ Function Start-MSSQLMigration{
   }
   
   Process{
-   <# Try{
-        $ConnectionTest = Test-SqlConnection -SqlServer $Destination\$InstanceName -SqlCredential $SqlCredential
+    Try{
+        $ConnectionTest = Test-WsmanSqlConnection -SqlServer "$Destination\$InstanceName" -SqlCredential $SqlCredential
         If (!ConnectionTest.ConnectSuccess){
         Log-Write -Logpath $sLogFile -LineValue "Could not establish connection to the destination server."
         Break
@@ -158,7 +161,7 @@ Function Start-MSSQLMigration{
         Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $False
         Log-Write -Logpath $sLogFile -LineValue "Could not run the connection test."
         Break
-    } #>
+    }
     
     Try {
         Start-SqlMigration -Source $Source\$InstanceName -Destination $Destination\$InstanceName -SourceSqlCredential $Credential -DestinationSqlCredential $SqlCredential -NetworkShare $Share -BackupRestore
