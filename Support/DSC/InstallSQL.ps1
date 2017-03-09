@@ -102,22 +102,61 @@
                 $res
             }
         }
+
+        Script PostDeploymentConfiguration {
+
+            GetScript = {
+                <# TODO: 
+                Get current state of PostDeploymentConfiguration #>
+            }
+
+            SetScript = {
+                Import-Module -Name Sqlps
+
+                <# TODO: 
+                Get instancename from .ini-file #>
+                $InstanceName = "AMSTELSQL"
+
+                Invoke-Sqlcmd -ServerInstance localhost\$InstanceName -Query "EXEC sp_configure 'remote access', 1;"
+                Invoke-Sqlcmd -ServerInstance localhost\$InstanceName -Query "RECONFIGURE;"
+
+                [reflection.assembly]::LoadWithPartialName("Microsoft.SqlServer.Smo")
+                [reflection.assembly]::LoadWithPartialName("Microsoft.SqlServer.SqlWmiManagement")
+
+                $Mc = New-Object ('Microsoft.SQLServer.Management.SMO.WMI.ManagedComputer')"localhost"
+
+                Write-Output "Enabling Named Pipes for the SQL Service Instance"
+                # Enable the named pipes protocol for the default instance.
+                $uri = "ManagedComputer[@Name='localhost']/ ServerInstance[@Name='$InstanceName']/ServerProtocol[@Name='Np']"
+                $Np = $Mc.GetSmoObject($uri)
+                $Np.IsEnabled = $true
+                $Np.Alter()
+                $Np
+
+                # Configuring static TCP port
+                $uri = "ManagedComputer[@Name='localhost']/ ServerInstance[@Name='$InstanceName']/ ServerProtocol[@Name='Tcp']"
+                $Tcp = $Mc.GetSmoObject($uri)
+                $Tcp.IPAddresses | % { 
+                    if($_.Name -eq "IPAll"){
+                        $_.IpAddressProperties[4].Value = "1433"
+                        $Tcp.Alter()
+                        $Tcp
+                    }
+                }
+
+                Restart-Service -name "SQLAgent`$$InstanceName"    
+
+            }
+
+            TestScript = {
+                <# TODO:
+                Check desired state against current state.
+                For now, run regardless. #>
+                $res = $false
+            }
+            
+        }
     }
 
 
 }
-
-$configData = @{
-    AllNodes = @(
-        @{
-            NodeName = "*"
-            PSDscAllowPlainTextPassword = $true
-         },
- 
-        @{
-            NodeName = "158.38.43.114"
-            Role = "SqlServer"
-         }
-    );
-
-    }

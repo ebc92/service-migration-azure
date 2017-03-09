@@ -90,40 +90,6 @@ Function Start-MSSQLDeployment{
             Break
         }
     }
-    End {
-                
-        $EnableRemoting = {
-            Param(
-                $InstanceName
-            )
-
-            Invoke-Sqlcmd -ServerInstance localhost\$InstanceName -Query "EXEC sp_configure 'remote access', 1;"
-            Invoke-Sqlcmd -ServerInstance localhost\$InstanceName -Query "RECONFIGURE;"
-
-            [reflection.assembly]::LoadWithPartialName("Microsoft.SqlServer.Smo")
-            [reflection.assembly]::LoadWithPartialName("Microsoft.SqlServer.SqlWmiManagement")
-
-            $Mc = New-Object ('Microsoft.SQLServer.Management.SMO.WMI.ManagedComputer')"localhost"
-
-            Write-Output "Enabling Named Pipes for the SQL Service Instance"
-            # Enable the named pipes protocol for the default instance.
-            $uri = "ManagedComputer[@Name='localhost']/ ServerInstance[@Name='$InstanceName']/ServerProtocol[@Name='Np']"
-            $Np = $Mc.GetSmoObject($uri)
-            $Np.IsEnabled = $true
-            $Np.Alter()
-            $Np
-
-            Restart-Service -name "SQLAgent`$$InstanceName"                   
-        }
-        
-        Try {
-            Invoke-Command -ComputerName $ComputerName -ScriptBlock $EnableRemoting -Credential $Credential
-        } Catch {
-            Log-Write -LogPath $sLogFile -LineValue "Failed to enable remoting on the destination server."
-            Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $False
-            Break
-        }
-    }
 }
 
 Function Start-MSSQLMigration{
@@ -171,8 +137,4 @@ Function Start-MSSQLMigration{
         Break
     }
   }
-  
-    End{
-    
-    }
 }
