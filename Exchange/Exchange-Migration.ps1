@@ -116,7 +116,7 @@ Function Install-Prerequisite {
       Foreach($element in $InstallFiles) {
         $i++
         $total = $InstallFiles.Count
-        Write-Progress -Activity 'Installing prerequisites for Exchange 2013' -Status "Currently installing file $i of $total"`
+        Write-Progress -Id 1 -Activity 'Installing prerequisites for Exchange 2013' -Status "Currently installing file $i of $total"`
         -PercentComplete (($i / $total) * 100)¨        "$element /passive /norestart"
       }
       
@@ -164,6 +164,7 @@ Function EmptyToUse {
 #-----------------------------------------------------------[Execution]------------------------------------------------------------
 
 Log-Start -LogPath $sLogPath -LogName $sLogName -ScriptVersion $sScriptVersion
+
 Get-Prerequisite -fileshare $fileshare
 Install-Prerequisite -fileShare $fileshare
 
