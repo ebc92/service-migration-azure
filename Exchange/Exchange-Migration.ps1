@@ -42,7 +42,7 @@ $fileshare = 'c:\tempExchange'
 $sScriptVersion = '1.0'
 
 #Log File Info
-$sLogPath = '$'
+$sLogPath = "$fileshare"
 $sLogName = 'Migrate-Exchange.log'
 $sLogFile = Join-Path -Path $sLogPath -ChildPath $sLogName
 
@@ -117,10 +117,10 @@ Function Install-Prerequisite {
         $i++
         $total = $InstallFiles.Count
         Write-Progress -Id 1 -Activity 'Installing prerequisites for Exchange 2013' -Status "Currently installing file $i of $total"`
-        -PercentComplete (($i / $total) * 100)¨        "$element /passive /norestart"
+        -PercentComplete (($i / $total) * 100)        Start-Process -FilePath $element.FullName -ArgumentList '/passive /norestart' -Wait
       }
-      
-    }      
+    }
+       
     Catch {
       Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $True
       Break
@@ -130,7 +130,7 @@ Function Install-Prerequisite {
   End{
     If($?){
       Log-Write -LogPath $sLogFile -LineValue "Completed Successfully."
-      Log-Write -LogPath $sLogFile -LineValue " "
+      Log-Write -LogPath $sLogFile -LineValue ""
     }
   }
 }
