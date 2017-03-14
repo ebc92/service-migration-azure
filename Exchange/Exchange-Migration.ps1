@@ -47,7 +47,7 @@ $sLogName = 'Migrate-Exchange.log'
 $sLogFile = Join-Path -Path $sLogPath -ChildPath $sLogName
 
 #-----------------------------------------------------------[Functions]------------------------------------------------------------
-Function Get-PreRequisites{
+Function Get-Prerequisite {
   [CmdletBinding()]
   Param(
     [parameter(Mandatory=$true)]
@@ -62,12 +62,12 @@ Function Get-PreRequisites{
     Try{
       $verifyPath = Test-Path -Path $fileshare
       [int]$i = 0
-      $downloadString = @'
-https://download.microsoft.com/download/2/C/4/2C47A5C1-A1F3-4843-B9FE-84C0032C61EC/UcmaRuntimeSetup.exe
-https://download.microsoft.com/download/0/A/2/0A28BBFA-CBFA-4C03-A739-30CCA5E21659/FilterPack64bit.exe
-https://download.microsoft.com/download/A/A/3/AA345161-18B8-45AE-8DC8-DA6387264CB9/filterpack2010sp1-kb2460041-x64-fullfile-en-us.exe
-'@
-      $downloadArray = $downloadString.Split("`n",[StringSplitOptions]::RemoveEmptyEntries)
+      $downloadArray = @(
+        "https://download.microsoft.com/download/2/C/4/2C47A5C1-A1F3-4843-B9FE-84C0032C61EC/UcmaRuntimeSetup.exe"
+        "https://download.microsoft.com/download/0/A/2/0A28BBFA-CBFA-4C03-A739-30CCA5E21659/FilterPack64bit.exe"
+        "https://download.microsoft.com/download/A/A/3/AA345161-18B8-45AE-8DC8-DA6387264CB9/filterpack2010sp1-kb2460041-x64-fullfile-en-us.exe"
+      )
+      #$downloadArray = $downloadString.Split("`n",[StringSplitOptions]::RemoveEmptyEntries)
       if (!($verifyPath)) {
         New-Item -ItemType Directory -Path "$fileshare"
         Write-Verbose -Message "Path not found, created required path on $fileshare"
@@ -77,15 +77,77 @@ https://download.microsoft.com/download/A/A/3/AA345161-18B8-45AE-8DC8-DA6387264C
       
       foreach($element in $downloadArray) {
         $i++
-        "$element Checking next $i"
-        Write-Progress -Activity 'Downloading prerequsites for Exchange 2013' -Status "Currently downloading file $element of $downloadArray.count"`
-        -PercentComplete (($i / $downloadArray.Count) * 100)
-        "$element $fileshare"
+        $total = $downloadArray.Count
+        Write-Progress -Activity 'Downloading prerequsites for Exchange 2013' -Status "Currently downloading file $i of $total"`
+        -PercentComplete (($i / $total) * 100)
         Start-BitsTransfer -Source $element -Destination $fileshare -Description 'Downloading prerequisites'
         Write-Verbose -Message "Downloading file from $element"
       }
     }      
-    Catch{
+    Catch {
+      Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $True
+      Break
+    }
+  }
+  
+  End{
+    If($?){
+      Log-Write -LogPath $sLogFile -LineValue "Completed Successfully."
+      Log-Write -LogPath $sLogFile -LineValue " "
+    }
+  }
+}
+
+Function Install-Prerequisite {
+  [CmdletBinding()]
+  Param(
+    [parameter(Mandatory=$true)]
+    [string]$fileShare
+  )
+  
+  Begin{
+    Log-Write -LogPath $sLogFile -LineValue 'Installing prerequisites for Microsoft Exchange 2013...'
+  }
+  
+  Process{
+    Try{
+      [int]$i = 0
+      $InstallFiles = Get-ChildItem -Path $fileShare
+      Foreach($element in $InstallFiles) {
+        $i++
+        $total = $InstallFiles.Count
+        Write-Progress -Activity 'Installing prerequisites for Exchange 2013' -Status "Currently installing file $i of $total"`
+        -PercentComplete (($i / $total) * 100)¨        "$element /passive /norestart"
+      }
+      
+    }      
+    Catch {
+      Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $True
+      Break
+    }
+  }
+  
+  End{
+    If($?){
+      Log-Write -LogPath $sLogFile -LineValue "Completed Successfully."
+      Log-Write -LogPath $sLogFile -LineValue " "
+    }
+  }
+}
+Function EmptyToUse {
+  [CmdletBinding()]
+  Param(
+  )
+  
+  Begin{
+    Log-Write -LogPath $sLogFile -LineValue '<Write what happens>...'
+  }
+  
+  Process{
+    Try{
+     
+    }      
+    Catch {
       Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $True
       Break
     }
