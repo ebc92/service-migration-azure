@@ -33,6 +33,9 @@ $ErrorActionPreference = "SilentlyContinue"
 #Dot Source required Function Libraries
 . "C:\Scripts\Functions\Logging_Functions.ps1"
 
+#Define all variables during testing, remove for production
+$fileshare = \\testsrv-exchang\share
+
 #----------------------------------------------------------[Declarations]----------------------------------------------------------
 
 #Script Version
@@ -40,26 +43,32 @@ $sScriptVersion = "1.0"
 
 #Log File Info
 $sLogPath = "C:\Windows\Temp"
-$sLogName = "<script_name>.log"
+$sLogName = "Migrate-Exchange.log"
 $sLogFile = Join-Path -Path $sLogPath -ChildPath $sLogName
 
 #-----------------------------------------------------------[Functions]------------------------------------------------------------
-Function Install-PreRequisites{
-  Param()
+Function Get-PreRequisites{
+  [CmdletBinding()]
+  Param(
+    [parameter(Mandatory=$true)]
+    [string]$fileshare,
+    [parameter(Mandatory=$true)]
+  )
   
   Begin{
-    Log-Write -LogPath $sLogFile -LineValue "<description of what is going on>..."
+    Log-Write -LogPath $sLogFile -LineValue 'Downloading prerequisites for Microsoft Exchange 2013...'
   }
   
   Process{
-    $fileshare = \\testsrv-exchang\
     Try{
-      if (Test-path(!("\\$fileshare\ExchangeInstall"))) {
-        mkdir \\$fileshare\ExchangeInstall
-        "Path not found, made dir"
+      
+      if (Test-path(!("\\$fileshare\ExchangeInstall")) {
+        New-Item -ItemType Directory -Path "\\$fileshare\ExchangeInstall"
+        Write-Verbose -Message 'Path not found, created required path'
       } else {
-        "Path found, i no make path good engles"
-        }
+        Write-Verbose -Message "Path found, downloading prerequisites to \\$fileshare\ExchangeInstall"
+      }
+      
     }
     
     Catch{
@@ -101,215 +110,6 @@ Function Install-Exchange{
     }
   }
 }
-
-Function Set-ClientAccess{
-  Param()
-  
-  Begin{
-    Log-Write -LogPath $sLogFile -LineValue "<description of what is going on>..."
-  }
-  
-  Process{
-    Try{
-      <code goes here>
-    }
-    
-    Catch{
-      Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $True
-      Break
-    }
-  }
-  
-  End{
-    If($?){
-      Log-Write -LogPath $sLogFile -LineValue "Completed Successfully."
-      Log-Write -LogPath $sLogFile -LineValue " "
-    }
-  }
-}
-
-Function Set-Transport{
-  Param()
-  
-  Begin{
-    Log-Write -LogPath $sLogFile -LineValue "<description of what is going on>..."
-  }
-  
-  Process{
-    Try{
-      <code goes here>
-    }
-    
-    Catch{
-      Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $True
-      Break
-    }
-  }
-  
-  End{
-    If($?){
-      Log-Write -LogPath $sLogFile -LineValue "Completed Successfully."
-      Log-Write -LogPath $sLogFile -LineValue " "
-    }
-  }
-}
-
-Function Set-MailBoxDatabase{
-  Param()
-  
-  Begin{
-    Log-Write -LogPath $sLogFile -LineValue "<description of what is going on>..."
-  }
-  
-  Process{
-    Try{
-      <code goes here>
-    }
-    
-    Catch{
-      Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $True
-      Break
-    }
-  }
-  
-  End{
-    If($?){
-      Log-Write -LogPath $sLogFile -LineValue "Completed Successfully."
-      Log-Write -LogPath $sLogFile -LineValue " "
-    }
-  }
-}
-
-Function Sync-ClientAccess{
-  Param()
-  
-  Begin{
-    Log-Write -LogPath $sLogFile -LineValue "<description of what is going on>..."
-  }
-  
-  Process{
-    Try{
-      <code goes here>
-    }
-    
-    Catch{
-      Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $True
-      Break
-    }
-  }
-  
-  End{
-    If($?){
-      Log-Write -LogPath $sLogFile -LineValue "Completed Successfully."
-      Log-Write -LogPath $sLogFile -LineValue " "
-    }
-  }
-}
-
-Function Sync-Transport{
-  Param()
-  
-  Begin{
-    Log-Write -LogPath $sLogFile -LineValue "<description of what is going on>..."
-  }
-  
-  Process{
-    Try{
-      <code goes here>
-    }
-    
-    Catch{
-      Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $True
-      Break
-    }
-  }
-  
-  End{
-    If($?){
-      Log-Write -LogPath $sLogFile -LineValue "Completed Successfully."
-      Log-Write -LogPath $sLogFile -LineValue " "
-    }
-  }
-}
-
-Function Sync-MailBox{
-  Param()
-  
-  Begin{
-    Log-Write -LogPath $sLogFile -LineValue "<description of what is going on>..."
-  }
-  
-  Process{
-    Try{
-      <code goes here>
-    }
-    
-    Catch{
-      Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $True
-      Break
-    }
-  }
-  
-  End{
-    If($?){
-      Log-Write -LogPath $sLogFile -LineValue "Completed Successfully."
-      Log-Write -LogPath $sLogFile -LineValue " "
-    }
-  }
-}
-
-Function Test-MailFlow{
-  Param()
-  
-  Begin{
-    Log-Write -LogPath $sLogFile -LineValue "<description of what is going on>..."
-  }
-  
-  Process{
-    Try{
-      <code goes here>
-    }
-    
-    Catch{
-      Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $True
-      Break
-    }
-  }
-  
-  End{
-    If($?){
-      Log-Write -LogPath $sLogFile -LineValue "Completed Successfully."
-      Log-Write -LogPath $sLogFile -LineValue " "
-    }
-  }
-}
-
-Function Uninstall-OldExchange{
-  Param()
-  
-  Begin{
-    Log-Write -LogPath $sLogFile -LineValue "<description of what is going on>..."
-  }
-  
-  Process{
-    Try{
-      <code goes here>
-    }
-    
-    Catch{
-      Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $True
-      Break
-    }
-  }
-  
-  End{
-    If($?){
-      Log-Write -LogPath $sLogFile -LineValue "Completed Successfully."
-      Log-Write -LogPath $sLogFile -LineValue " "
-    }
-  }
-}
-
 
 #-----------------------------------------------------------[Execution]------------------------------------------------------------
 
