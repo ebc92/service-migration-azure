@@ -51,7 +51,7 @@ Function Get-Prerequisite {
   [CmdletBinding()]
   Param(
     [parameter(Mandatory=$true)]
-    [string]$fileshare
+    [string]$fileShare
   )
   
   Begin{
@@ -164,5 +164,7 @@ Function EmptyToUse {
 #-----------------------------------------------------------[Execution]------------------------------------------------------------
 
 Log-Start -LogPath $sLogPath -LogName $sLogName -ScriptVersion $sScriptVersion
-Script Execution goes here
+Get-Prerequisite -fileshare $fileshare
+Install-Prerequisite -fileShare $fileshare
+
 Log-Finish -LogPath $sLogFile
