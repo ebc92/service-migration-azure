@@ -23,7 +23,6 @@ $sLogFile = Join-Path -Path $sLogPath -ChildPath $sLogName
 
 Function New-AzureStackWindowsVM {
   Param(
-  [String]$ADDS
   )
   
   Begin{
@@ -44,14 +43,28 @@ Function New-AzureStackWindowsVM {
         # Create a virtual network
         $vnet = New-AzureRmVirtualNetwork -ResourceGroupName $res -Location local -Name amstelvnet -AddressPrefix 192.168.58.0/24 -Subnet $subnetConfig
 
-        # Create a public IP address and specify a DNS name
-        $pip = New-AzureRmPublicIpAddress -ResourceGroupName $res -Location local -AllocationMethod Static -IdleTimeoutInMinutes 4 -Name $ADDS
-
         # Get subnet object
         $subnet = Get-AzureRmVirtualNetworkSubnetConfig -Name $subnetConfig.Name -VirtualNetwork $vnet
 
+        # Create an inbound network security group rule for port 3389
+        $nsgRuleRDP = New-AzureRmNetworkSecurityRuleConfig -Name InboundRDP  -Protocol Tcp -Direction Inbound -Priority 1000 -SourceAddressPrefix * -SourcePortRange * -DestinationAddressPrefix * -DestinationPortRange 3389 -Access Allow
+
+        # Create a network security group
+        $nsg = New-AzureRmNetworkSecurityGroup -ResourceGroupName $res -Location local -Name myNetworkSecurityGroup -SecurityRules $nsgRuleRDP
+      
         # Create a virtual network card and associate with public IP address and NSG
-        $nic = New-AzureRmNetworkInterface -ResourceGroupName $res -Location local -Name NetworkConnection -Subnet $subnet -NetworkSecurityGroup $nsg -PublicIpAddress $pip
+        $nic = New-AzureRmNetworkInterface -ResourceGroupName $res -Location local -Name NetworkConnection -Subnet $subnet -NetworkSecurityGroup $nsg -PrivateIpAddress 192.168.58.113
+
+        # Define a credential object
+        $cred = Get-Credential
+
+        # Create a virtual machine configuration
+        $vmConfig = New-AzureRmVMConfig -VMName myVM -VMSize Standard_D1 | `
+        Set-AzureRmVMOperatingSystem -Windows -ComputerName myVM -Credential $cred | `
+        Set-AzureRmVMSourceImage -PublisherName MicrosoftWindowsServer -Offer WindowsServer -Skus 2016-Datacenter -Version latest | `
+        Add-AzureRmVMNetworkInterface -Id $nic.Id
+
+        New-AzureRmVM -ResourceGroupName $res -Location local -VM $vmConfig
 
     }
     
