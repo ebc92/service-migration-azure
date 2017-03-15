@@ -33,6 +33,11 @@ Function Log-Start{
     Creation Date:  19/05/12
     Purpose/Change: Added debug mode support
 
+    Version:        1.1.1
+    Author:         Nikolai Thingnes Leira
+    Creation Date:  15/03/17
+    Purpose/Change: Added date on each line to make more clear how long the execution time for each function is
+
   .EXAMPLE
     Log-Start -LogPath "C:\Windows\Temp" -LogName "Test_Script.log" -ScriptVersion "1.5"
   #>
@@ -113,10 +118,10 @@ Function Log-Write{
   Param ([Parameter(Mandatory=$true)][string]$LogPath, [Parameter(Mandatory=$true)][string]$LineValue)
   
   Process{
-    Add-Content -Path $LogPath -Value $LineValue
+    Add-Content -Path $LogPath -Value "$(Get-Date) $LineValue"
   
     #Write to screen for debug mode
-    Write-Debug $LineValue
+    Write-Debug "$(Get-Date) $LineValue"
   }
 }
 
