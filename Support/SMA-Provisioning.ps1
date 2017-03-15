@@ -33,21 +33,26 @@ Function New-AzureStackWindowsVM {
 
     New-AzureRmResourceGroup -Name $res -Location local
     Log-Write -LogPath $sLogFile -LineValue "Created Azure Resource Group $res."
-
-    # Create a subnet configuration
-    $subnetConfig = New-AzureRmVirtualNetworkSubnetConfig -Name default -AddressPrefix 192.168.58.0/24
-
-    # Create a virtual network
-    $vnet = New-AzureRmVirtualNetwork -ResourceGroupName $res -Location local -Name MYvNET -AddressPrefix 192.168.58.0/24 -Subnet $subnetConfig
-
-    # Create a public IP address and specify a DNS name
-    $pip = New-AzureRmPublicIpAddress -ResourceGroupName $res -Location local -AllocationMethod Static -IdleTimeoutInMinutes 4 -Name $ADDS
-
   }
   
   Process{
     Try{
-      <code goes here>
+
+        # Create a subnet configuration
+        $subnetConfig = New-AzureRmVirtualNetworkSubnetConfig -Name default -AddressPrefix 192.168.58.0/24
+
+        # Create a virtual network
+        $vnet = New-AzureRmVirtualNetwork -ResourceGroupName $res -Location local -Name amstelvnet -AddressPrefix 192.168.58.0/24 -Subnet $subnetConfig
+
+        # Create a public IP address and specify a DNS name
+        $pip = New-AzureRmPublicIpAddress -ResourceGroupName $res -Location local -AllocationMethod Static -IdleTimeoutInMinutes 4 -Name $ADDS
+
+        # Get subnet object
+        $subnet = Get-AzureRmVirtualNetworkSubnetConfig -Name $subnetConfig.Name -VirtualNetwork $vnet
+
+        # Create a virtual network card and associate with public IP address and NSG
+        $nic = New-AzureRmNetworkInterface -ResourceGroupName $res -Location local -Name NetworkConnection -Subnet $subnet -NetworkSecurityGroup $nsg -PublicIpAddress $pip
+
     }
     
     Catch{
