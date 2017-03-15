@@ -39,8 +39,8 @@ Start-MSSQLDeployment -ComputerName $ComputerName -PackagePath $PackagePath -Ins
 
 Log-Write -LogPath $sLogFile -LineValue "SQL Server 2016 was successfully deployed on $ComputerName."
 
-Log-Write -LogPath $sLogFile -LineValue "Starting SQL Instance migration from $Source\$InstanceName to $ComputerName\$InstanceName."
+#Log-Write -LogPath $sLogFile -LineValue "Starting SQL Instance migration from $Source\$InstanceName to $ComputerName\$InstanceName."
 
-Start-MSSQLMigration -Source $Source -Destination $ComputerName -InstanceName $InstanceName -Share $PackagePath -SqlCredential $SqlCredential -Credentials $Credential
+#Start-MSSQLMigration -Source $Source -Destination $ComputerName -InstanceName $InstanceName -Share $PackagePath -SqlCredential $SqlCredential -Credentials $Credential
 
-Log-Finish -LogPath $sLogFile -NoExit $True
+#Log-Finish -LogPath $sLogFile -NoExit $True
