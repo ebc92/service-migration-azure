@@ -34,17 +34,20 @@ $ErrorActionPreference = 'SilentlyContinue'
 . 'C:\Scripts\Functions\Logging_Functions.ps1'
 
 #Define all variables during testing, remove for production
-$fileshare = 'c:\tempExchange'
+$baseDir = 'C:\tempExchange'
+$fileshare = "$baseDir\executables"
+$verifyPath = Test-Path -Path $fileshare
 
 #----------------------------------------------------------[Declarations]----------------------------------------------------------
 
 #Script Version
 $sScriptVersion = '1.0'
-
 #Log File Info
-$sLogPath = "$fileshare"
-$sLogName = 'Migrate-Exchange.log'
+$logDate = (Get-Date -Format dd_M_yyyy_HHmm).ToString() 
+$sLogPath = "$baseDir\log\"
+$sLogName = "Migrate-Exchange-$logDate.log"
 $sLogFile = Join-Path -Path $sLogPath -ChildPath $sLogName
+$verifyLogPath = Test-Path -Path $sLogPath
 
 #-----------------------------------------------------------[Functions]------------------------------------------------------------
 Function Get-Prerequisite {
@@ -55,6 +58,9 @@ Function Get-Prerequisite {
   )
   
   Begin{
+    if(!($verifyLogPath)) {
+      New-Item -ItemType Directory -Path $sLogPath > $null
+    }
     $variableOutput = '        $fileShare ' + "= $fileShare"
     Log-Write -LogPath $sLogFile -LineValue "Downloading prerequisites for Microsoft Exchange 2013..."
     Log-Write -LogPath $sLogFile -LineValue "The following variables are set for Get-Prerequisite:"
@@ -63,7 +69,6 @@ Function Get-Prerequisite {
   
   Process{
     Try{
-      $verifyPath = Test-Path -Path $fileshare
       [int]$i = 0
       $downloadArray = @(
         "https://download.microsoft.com/download/2/C/4/2C47A5C1-A1F3-4843-B9FE-84C0032C61EC/UcmaRuntimeSetup.exe"
@@ -74,7 +79,7 @@ Function Get-Prerequisite {
       $total = $downloadArray.Count
       
       if (!($verifyPath)) {
-        New-Item -ItemType Directory -Path "$fileshare"
+        New-Item -ItemType Directory -Path "$fileshare" > $null
         Write-Verbose -Message "Path not found, created required path on $fileshare" 
         Log-Write -LogPath $sLogFile -LineValue "Path not found, created required path on $fileshare"
       } else {
@@ -92,8 +97,8 @@ Function Get-Prerequisite {
         Write-Progress -Activity 'Downloading prerequsites for Exchange 2013' -Status "Currently downloading file $i of $total"`
         -PercentComplete (($i / $total) * 100)
         Start-BitsTransfer -Source $element -Destination $fileshare -Description 'Downloading prerequisites'
-        Write-Verbose -Message "Downloading file from $element"
-        Log-Write -LogPath $sLogFile -LineValue "Downloading file from $element"
+        Write-Verbose -Message "Downloading file from $element to $fileShare"
+        Log-Write -LogPath $sLogFile -LineValue "Downloading file from $element to $fileShare"
       }
     }      
     Catch {
@@ -119,7 +124,10 @@ Function Install-Prerequisite {
   )
   
   Begin{
+    $variableOutput = '        $fileShare ' + "= $fileShare"
     Log-Write -LogPath $sLogFile -LineValue 'Installing prerequisites for Microsoft Exchange 2013...'
+    Log-Write -LogPath $sLogFile -LineValue "The following variables are set for Install-Prerequisite:"
+    Log-Write -LogPath $sLogFile -LineValue "$variableOutput"
   }
   
   Process{
@@ -152,7 +160,7 @@ Function Install-Prerequisite {
     }
   }
 }
-Function EmptyToUse {
+Function Migrate-Transport {
   [CmdletBinding()]
   Param(
   )
@@ -184,6 +192,6 @@ Function EmptyToUse {
 Log-Start -LogPath $sLogPath -LogName $sLogName -ScriptVersion $sScriptVersion
 
 Get-Prerequisite -fileshare $fileshare
-Install-Prerequisite -fileShare $fileshare
+#Install-Prerequisite -fileShare $fileshare
 
 Log-Finish -LogPath $sLogFile
