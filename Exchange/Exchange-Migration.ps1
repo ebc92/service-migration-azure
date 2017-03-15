@@ -134,7 +134,7 @@ Function Install-Prerequisite {
       Foreach($element in $InstallFiles) {
         $i++
         Write-Progress -Activity 'Installing prerequisites for Exchange 2013' -Status "Currently installing file $i of $total"`
-        -PercentComplete (($i / $total) * 100)        Write-Verbose -Message "Installing file $i of $total"        Write-Verbose -Message "Installing $element.name`n        Start-Process -FilePath $element.FullName -ArgumentList '/passive /norestart' -Wait"        Log-Write -LogPath $sLogPath -LineValue "Installing file $i of $total"        Log-Write -LogPath $sLogPath -LineValue "Installing $element.name with `n        Start-Process -FilePath $element.FullName -ArgumentList '/passive /norestart' -Wait"        Start-Process -FilePath $element.FullName -ArgumentList '/passive /norestart' -Wait
+        -PercentComplete (($i / $total) * 100)        Write-Verbose -Message "Installing file $i of $total"        Write-Verbose -Message "Installing $element.name"        Log-Write -LogPath $sLogPath -LineValue "Installing file $i of $total"        Log-Write -LogPath $sLogPath -LineValue "Installing $element.name"        Start-Process -FilePath $element.FullName -ArgumentList '/passive /norestart' -Wait
       }
     }
        
