@@ -26,12 +26,24 @@ Function New-AzureStackWindowsVM {
   )
   
   Begin{
+    $ComputeAdmin = "C:\Users\AzureStackAdmin\Desktop\AzureStack-Tools-master\ComputeAdmin\AzureStack.ComputeAdmin.psm1"
+    $Connect = "C:\Users\AzureStackAdmin\Desktop\AzureStack-Tools-master\Connect\AzureStack.Connect.psm1"
     Import-Module AzureStack, AzureRM
+    Import-Module $ComputeAdmin
+    Import-Module $Connect
+
+    Log-Start -LogPath $sLogPath -LogName $sLogName -ScriptVersion $sScriptVersion
 
     $res = "sma-vm-provisioning"
+    $exists = Get-AzureRmResourceGroup -Name $res
 
-    New-AzureRmResourceGroup -Name $res -Location local
-    Log-Write -LogPath $sLogFile -LineValue "Created Azure Resource Group $res."
+    if(!$exists){
+        New-AzureRmResourceGroup -Name $res -Location local
+        Log-Write -LogPath $sLogFile -LineValue "Created Azure Resource Group $res."
+    } else {
+        Log-Write -LogPath $sLogFile -LineValue "Resource Group already exists."
+    }
+    
   }
   
   Process{
