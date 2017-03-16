@@ -78,6 +78,10 @@ Function Get-Prerequisite {
       
       $total = $downloadArray.Count
       
+      #Checking package provider list for NuGet
+      $nuget = Get-PackageProvider | Where-Object -Property Name -eq nuget
+     
+      #Creating the required folders if they do not exist 
       if (!($verifyPath)) {
         New-Item -ItemType Directory -Path "$fileshare" > $null
         Write-Verbose -Message "Path not found, created required path on $fileshare" 
@@ -87,9 +91,20 @@ Function Get-Prerequisite {
         Log-Write -LogPath $sLogFile -LineValue "Path found on $fileShare"
       }
       
+      #Checking if NuGet is in the package provider list, and installing it if it's not
+      if (!($nuget)) {
+        Write-Verbose -Message "NuGet not installed, installing now..."
+        Log-Write -LogPath $sLogFile -LineValue "Nuget not installed, installing now..."
+        Install-PackageProvider -Name NuGet -Force
+      } else {
+        Write-Verbose -Message "NuGet already installed, continuing prerequisite checks"
+        Log-Write -LogPath $sLogFile -LineValue "NuGet already installed, continuing prerequisite checks"
+      }
+      
       Write-Verbose -Message "Total amount of files to be donwloaded is $total, proceeding to download"
       Log-Write -LogPath $sLogFile -LineValue "Total amount of files to be donwloaded is $total, proceeding to download"
       
+      #Loop to install all files in the folder created earlier
       foreach($element in $downloadArray) {
         $i++
         Write-Verbose -Message "Currently downloading file $i of $total"
@@ -190,6 +205,7 @@ Function Migrate-Transport {
 #-----------------------------------------------------------[Execution]------------------------------------------------------------
 
 Log-Start -LogPath $sLogPath -LogName $sLogName -ScriptVersion $sScriptVersion
+$i = 0
 
 Get-Prerequisite -fileshare $fileshare
 #Install-Prerequisite -fileShare $fileshare
