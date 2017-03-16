@@ -49,14 +49,32 @@ Function New-AzureStackWindowsVM {
   Process{
     Try{
 
-        # Create a subnet configuration
-        $subnetConfig = New-AzureRmVirtualNetworkSubnetConfig -Name default -AddressPrefix 192.168.58.0/24
+        # Prerequisites
+        $vnetExists = Get-AzureRmVirtualNetwork -ResourceGroupName "sma-vm-provisioning" -Name amstelvnet
+        $subnetExists = Get-AzureRmVirtualNetworkSubnetConfig -Name default -VirtualNetwork $vnet
+        $nsgExists = Get-AzureRmNetworkSecurityGroup -ResourceGroupName $res -Name myNetworkSecurityGroup
+        $nsRuleExists = Get-AzureRmNetworkSecurityRuleConfig -NetworkSecurityGroup $nsgExists
 
-        # Create a virtual network
-        $vnet = New-AzureRmVirtualNetwork -ResourceGroupName $res -Location local -Name amstelvnet -AddressPrefix 192.168.58.0/24 -Subnet $subnetConfig
+        # Create a subnet configuration
+        if(!$subnetExists){
+            $subnetConfig = New-AzureRmVirtualNetworkSubnetConfig -Name default -AddressPrefix 192.168.58.0/24
+            Log-Write -LogPath $sLogFile -LineValue "Created the subnet configuration."
+        } else {
+            Log-Write -LogPath $sLogFile -LineValue "The subnet configuration already exists."
+        }
+
+        # Create a vNet
+        if(!$vnetExists){
+            $vnet = New-AzureRmVirtualNetwork -ResourceGroupName $res -Location local -Name amstelvnet -AddressPrefix 192.168.58.0/24 -Subnet $subnetConfig
+            Log-Write -LogPath $sLogFile -LineValue "Created the virtual network."
+        } else {
+            Log-Write -LogPath $sLogFile -LineValue "The virtual network already exists."
+        }
 
         # Get subnet object
-        $subnet = Get-AzureRmVirtualNetworkSubnetConfig -Name $subnetConfig.Name -VirtualNetwork $vnet
+        if(!$subnetExists){
+            Log-Write -LogPath $sLogFile -LineValue "Could not get the subnet configuration."
+        }
 
         # Create an inbound network security group rule for port 3389
         $nsgRuleRDP = New-AzureRmNetworkSecurityRuleConfig -Name InboundRDP  -Protocol Tcp -Direction Inbound -Priority 1000 -SourceAddressPrefix * -SourcePortRange * -DestinationAddressPrefix * -DestinationPortRange 3389 -Access Allow
@@ -81,7 +99,7 @@ Function New-AzureStackWindowsVM {
     }
     
     Catch{
-      Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception
+      Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $False
       Break
     }
   }
