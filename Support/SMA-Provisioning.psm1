@@ -50,35 +50,35 @@ Function New-AzureStackWindowsVM {
     Try{
 
         # Prerequisites
-        $vnetExists = Get-AzureRmVirtualNetwork -ResourceGroupName "sma-vm-provisioning" -Name amstelvnet
-        $subnetExists = Get-AzureRmVirtualNetworkSubnetConfig -Name default -VirtualNetwork $vnetExists
-        $nsgExists = Get-AzureRmNetworkSecurityGroup -ResourceGroupName $res -Name myNetworkSecurityGroup
-        $nsRuleExists = Get-AzureRmNetworkSecurityRuleConfig -NetworkSecurityGroup $nsgExists
-        $nicExists = Get-AzureRmNetworkInterface -ResourceGroupName $res -Name NetworkConnection
+        $vnet = Get-AzureRmVirtualNetwork -ResourceGroupName "sma-vm-provisioning" -Name amstelvnet
+        $subnet = Get-AzureRmVirtualNetworkSubnetConfig -Name default -VirtualNetwork $vnet
+        $nsg = Get-AzureRmNetworkSecurityGroup -ResourceGroupName $res -Name myNetworkSecurityGroup
+        $nsRules = Get-AzureRmNetworkSecurityRuleConfig -NetworkSecurityGroup $nsg
+        $nic = Get-AzureRmNetworkInterface -ResourceGroupName $res -Name NetworkConnection
 
         # Create a subnet configuration
-        if(!$subnetExists){
-            $subnetConfig = New-AzureRmVirtualNetworkSubnetConfig -Name default -AddressPrefix 192.168.58.0/24
+        if(!$subnet){
+            $subnet = New-AzureRmVirtualNetworkSubnetConfig -Name default -AddressPrefix 192.168.58.0/24
             Log-Write -LogPath $sLogFile -LineValue "Created the subnet configuration."
         } else {
             Log-Write -LogPath $sLogFile -LineValue "The subnet configuration already exists."
         }
 
         # Create a vNet
-        if(!$vnetExists){
-            $vnet = New-AzureRmVirtualNetwork -ResourceGroupName $res -Location local -Name amstelvnet -AddressPrefix 192.168.58.0/24 -Subnet $subnetConfig
+        if(!$vnet){
+            $vnet = New-AzureRmVirtualNetwork -ResourceGroupName $res -Location local -Name amstelvnet -AddressPrefix 192.168.58.0/24 -Subnet $subnet
             Log-Write -LogPath $sLogFile -LineValue "Created the virtual network."
         } else {
             Log-Write -LogPath $sLogFile -LineValue "The virtual network already exists."
         }
 
         # Check if subnet configuration exists
-        if(!$subnetExists){
+        if(!$subnet){
             Log-Write -LogPath $sLogFile -LineValue "Could not get the subnet configuration."
         }
 
         # Create an inbound network security group rule for port 3389
-        if(!$nsgRuleExists){
+        if(!$nsgRules){
             $nsgRuleRDP = New-AzureRmNetworkSecurityRuleConfig -Name InboundRDP  -Protocol Tcp -Direction Inbound -Priority 1000 -SourceAddressPrefix * -SourcePortRange * -DestinationAddressPrefix * -DestinationPortRange 3389 -Access Allow
             Log-Write -LogPath $sLogFile -LineValue "Created network security group rule for RDP."
         } else {
@@ -86,7 +86,7 @@ Function New-AzureStackWindowsVM {
         }
 
         # Create a network security group
-        if(!$nsgExists){
+        if(!$nsg){
             $nsg = New-AzureRmNetworkSecurityGroup -ResourceGroupName $res -Location local -Name myNetworkSecurityGroup -SecurityRules $nsgRuleRDP
             Log-Write -LogPath $sLogFile -LineValue "Created network security group with RDP rules."
         } else {
@@ -96,8 +96,8 @@ Function New-AzureStackWindowsVM {
 
       
         # Create a virtual network card and associate with public IP address and NSG
-        if(!$nicExists){
-            $nic = New-AzureRmNetworkInterface -ResourceGroupName $res -Location local -Name NetworkConnection -Subnet $subnetExists -NetworkSecurityGroup $nsg -PrivateIpAddress 192.168.58.113
+        if(!$nic){
+            $nic = New-AzureRmNetworkInterface -ResourceGroupName $res -Location local -Name NetworkConnection -Subnet $subnet -NetworkSecurityGroup $nsg -PrivateIpAddress 192.168.58.113
             Log-Write -LogPath $sLogFile -LineValue "Created the network interface."
         } else {
             Log-Write -LogPath $sLogFile -LineValue "The network interface already exists."
@@ -113,13 +113,20 @@ Function New-AzureStackWindowsVM {
         # Define a credential object
         $cred = Get-Credential
 
+        $VMName = "ProvisionVMtest"
+        $OSDiskName = $VMName + "OSDisk"
+        $StorageAccount = Get-AzureRmStorageAccount -ResourceGroupName $res
+        $OSDiskUri = $StorageAccount.PrimaryEndpoints.Blob.ToString() + "vhds/" + $OSDiskName + ".vhd"
+        
+
         # Create a virtual machine configuration
-        $vmConfig = New-AzureRmVMConfig -VMName ProvisionVMtest -VMSize Standard_D1 | `
+        $vmConfig = New-AzureRmVMConfig -VMName $VMName -VMSize Standard_D1 | `
         Set-AzureRmVMOperatingSystem -Windows -ComputerName VirtualTest -Credential $cred | `
         Set-AzureRmVMSourceImage -PublisherName $offer.PublisherName -Offer $offer.Offer -Skus $sku.Skus -Version latest | `
+        Set-AzureRmVMOSDisk -Name $OSDiskName -VhdUri $OSDiskUri -CreateOption FromImage | `
         Add-AzureRmVMNetworkInterface -Id $nic.Id
 
-        New-AzureRmVM -ResourceGroupName $res -Location local -VM $vmConfig
+        New-AzureRmVM -ResourceGroupName $res -Location local -VM $vmConfig -Verbose
 
     }
     
