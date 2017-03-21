@@ -23,8 +23,13 @@ $sLogFile = Join-Path -Path $sLogPath -ChildPath $sLogName
 
 Function New-AzureStackWindowsVM {
   Param(
+    [Parameter(Mandatory=$true)]
     [String]$VMName,
-    [String]$VMSize
+    [String]$ComputerName = $VMName,
+    [String]$ResourceGroup = "sma-vm-provisioning",
+    [String]$VMSize = "Standard_A1",
+    [String]$StorageAccountName = "vhdstorage",
+    [String]$Location = "local"
   )
   
   Begin{
@@ -45,11 +50,11 @@ Function New-AzureStackWindowsVM {
       Break
     }
 
-    $res = "sma-vm-provisioning"
+    $res = $ResourceGroup
     $exists = Get-AzureRmResourceGroup -Name $res
 
     if(!$exists){
-        New-AzureRmResourceGroup -Name $res -Location local
+        New-AzureRmResourceGroup -Name $res -Location $Location
         Log-Write -LogPath $sLogFile -LineValue "Created Azure Resource Group $res."
     } else {
         Log-Write -LogPath $sLogFile -LineValue "Resource Group already exists."
@@ -77,7 +82,7 @@ Function New-AzureStackWindowsVM {
 
         # Create a vNet
         if(!$vnet){
-            $vnet = New-AzureRmVirtualNetwork -ResourceGroupName $res -Location local -Name amstelvnet -AddressPrefix 192.168.58.0/24 -Subnet $subnet
+            $vnet = New-AzureRmVirtualNetwork -ResourceGroupName $res -Location $Location -Name amstelvnet -AddressPrefix 192.168.58.0/24 -Subnet $subnet
             Log-Write -LogPath $sLogFile -LineValue "Created the virtual network."
         } else {
             Log-Write -LogPath $sLogFile -LineValue "The virtual network already exists."
@@ -98,7 +103,7 @@ Function New-AzureStackWindowsVM {
 
         # Create a network security group
         if(!$nsg){
-            $nsg = New-AzureRmNetworkSecurityGroup -ResourceGroupName $res -Location local -Name myNetworkSecurityGroup -SecurityRules $nsgRuleRDP
+            $nsg = New-AzureRmNetworkSecurityGroup -ResourceGroupName $res -Location $Location -Name myNetworkSecurityGroup -SecurityRules $nsgRuleRDP
             Log-Write -LogPath $sLogFile -LineValue "Created network security group with RDP rules."
         } else {
             Log-Write -LogPath $sLogFile -LineValue "The network security group already exists."
@@ -106,30 +111,33 @@ Function New-AzureStackWindowsVM {
 
         # Create a virtual network card and associate with public IP address and NSG
         if(!$nic){
-            $nic = New-AzureRmNetworkInterface -ResourceGroupName $res -Location local -Name NetworkConnection -Subnet $subnet -NetworkSecurityGroup $nsg -PrivateIpAddress 192.168.58.113
+            $nic = New-AzureRmNetworkInterface -ResourceGroupName $res -Location $Location -Name NetworkConnection -Subnet $subnet -NetworkSecurityGroup $nsg -PrivateIpAddress 192.168.58.113
             Log-Write -LogPath $sLogFile -LineValue "Created the network interface."
         } else {
             Log-Write -LogPath $sLogFile -LineValue "The network interface already exists."
         }
-        
 
         # Get the VM Image Offer
-        $offer = Get-AzureRmVMImageOffer -Location local -PublisherName MicrosoftWindowsServer
+        $offer = Get-AzureRmVMImageOffer -Location $Location -PublisherName MicrosoftWindowsServer
 
         # Get the VM Image SKU
-        $sku = Get-AzureRMVMImageSku -Location local -PublisherName $offer.PublisherName -Offer $offer.Offer
+        $sku = Get-AzureRMVMImageSku -Location $Location -PublisherName $offer.PublisherName -Offer $offer.Offer
 
         # Define a credential object
         $cred = Get-Credential
 
-        $VMName = "ProvisionVMtest"
-        $OSDiskName = $VMName + "OSDisk"
-        $StorageAccount = Get-AzureRmStorageAccount -ResourceGroupName $res
-        $OSDiskUri = $StorageAccount.PrimaryEndpoints.Blob.ToString() + "vhds/" + $OSDiskName + ".vhd"
+        $StorageAccount = Get-AzureRmStorageAccount | Where-Object {$_.StorageAccountName -eq $StorageAccountName}
+
+        #If the storage account does not exist it will be created.
+        if(!$StorageAccount){
+                New-AzureRmStorageAccount -ResourceGroupName $ResourceGroup -Name $StorageAccountName -Type Standard_LRS -Location $Location
+        }
+
+        $OSDiskUri = $StorageAccount.PrimaryEndpoints.Blob.ToString() + "vhds/" + $VMName + "OSDisk" + ".vhd"
 
         # Create a virtual machine configuration
-        $vmConfig = New-AzureRmVMConfig -VMName $VMName -VMSize Standard_A1 | `
-        Set-AzureRmVMOperatingSystem -Windows -ComputerName VirtualTest -Credential $cred | `
+        $vmConfig = New-AzureRmVMConfig -VMName $VMName -VMSize $VMSize | `
+        Set-AzureRmVMOperatingSystem -Windows -ComputerName $ComputerName -Credential $cred | `
         Set-AzureRmVMSourceImage -PublisherName $offer.PublisherName -Offer $offer.Offer -Skus $sku.Skus -Version latest | `
         Set-AzureRmVMOSDisk -Name $OSDiskName -VhdUri $OSDiskUri -CreateOption FromImage | `
         Add-AzureRmVMNetworkInterface -Id $nic.Id
@@ -146,8 +154,7 @@ Function New-AzureStackWindowsVM {
   
   End{
     If($?){
-      Log-Write -LogPath $sLogFile -LineValue "Completed Successfully."
-      Log-Write -LogPath $sLogFile -LineValue " "
+      Log-Write -LogPath $sLogFile -LineValue "VM provisioning completed successfully."
     }
   }
 }
