@@ -23,16 +23,27 @@ $sLogFile = Join-Path -Path $sLogPath -ChildPath $sLogName
 
 Function New-AzureStackWindowsVM {
   Param(
+    [String]$VMName,
+    [String]$VMSize
   )
   
   Begin{
-    $ComputeAdmin = "C:\Users\AzureStackAdmin\Desktop\AzureStack-Tools-master\ComputeAdmin\AzureStack.ComputeAdmin.psm1"
     $Connect = "C:\Users\AzureStackAdmin\Desktop\AzureStack-Tools-master\Connect\AzureStack.Connect.psm1"
+    $ComputeAdmin = "C:\Users\AzureStackAdmin\Desktop\AzureStack-Tools-master\ComputeAdmin\AzureStack.ComputeAdmin.psm1"
+
     Import-Module AzureStack, AzureRM
-    Import-Module $ComputeAdmin
     Import-Module $Connect
+    Import-Module $ComputeAdmin
 
     Log-Start -LogPath $sLogPath -LogName $sLogName -ScriptVersion $sScriptVersion
+
+    Try{ 
+        $context = Get-AzureRmContext
+    } Catch {
+        Log-Write -LogPath $sLogFile -LineValue "Azure Resource Manager context could not be retrieved. Verify that you are logged in."
+        Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $False
+      Break
+    }
 
     $res = "sma-vm-provisioning"
     $exists = Get-AzureRmResourceGroup -Name $res
@@ -93,8 +104,6 @@ Function New-AzureStackWindowsVM {
             Log-Write -LogPath $sLogFile -LineValue "The network security group already exists."
         }
 
-
-      
         # Create a virtual network card and associate with public IP address and NSG
         if(!$nic){
             $nic = New-AzureRmNetworkInterface -ResourceGroupName $res -Location local -Name NetworkConnection -Subnet $subnet -NetworkSecurityGroup $nsg -PrivateIpAddress 192.168.58.113
@@ -117,10 +126,9 @@ Function New-AzureStackWindowsVM {
         $OSDiskName = $VMName + "OSDisk"
         $StorageAccount = Get-AzureRmStorageAccount -ResourceGroupName $res
         $OSDiskUri = $StorageAccount.PrimaryEndpoints.Blob.ToString() + "vhds/" + $OSDiskName + ".vhd"
-        
 
         # Create a virtual machine configuration
-        $vmConfig = New-AzureRmVMConfig -VMName $VMName -VMSize Standard_D1 | `
+        $vmConfig = New-AzureRmVMConfig -VMName $VMName -VMSize Standard_A1 | `
         Set-AzureRmVMOperatingSystem -Windows -ComputerName VirtualTest -Credential $cred | `
         Set-AzureRmVMSourceImage -PublisherName $offer.PublisherName -Offer $offer.Offer -Skus $sku.Skus -Version latest | `
         Set-AzureRmVMOSDisk -Name $OSDiskName -VhdUri $OSDiskUri -CreateOption FromImage | `
