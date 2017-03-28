@@ -53,8 +53,8 @@ Function New-AzureStackTenantDeployment {
         Log-Write -LogPath $sLogFile -LineValue "Resource Group already exists."
     }
 
-    $VMNic = New-AzureStackVnet -NetworkIP "192.168.59.113/24" -ResourceGroupName $ResourceGroupName -VNetName "amstelvnet2"
-    New-AzureStackWindowsVM -VMName "Tenant Gateway" -VMNic $VMNic
+    $VMNic = New-AzureStackVnet -NetworkIP "192.168.59.112/24" -ResourceGroupName $ResourceGroupName -VNetName "AMSTEL-vnet"
+    New-AzureStackWindowsVM -VMName "TenantGateway" -VMNic $VMNic
 }
 
 Function New-AzureStackVnet{
@@ -166,7 +166,7 @@ Function New-AzureStackWindowsVM {
 
         #If the storage account does not exist it will be created.
         if(!$StorageAccount){
-                New-AzureRmStorageAccount -ResourceGroupName $res -Name $StorageAccountName -Type Standard_LRS -Location $Location
+                New-AzureRmStorageAccount -ResourceGroupName $ResourceGroup -Name $StorageAccountName -Type Standard_LRS -Location $Location
         }
 
         $OSDiskName = $VMName + "OSDisk"
@@ -179,7 +179,7 @@ Function New-AzureStackWindowsVM {
         Set-AzureRmVMOSDisk -Name $OSDiskName -VhdUri $OSDiskUri -CreateOption FromImage | `
         Add-AzureRmVMNetworkInterface -Id $VMNic.Id
 
-        New-AzureRmVM -ResourceGroupName $res -Location $Local -VM $vmConfig -Verbose
+        New-AzureRmVM -ResourceGroupName $ResourceGroup -Location $Location -VM $vmConfig -Verbose
 
     }
     
@@ -196,6 +196,22 @@ Function New-AzureStackWindowsVM {
   }
 }
 
+#Function New-RDPortMap must be run on MAS-BGPNAT
+Function New-RDPortMap {
+    Param(
+    [Integer]$PortNumber = "13389",
+    [String]$ExternalIP = "158.38.57.109",
+    [String]$InternalIP
+    )
+    Try {
+        $NatInstance = Get-NetNat
+        Add-NetNatStaticMapping -NatName $NatInstance.Name -ExternalIPAddress $ExternalIP -ExternalPort $PortNumber -InternalIPAddress $InternalIP
+  
+    } Catch {
+        Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $False
+        Log-Write -LogPath $sLogFile -LineValue "Port mapping failed."
+    }
+}
 #-----------------------------------------------------------[Execution]------------------------------------------------------------
 
 #Log-Start -LogPath $sLogPath -LogName $sLogName -ScriptVersion $sScriptVersion
