@@ -54,7 +54,11 @@ Function Get-Prerequisite {
   [CmdletBinding()]
   Param(
     [parameter(Mandatory=$true)]
-    [string]$fileShare
+    [string]$fileShare,
+    [parameter(Mandatory=$true)]
+    [string]$tarComp,
+    [parameter(Mandatory=$true)]
+    [PSCredential]$cred
   )
   
   Begin{
@@ -79,7 +83,10 @@ Function Get-Prerequisite {
       $total = $downloadArray.Count
       
       #Checking package provider list for NuGet
-      $nuget = Get-PackageProvider | Where-Object -Property Name -eq nuget
+      $nuget = Invoke-Command -Credential $cred -ComputerName $tarComp -ScriptBlock { 
+        $nuget = Get-PackageProvider | Where-Object -Property Name -eq nuget
+        Return $nuget 
+      }
      
       #Creating the required folders if they do not exist 
       if (!($verifyPath)) {
@@ -104,7 +111,7 @@ Function Get-Prerequisite {
       Write-Verbose -Message "Total amount of files to be donwloaded is $total, proceeding to download"
       Log-Write -LogPath $sLogFile -LineValue "Total amount of files to be donwloaded is $total, proceeding to download"
       
-      #Loop to install all files in the folder created earlier
+      #Loop to download all files in the folder created earlier
       foreach($element in $downloadArray) {
         $i++
         Write-Verbose -Message "Currently downloading file $i of $total"
@@ -135,7 +142,11 @@ Function Install-Prerequisite {
   [CmdletBinding()]
   Param(
     [parameter(Mandatory=$true)]
-    [string]$fileShare
+    [string]$fileShare,
+    [parameter(Mandatory=$true)]
+    [string]$tarComp,
+    [parameter(Mandatory=$true)]
+    [PSCredential]$cred
   )
   
   Begin{
@@ -157,7 +168,9 @@ Function Install-Prerequisite {
       Foreach($element in $InstallFiles) {
         $i++
         Write-Progress -Activity 'Installing prerequisites for Exchange 2013' -Status "Currently installing file $i of $total"`
-        -PercentComplete (($i / $total) * 100)        Write-Verbose -Message "Installing file $i of $total"        Write-Verbose -Message "Installing $element.name"        Log-Write -LogPath $sLogPath -LineValue "Installing file $i of $total"        Log-Write -LogPath $sLogPath -LineValue "Installing $element.name"        Start-Process -FilePath $element.FullName -ArgumentList '/passive /norestart' -Wait
+        -PercentComplete (($i / $total) * 100)        Write-Verbose -Message "Installing file $i of $total"        Write-Verbose -Message "Installing $element.name"        Log-Write -LogPath $sLogPath -LineValue "Installing file $i of $total"        Log-Write -LogPath $sLogPath -LineValue "Installing $element.name"        Invoke-Command -ComputerName $tarComp -Credential $cred -ScriptBlock {
+          Start-Process -FilePath $element.FullName -ArgumentList '/passive /norestart' -Wait
+        }
       }
     }
        
