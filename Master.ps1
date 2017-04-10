@@ -36,6 +36,8 @@ $LogLib = Join-Path -Path $PSScriptRoot -ChildPath "Libraries\Log-Functions.ps1"
 . $LogLib
 $IpCalc = Join-Path -Path $PSScriptRoot -ChildPath "Libraries\ipcalculator.ps1"
 
+$ChkBoot = Join-Path -Path $PSScriptRoot -ChildPath "Support\Start-RebootCheck.ps1"
+
 #----------------------------------------------------------[Declarations]----------------------------------------------------------
 
 $sScriptVersion = "1.0"
@@ -46,10 +48,10 @@ $sLogFile = Join-Path -Path $sLogPath -ChildPath $sLogName
 #-----------------------------------------------------------[Execution]------------------------------------------------------------
 
 Log-Start -LogPath $sLogPath -LogName $sLogName -ScriptVersion $sScriptVersion
-Log-Write -LogPath $sLogPath -LineValue "Testing"
+Log-Write -LogPath $sLogFile -LineValue "Testing"
 
 $m = "Starting service migration execution.."
-
+Log-Write -LogPath $sLogFile -LineValue $m
 Write-Verbose $m
 
 $module = @("ADDC\ADDC-Migration.psm1", "MSSQL\MSSQL-Migration.psm1", "File-Share\FSS-Migration.psm1", "Exchange\Exchange-Migration.psm1")
@@ -58,12 +60,11 @@ $module | % {
     Try {
         Import-Module (Join-Path -Path $PSScriptRoot -ChildPath $_) -Force
         $m = "Successfully imported $($_)"
-        Log-Write -LogPath $sLogPath -LineValue $m
+        Log-Write -LogPath $sLogFile -LineValue $m
         Write-Verbose $m
     } Catch {
-        $m = "Failed to import module $($_)"
-        Log-Write -LogPath $sLogPath -LineValue $m
-        Write-Verbose $m
-        Log-Error -LogPath $sLogPath -ErrorDesc $_.Message
+        Write-Verbose $_.Exception
+        Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $False
     }
 }
+

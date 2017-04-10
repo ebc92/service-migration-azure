@@ -1,6 +1,4 @@
-﻿
-
-Function Start-ADDCDeploymentProcess {
+﻿Function Start-ADDCDeploymentProcess {
 
 Param (
     [Parameter(Mandatory=$true)]
@@ -12,7 +10,6 @@ Param (
     [Parameter(Mandatory=$true)]
     [string]$ComputerName
 )
-    . .\Support\Get-GredentialObject.ps1
 
     $DomainCredential = Get-CredentialObject -domain $Domain
     $Credential = Get-CredentialObject
@@ -69,7 +66,6 @@ Param (
     Invoke-Command -ComputerName $ComputerName -ScriptBlock $CfgDns -ArgumentList $DNS,$Domain,$ComputerName,$DomainCredential -Credential $Credential
     Reboot-and-Deploy -ComputerName $ComputerName -DomainCredential $DomainCredential -LocalCredential $Credential -Password $Password -functionDeployDC ${Function:Deploy-DomainController}
 
-    . .\Support\Start-RebootCheck.ps1
     Start-RebootCheck -ComputerName $ComputerName -DomainCredential $DomainCredential
 
     $postDep = {
