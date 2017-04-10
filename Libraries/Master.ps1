@@ -25,45 +25,45 @@ In:::the/    ::::dMMMMMb::::    \ Land::of:
 #>
 
 #---------------------------------------------------------[Initialisations]--------------------------------------------------------
-
-#Set Error Action to stop so that exceptions can be caught
+write-output "running"
+#Set error action to stop so that exceptions can be caught
 $ErrorActionPreference = "Stop"
 
-#Dot source external functions, scripts and libraries
+#Dot source external libraries and required scripts
 $CredObj = Join-Path -Path $PSScriptRoot -ChildPath "Support\Get-GredentialObject.ps1"
-. $CredObj
 $LogLib = Join-Path -Path $PSScriptRoot -ChildPath "Libraries\Log-Functions.ps1"
-. $LogLib
 $IpCalc = Join-Path -Path $PSScriptRoot -ChildPath "Libraries\ipcalculator.ps1"
 
 #----------------------------------------------------------[Declarations]----------------------------------------------------------
 
 $sScriptVersion = "1.0"
-$sLogPath = "C:\Logs"
+$sLogPath = "C:\Logs\service-migration-azure"
 $sLogName = "service-migration-azure.log"
 $sLogFile = Join-Path -Path $sLogPath -ChildPath $sLogName
 
 #-----------------------------------------------------------[Execution]------------------------------------------------------------
 
+
+
 Log-Start -LogPath $sLogPath -LogName $sLogName -ScriptVersion $sScriptVersion
-Log-Write -LogPath $sLogPath -LineValue "Testing"
 
-$m = "Starting service migration execution.."
+$m = "Starting SMA master script.."
+Log-Write -LogPath $sLogFile -LineValue $m
+Write-Verbose -Message $m
 
-Write-Verbose $m
+$m = "Importing modules.."
+Log-Write -LogPath $sLogFile -LineValue $m
+Write-Verbose -Message $m
 
-$module = @("ADDC\ADDC-Migration.psm1", "MSSQL\MSSQL-Migration.psm1", "File-Share\FSS-Migration.psm1", "Exchange\Exchange-Migration.psm1")
+$m = "Failed to import "
 
-$module | % {
-    Try {
-        Import-Module (Join-Path -Path $PSScriptRoot -ChildPath $_) -Force
-        $m = "Successfully imported $($_)"
-        Log-Write -LogPath $sLogPath -LineValue $m
-        Write-Verbose $m
+$modules = @("ADDC\ADDC-Migration.psm1", "MSSQL\MSSQL-Migration.psm1", "File-Share\FSS-Migration.psm1", "Exchange\Exchange-Migration.psm1")
+$modules | % { 
+    Try { 
+        Import-Module (Join-Path -Path $PSScriptRoot -ChildPath $_) -Force 
     } Catch {
-        $m = "Failed to import module $($_)"
-        Log-Write -LogPath $sLogPath -LineValue $m
-        Write-Verbose $m
-        Log-Error -LogPath $sLogPath -ErrorDesc $_.Message
+        Log-Error -LogPath $sLogFile -ErrorDesc $m + $_ -ExitGracefully $False
+        Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $False
+        Write-Verbose -Message $m + $_
     }
-}
+} 
