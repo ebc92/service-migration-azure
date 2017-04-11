@@ -30,13 +30,19 @@ In:::the/    ::::dMMMMMb::::    \ Land::of:
 $ErrorActionPreference = "Stop"
 
 #Dot source external functions, scripts and libraries
-$CredObj = Join-Path -Path $PSScriptRoot -ChildPath "Support\Get-GredentialObject.ps1"
-. $CredObj
-$LogLib = Join-Path -Path $PSScriptRoot -ChildPath "Libraries\Log-Functions.ps1"
-. $LogLib
-$IpCalc = Join-Path -Path $PSScriptRoot -ChildPath "Libraries\ipcalculator.ps1"
-
-$ChkBoot = Join-Path -Path $PSScriptRoot -ChildPath "Support\Start-RebootCheck.ps1"
+$functions = @("Support\Get-GredentialObject.ps1", "Libraries\Log-Functions.ps1", "Libraries\ipcalculator.ps1", "Support\Start-RebootCheck.ps1")
+$functions | % {
+    Try {
+        $path = Join-Path -Path $PSScriptRoot -ChildPath $_
+        . $path
+        $m = "Successfully sourced $($_)"
+        Log-Write -LogPath $sLogFile -LineValue $m
+        Write-Verbose $m
+    } Catch {
+        Write-Verbose $_.Exception
+        Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $False
+    }
+}
 
 #----------------------------------------------------------[Declarations]----------------------------------------------------------
 
