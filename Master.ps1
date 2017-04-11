@@ -29,8 +29,8 @@ In:::the/    ::::dMMMMMb::::    \ Land::of:
 #Set Error Action to stop so that exceptions can be caught
 $ErrorActionPreference = "Stop"
 
-#Dot source external functions, scripts and libraries
-$functions = @("Support\Get-GredentialObject.ps1", "Libraries\Log-Functions.ps1", "Libraries\ipcalculator.ps1", "Support\Start-RebootCheck.ps1")
+#Dot source dsc, functions, scripts and libraries
+$functions = @("Support\Get-GredentialObject.ps1", "Libraries\Log-Functions.ps1", "Support\Start-RebootCheck.ps1", "Support\DSC\InstallADDC.ps1")
 $functions | % {
     Try {
         $path = Join-Path -Path $PSScriptRoot -ChildPath $_
@@ -54,7 +54,6 @@ $sLogFile = Join-Path -Path $sLogPath -ChildPath $sLogName
 #-----------------------------------------------------------[Execution]------------------------------------------------------------
 
 Log-Start -LogPath $sLogPath -LogName $sLogName -ScriptVersion $sScriptVersion
-Log-Write -LogPath $sLogFile -LineValue "Testing"
 
 $m = "Starting service migration execution.."
 Log-Write -LogPath $sLogFile -LineValue $m

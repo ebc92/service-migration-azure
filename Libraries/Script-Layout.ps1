@@ -48,29 +48,26 @@ $sLogFile = Join-Path -Path $sLogPath -ChildPath $sLogName
 <#
 
 Function <FunctionName>{
-  Param()
-  
-  Begin{
-    Log-Write -LogPath $sLogFile -LineValue "<description of what is going on>..."
-  }
-  
-  Process{
-    Try{
-      <code goes here>
+    Param()
+    Begin{
+        Log-Write -LogPath $sLogFile -LineValue "<description of what is going on>..."
     }
-    
-    Catch{
-      Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $True
-      Break
-    }
-  }
   
-  End{
-    If($?){
-      Log-Write -LogPath $sLogFile -LineValue "Completed Successfully."
-      Log-Write -LogPath $sLogFile -LineValue " "
+    Process{
+        Try{
+            <code goes here>
+        } Catch {
+            Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $True
+            Break
+        }
     }
-  }
+  
+    End{
+        If($?){
+            Log-Write -LogPath $sLogFile -LineValue "Completed Successfully."
+            Log-Write -LogPath $sLogFile -LineValue " "
+        }
+    }
 }
 
 #>
