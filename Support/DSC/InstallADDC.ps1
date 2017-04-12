@@ -1,4 +1,4 @@
-﻿Configuration ADDSInstall {
+﻿Configuration InstallADDC {
 
     Param (
         [Parameter(Mandatory)]
@@ -12,11 +12,11 @@
         [System.Management.Automation.PSCredential]
         $SafeModeCredentials
     )
-
-    Install-Module -Name xActiveDirectory, xNetworking, xPendingReboot
-    Import-DscResource -ModuleName xActiveDirectory, xNetworking, xPendingReboot
+    
+    Install-Module -Name xActiveDirectory, xNetworking, xPendingReboot, xDSCDomainjoin -Force
+    Import-DscResource -ModuleName xActiveDirectory, xNetworking, xPendingReboot, xDSCDomainjoin
  
-    Node localhost {
+    Node "192.168.58.114" {
 
         LocalConfigurationManager {
             ActionAfterReboot = 'ContinueConfiguration'

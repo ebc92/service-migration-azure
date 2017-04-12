@@ -29,6 +29,8 @@ In:::the/    ::::dMMMMMb::::    \ Land::of:
 #Set Error Action to stop so that exceptions can be caught
 $ErrorActionPreference = "Stop"
 
+$VerbosePreference = "Continue"
+
 #Dot source dsc, functions, scripts and libraries
 $functions = @("Support\Get-GredentialObject.ps1", "Libraries\Log-Functions.ps1", "Support\Start-RebootCheck.ps1", "Support\DSC\InstallADDC.ps1")
 $functions | % {
@@ -36,11 +38,9 @@ $functions | % {
         $path = Join-Path -Path $PSScriptRoot -ChildPath $_
         . $path
         $m = "Successfully sourced $($_)"
-        Log-Write -LogPath $sLogFile -LineValue $m
         Write-Verbose $m
     } Catch {
         Write-Verbose $_.Exception
-        Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $False
     }
 }
 
@@ -72,4 +72,22 @@ $module | % {
         Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $False
     }
 }
+#Install PSGET
+#(new-object Net.WebClient).DownloadString("http://psget.net/GetPsGet.ps1") | iex
 
+Function Migrate-AD {
+    $cred = (Get-Credential)
+
+    $cd = @{
+        AllNodes = @(
+            @{
+                NodeName = "192.168.58.114"
+                PSDscAllowDomainUser = $true
+                PSDscAllowPlainTextPassword = $true
+            }
+        )        
+    }
+
+    InstallADDC -ConfigurationData $cd -DNS 192.168.58.113 -DomainName AMSTEL -DomainCredentials $cred -SafeModeCredentials $cred
+}
+Migrate-AD
