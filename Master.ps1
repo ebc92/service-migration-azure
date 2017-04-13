@@ -76,7 +76,10 @@ $module | % {
 #(new-object Net.WebClient).DownloadString("http://psget.net/GetPsGet.ps1") | iex
 
 Function Migrate-AD {
-    $cred = (Get-Credential)
+    Param($Credentials)
+    
+    $target = "192.168.58.114"
+    Invoke-Command -ComputerName $target -Credential $cred -ScriptBlock {Install-Module xDSCDomainjoin, xPendingReboot, xActiveDirectory }
 
     $cd = @{
         AllNodes = @(
@@ -88,6 +91,6 @@ Function Migrate-AD {
         )        
     }
 
-    InstallADDC -ConfigurationData $cd -DNS 192.168.58.113 -DomainName AMSTEL -DomainCredentials $cred -SafeModeCredentials $cred
+    InstallADDC -ConfigurationData $cd -DNS 192.168.58.113 -DomainName AMSTEL -DomainCredentials $Credentials -SafeModeCredentials $Credentials
 }
-Migrate-AD
+Migrate-AD -Credentials $cred

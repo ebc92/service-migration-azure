@@ -12,21 +12,19 @@
         [System.Management.Automation.PSCredential]
         $SafeModeCredentials
     )
-    
-    Install-Module -Name xActiveDirectory, xNetworking, xPendingReboot, xDSCDomainjoin -Force
-    Import-DscResource -ModuleName xActiveDirectory, xNetworking, xPendingReboot, xDSCDomainjoin
- 
-    Node "192.168.58.114" {
 
+    Import-DscResource -ModuleName xActiveDirectory, xNetworking, xPendingReboot, xDSCDomainjoin
+
+    Node "192.168.58.114" {
         LocalConfigurationManager {
             ActionAfterReboot = 'ContinueConfiguration'
             ConfigurationMode = 'ApplyOnly'
             RebootNodeIfNeeded = $true
         }
 
-        xDnsServerAddress DnsServerAddress {
+        xDNSServerAddress DnsServerAddress {
             Address        = $DNS
-            InterfaceAlias = 'Ethernet'
+            InterfaceAlias = 'Ethernet0'
             AddressFamily  = 'IPv4'
         }
 
@@ -39,7 +37,7 @@
             Ensure = "Present"
             Name = "DNS"
         }
-        
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            
         WindowsFeature ADDSInstall {
             Ensure = "Present"
             Name = "AD-Domain-Services"
@@ -53,7 +51,7 @@
         xADDomain DomainController {
             DomainName = $DomainName
             DomainAdministratorCredential = $DomainCredentials
-            SafemodeAdministratorPassword = $SafeModeAdminCreds
+            SafemodeAdministratorPassword = $SafeModeCredentials
             DatabasePath = "C:\NTDS"
             LogPath = "C:\NTDS"
             SysvolPath = "C:\SYSVOL"
@@ -73,7 +71,23 @@
             DependsOn = "[xWaitForADDomain]DscForestWait"
         }
 
+        Script createfile {
+
+            GetScript = {
+                <# TODO: 
+                Get current state #>
+            }
+
+            SetScript = {
+                new-item -name somefile -itemtype file
+            }
+
+            TestScript = {
+                <# TODO:
+                Check desired state against current state.
+                For now, run regardless. #>
+                $res = $false
+            }
+        }
+        }
     }
-
-
-}
