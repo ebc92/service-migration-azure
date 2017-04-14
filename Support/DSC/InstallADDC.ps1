@@ -16,6 +16,7 @@
     Import-DscResource -ModuleName xActiveDirectory, xNetworking, xPendingReboot, xDSCDomainjoin
 
     Node "192.168.59.112" {
+
         LocalConfigurationManager {
             ActionAfterReboot = 'ContinueConfiguration'
             ConfigurationMode = 'ApplyOnly'
@@ -79,7 +80,7 @@
             DependsOn = "[xWaitForADDomain]DscForestWait"
         }
 
-        Script createfile {
+        Script PostDeployment {
 
             GetScript = {
                 <# TODO: 
@@ -87,7 +88,12 @@
             }
 
             SetScript = {
-                #
+                $FSMO = netdom query fsmo
+                $Master = $FSMO[0] | % { $_.Split(" ")} | select -last 1 | % {$_.Split(".")}
+                $Root = [ADSI]"LDAP://RootDSE"
+                $DomainDN = $Root.Get("rootDomainNamingContext")
+
+                repadmin /replicate $env:COMPUTERNAME $Master[0] $DomainDN /full
             }
 
             TestScript = {
