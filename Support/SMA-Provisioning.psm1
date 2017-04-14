@@ -53,12 +53,12 @@ Function New-AzureStackTenantDeployment {
     }
 
     Try {
-        $VMNic = New-AzureStackVnet -NetworkIP $IPAddress -ResourceGroupName $ResourceGroupName -VNetName "AMSTEL-vnet" -ErrorAction Stop
+        $VMNic = New-AzureStackVnet -NetworkIP $IPAddress -ResourceGroupName $ResourceGroupName -VNetName "AMSTEL-vnet" -VMName $VMName -ErrorAction Stop
     } Catch {
         Log-Write -LogPath $sLogFile -LineValue "The VM deployment failed because no NIC was returned."
         Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $False
     }
-    New-AzureStackWindowsVM -VMName "TenantGateway" -VMNic $VMNic -ErrorAction Stop
+    New-AzureStackWindowsVM -VMName $VMName -VMNic $VMNic -ErrorAction Stop
 }
 
 Function New-AzureStackVnet{
@@ -67,6 +67,7 @@ Function New-AzureStackVnet{
     $NetworkIP,
     $ResourceGroupName,
     $VNetName,
+    $VMName,
     $Location = "local"
     )
 
@@ -76,7 +77,7 @@ Function New-AzureStackVnet{
 
     # Prerequisites
     $ErrorActionPreference = "SilentlyContinue"
-    $VMNicName = $VNetName + "-NIC"
+    $VMNicName = $VMName + "-NIC"
     $nsgName = $VNetName + "-NSG"
 
     $vnet = Get-AzureRmVirtualNetwork -ResourceGroupName $ResourceGroupName -Name $VNetName
