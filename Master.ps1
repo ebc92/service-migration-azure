@@ -26,9 +26,7 @@ In:::the/    ::::dMMMMMb::::    \ Land::of:
 
 #---------------------------------------------------------[Initialisations]--------------------------------------------------------
 
-#Set Error Action to stop so that exceptions can be caught
-$ErrorActionPreference = "Stop"
-
+#Prefer verbose output
 $VerbosePreference = "Continue"
 
 #Dot source dsc, functions, scripts and libraries
@@ -36,7 +34,7 @@ $functions = @("Support\Get-GredentialObject.ps1", "Libraries\Log-Functions.ps1"
 $functions | % {
     Try {
         $path = Join-Path -Path $PSScriptRoot -ChildPath $_
-        . $path
+        . $path -ErrorAction Stop
         $m = "Successfully sourced $($_)"
         Write-Verbose $m
     } Catch {
@@ -63,7 +61,7 @@ $module = @("ADDC\ADDC-Migration.psm1", "MSSQL\MSSQL-Migration.psm1", "File-Shar
 
 $module | % {
     Try {
-        Import-Module (Join-Path -Path $PSScriptRoot -ChildPath $_) -Force
+        Import-Module (Join-Path -Path $PSScriptRoot -ChildPath $_) -Force -ErrorAction Stop
         $m = "Successfully imported $($_)"
         Log-Write -LogPath $sLogFile -LineValue $m
         Write-Verbose $m
@@ -78,19 +76,19 @@ $module | % {
 Function Migrate-AD {
     Param($Credentials)
     
-    $target = "192.168.58.114"
-    Invoke-Command -ComputerName $target -Credential $cred -ScriptBlock {Install-Module xDSCDomainjoin, xPendingReboot, xActiveDirectory }
+    $target = "192.168.59.112"
+    Invoke-Command -ComputerName $target -Credential $LocalCredentials -ScriptBlock {Install-Module xDSCDomainjoin, xPendingReboot, xActiveDirectory, xNetworking -Force}
 
     $cd = @{
         AllNodes = @(
             @{
-                NodeName = "192.168.58.114"
+                NodeName = "192.168.59.112"
                 PSDscAllowDomainUser = $true
                 PSDscAllowPlainTextPassword = $true
             }
         )        
     }
 
-    InstallADDC -ConfigurationData $cd -DNS 192.168.58.113 -DomainName AMSTEL -DomainCredentials $Credentials -SafeModeCredentials $Credentials
+    InstallADDC -ConfigurationData $cd -DNS 192.168.58.113 -DomainName amstel.local -DomainCredentials $Credentials -SafeModeCredentials $Credentials
 }
 Migrate-AD -Credentials $cred

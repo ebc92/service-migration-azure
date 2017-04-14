@@ -15,7 +15,7 @@
 
     Import-DscResource -ModuleName xActiveDirectory, xNetworking, xPendingReboot, xDSCDomainjoin
 
-    Node "192.168.58.114" {
+    Node "192.168.59.112" {
         LocalConfigurationManager {
             ActionAfterReboot = 'ContinueConfiguration'
             ConfigurationMode = 'ApplyOnly'
@@ -24,13 +24,18 @@
 
         xDNSServerAddress DnsServerAddress {
             Address        = $DNS
-            InterfaceAlias = 'Ethernet0'
+            InterfaceAlias = "Ethernet"
             AddressFamily  = 'IPv4'
         }
 
         xDSCDomainjoin JoinDomain {
             Domain = $DomainName 
             Credential = $DomainCredentials  # Credential to join to domain
+        }
+
+        xPendingReboot Reboot1 { 
+            Name = "DomainjoinReboot"
+            DependsOn = "[xDSCDomainjoin]JoinDomain"
         }
  
         WindowsFeature DNS {
@@ -41,14 +46,17 @@
         WindowsFeature ADDSInstall {
             Ensure = "Present"
             Name = "AD-Domain-Services"
+            IncludeAllSubFeature = $true
         }
 
-        WindowsFeature RSAT {
-            Ensure = "Present"
-            Name = "RSAT"
-        }
+        WindowsFeature RSATTools { 
+            DependsOn= '[WindowsFeature]ADDSInstall'
+            Ensure = 'Present'
+            Name = 'RSAT-AD-Tools'
+            IncludeAllSubFeature = $true
+        }  
 
-        xADDomain DomainController {
+        xADDomainController DomainController {
             DomainName = $DomainName
             DomainAdministratorCredential = $DomainCredentials
             SafemodeAdministratorPassword = $SafeModeCredentials
@@ -63,11 +71,11 @@
             DomainUserCredential = $DomainCredentials
             RetryCount = 20
             RetryIntervalSec = 30
-            DependsOn = "[xADDomain]DomainController"
+            DependsOn = "[xADDomainController]DomainController"
         }
 
-        xPendingReboot Reboot1 { 
-            Name = "RebootServer"
+        xPendingReboot Reboot2 { 
+            Name = "DomainReboot"
             DependsOn = "[xWaitForADDomain]DscForestWait"
         }
 
@@ -79,14 +87,14 @@
             }
 
             SetScript = {
-                new-item -name somefile -itemtype file
+                #
             }
 
             TestScript = {
                 <# TODO:
                 Check desired state against current state.
                 For now, run regardless. #>
-                $res = $false
+                return $false
             }
         }
         }
