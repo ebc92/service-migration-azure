@@ -58,7 +58,9 @@ Function New-AzureStackTenantDeployment {
         Log-Write -LogPath $sLogFile -LineValue "The VM deployment failed because no NIC was returned."
         Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $False
     }
-    New-AzureStackWindowsVM -VMName $VMName -VMNic $VMNic -ErrorAction Stop
+
+    $ProvisionedIP = New-AzureStackWindowsVM -VMName $VMName -VMNic $VMNic -ErrorAction Stop
+    return $ProvisionedIP
 }
 
 Function New-AzureStackVnet{
@@ -160,18 +162,22 @@ Function New-AzureStackWindowsVM {
 
         # Get the VM Image Offer
         $offer = Get-AzureRmVMImageOffer -Location $Location -PublisherName MicrosoftWindowsServer
+        Log-Write -LogPath $sLogFile -LineValue "Retrieved the Windows Server VM Image Offer."
 
         # Get the VM Image SKU
         $sku = Get-AzureRMVMImageSku -Location $Location -PublisherName $offer.PublisherName -Offer $offer.Offer
-
+        Log-Write -LogPath $sLogFile -LineValue "Retrieved the VM Image SKU."
+     
         # Define a credential object
         $cred = Get-Credential
 
         $StorageAccount = Get-AzureRmStorageAccount | Where-Object {$_.StorageAccountName -eq $StorageAccountName}
+        Log-Write -LogPath $sLogFile -LineValue "Retrieved the $($StorageAccountName) Storage Account."
 
         #If the storage account does not exist it will be created.
         if(!$StorageAccount){
                 New-AzureRmStorageAccount -ResourceGroupName $ResourceGroup -Name $StorageAccountName -Type Standard_LRS -Location $Location
+                Log-Write -LogPath $sLogFile -LineValue "Created the $($StorageAccountName) Storage Account."
         }
 
         $OSDiskName = $VMName + "OSDisk"
@@ -184,18 +190,23 @@ Function New-AzureStackWindowsVM {
         Set-AzureRmVMOSDisk -Name $OSDiskName -VhdUri $OSDiskUri -CreateOption FromImage | `
         Add-AzureRmVMNetworkInterface -Id $VMNic.Id
 
-        New-AzureRmVM -ResourceGroupName $ResourceGroup -Location $Location -VM $vmConfig -Verbose
-
+        Try {
+            New-AzureRmVM -ResourceGroupName $ResourceGroup -Location $Location -VM $vmConfig -Verbose
+        } Catch {
+            Log-Write -LogPath $sLogFile -LineValue "Could not create VM with the specified configuration."
+        }
+        return $VMNic.PrivateIPAddress
     }
     
     Catch{
       Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $False
-      Break
     }
   }
   
   End{
     If($?){
+      Log-Write -LogPath $sLogFile -LineValue "Successfully created the VM:"
+      Log-Write -LogPath $sLogFile -LineValue "VM Name: $($VMName) `nResource Group: $($ResourceGroup) `nVM Size: $($VMSize) `nIP Address: $($VMNic.PrivateIPAddress) `nStorage account: $($StorageAccountName) "
       Log-Write -LogPath $sLogFile -LineValue "VM provisioning completed successfully."
     }
   }
