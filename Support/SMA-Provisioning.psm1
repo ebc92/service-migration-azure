@@ -24,7 +24,8 @@ Function New-AzureStackTenantDeployment {
     Param(
         [String]$ResourceGroupName = "sma-vm-provisioning",
         [Parameter(Mandatory=$true)]
-        [String]$VMName
+        [String]$VMName,
+        [String]$IPAddress
     )
     $Connect = "C:\Users\AzureStackAdmin\Desktop\AzureStack-Tools-master\Connect\AzureStack.Connect.psm1"
     $ComputeAdmin = "C:\Users\AzureStackAdmin\Desktop\AzureStack-Tools-master\ComputeAdmin\AzureStack.ComputeAdmin.psm1"
@@ -52,12 +53,12 @@ Function New-AzureStackTenantDeployment {
     }
 
     Try {
-        $VMNic = New-AzureStackVnet -NetworkIP "192.168.59.112/24" -ResourceGroupName $ResourceGroupName -VNetName "AMSTEL-vnet" -ErrorAction Stop
+        $VMNic = New-AzureStackVnet -NetworkIP $IPAddress -ResourceGroupName $ResourceGroupName -VNetName "AMSTEL-vnet" -ErrorAction Stop
     } Catch {
         Log-Write -LogPath $sLogFile -LineValue "The VM deployment failed because no NIC was returned."
         Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $False
     }
-    New-AzureStackWindowsVM -VMName "TenantGateway" -VMNic $VMNic
+    New-AzureStackWindowsVM -VMName "TenantGateway" -VMNic $VMNic -ErrorAction Stop
 }
 
 Function New-AzureStackVnet{
