@@ -74,22 +74,22 @@ $module | % {
 #(new-object Net.WebClient).DownloadString("http://psget.net/GetPsGet.ps1") | iex
 
 Function Migrate-AD {
-    Param($Credentials)
+    Param($Credentials, $VMName)
     
-    $target = New-AzureStackTenantDeployment -VMName "TenantAD" -IPAddress "192.168.59.113/24"
+    #$target = New-AzureStackTenantDeployment -VMName "TenantAD" -IPAddress "192.168.59.113/24"
 
-    Invoke-Command -ComputerName $target -Credential $LocalCredentials -ScriptBlock {Install-Module xDSCDomainjoin, xPendingReboot, xActiveDirectory, xNetworking -Force}
+    Invoke-Command -ComputerName "192.168.59.113" -Credential $LocalCredentials -ScriptBlock {Install-Module xComputerManagement, xPendingReboot, xActiveDirectory, xNetworking -Force}
 
     $cd = @{
         AllNodes = @(
             @{
-                NodeName = "192.168.59.112"
+                NodeName = "192.168.59.113"
                 PSDscAllowDomainUser = $true
                 PSDscAllowPlainTextPassword = $true
             }
         )        
     }
 
-    InstallADDC -ConfigurationData $cd -DNS 192.168.58.113 -DomainName amstel.local -DomainCredentials $Credentials -SafeModeCredentials $Credentials
+    InstallADDC -ConfigurationData $cd -DNS 192.168.58.113 -ComputerName $VMName -DomainName amstel.local -DomainCredentials $Credentials -SafeModeCredentials $Credentials
 }
-Migrate-AD -Credentials $cred
+Migrate-AD -Credentials $cred -VMName "AMSTEL-AD"
