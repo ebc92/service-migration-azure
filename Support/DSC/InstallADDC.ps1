@@ -43,22 +43,15 @@
             Name = $ComputerName
             DomainName = $DomainName 
             Credential = $DomainCredentials  # Credential to join to domain
+            DependsOn = '[xDNSServerAddress]DnsServerAddress'
         }
 
-        
-        xPendingReboot Reboot1 { 
-            Name = "DomainjoinReboot"
-            DependsOn = "[xComputer]JoinDomain"
-        }
-
- 
         WindowsFeature DNS {
             Ensure = "Present"
             Name = "DNS"
-            DependsOn = "[xPendingReboot]Reboot1"
+	        DependsOn = '[xComputer]JoinDomain'
         }
 
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            
         WindowsFeature ADDSInstall {
             Ensure = "Present"
             Name = "AD-Domain-Services"
@@ -83,11 +76,6 @@
             DependsOn = "[WindowsFeature]ADDSInstall","[xDnsServerAddress]DnsServerAddress"
         }
 
-        xPendingReboot Reboot2 { 
-            Name = "DomainReboot"
-            DependsOn = "[xADDomainController]DomainController"
-        }
-
         Script PostDeployment {
 
             GetScript = {
@@ -97,9 +85,6 @@
             }
 
             SetScript = {
-
-                
-                Start-sleep -s 180
 
                 <# TODO: 
                 $FSMO = netdom query fsmo
@@ -120,5 +105,6 @@
                 return $false
             }
         }
+        
         }
     }

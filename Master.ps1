@@ -75,6 +75,10 @@ $module | % {
 
 Function Migrate-AD {
     Param($Credentials, $VMName)
+
+    $ADServer = 192.168.59.113
+    $VMName = "AMSTEL-AD"
+    $DSCDocument = Join-Path -Path $PSScriptRoot -ChildPath "InstallADDC"
     
     #$target = New-AzureStackTenantDeployment -VMName "TenantAD" -IPAddress "192.168.59.113/24"
 
@@ -91,5 +95,8 @@ Function Migrate-AD {
     }
 
     InstallADDC -ConfigurationData $cd -DNS 192.168.58.113 -ComputerName $VMName -DomainName amstel.local -DomainCredentials $Credentials -SafeModeCredentials $Credentials
+    Set-DscLocalConfigurationManager -ComputerName $ADServer -Path $DSCDocument -Credential $LocalCredentials
+    Start-DscConfiguration -ComputerName $ADServer -Path $DSCDocument -Credential $LocalCredentials -Wait -Force -Verbose
+
 }
-Migrate-AD -Credentials $cred -VMName "AMSTEL-AD"
+Migrate-AD -Credentials $cred
