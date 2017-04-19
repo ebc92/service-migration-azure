@@ -1,53 +1,255 @@
 ﻿Configuration InstallExchange
 {
-param
-(
-  [Parameter(Mandatory=$true)]   
-  [PSCredential]$Creds,
-  [Parameter(Mandatory=$true)]
-  [String]$ComputerName,
-  [Parameter(Mandatory=$true)]
-  [String]$Binary,
-  [Parameter(Mandatory=$true)]
-  [String]$SourceFile
-)
+  param
+  (
+    [Parameter(Mandatory=$true)]   
+    [PSCredential]$Creds,
+    [Parameter(Mandatory=$true)]
+    [String]$ComputerName,
+    [Parameter(Mandatory=$true)]
+    [String]$Binary,
+    [Parameter(Mandatory=$true)]
+    [String]$SourceFile,
+    [Parameter(Mandatory=$true)]
+    [String]$Binary,
+    [Parameter(Mandatory=$true)]
+    [String]$UCMASource
+    
+  )
 
-Import-DscResource -Module xExchange
-Import-DscResource -Module xPendingReboot
-
-Node $AllNodes.NodeName
-{
-  LocalConfigurationManager
+  Import-DscResource -Module xExchange
+  Import-DscResource -Module xPendingReboot
+  Import-DscResource -Module xWindowsUpdate
+  Node $AllNodes.NodeName
   {
-    CertificateId      = $Node.Thumbprint
-    RebootNodeIfNeeded = $true
-  }
+    LocalConfigurationManager
+    {
+      CertificateId      = $Node.Thumbprint
+      RebootNodeIfNeeded = $true
+    }
 
-  #Mounts Exchange 2016 image from share	
-  Function ExchangeBinaries
-  {
-    Try {          
-      $Binary = (Mount-DiskImage -ImagePath $SourceFile\ExchangeServer2016-x64-cu5.iso `
-      -PassThru | Get-Volume).Driveletter + ":"
-      Return $Binary
+    #Check if a reboot is needed before installing Server Roles
+    xPendingReboot BeforeServerRoles
+    {
+      Name      = "BeforeServerRoles"
     }
-    Catch {
+    
+    WindowsFeature ASHTTP
+    {
+      Ensure = 'Present'
+      Name = 'AS-HTTP-Activation'
+      DepedsOn = '[xPendingReboot]BeforeServerRoles'
     }
-  }
+        
+    WindowsFeature DesktopExp
+    {
+      Ensure = 'Present'
+      Name = 'Desktop-Experience'
+    }
+        
+    WindowsFeature NetFW45
+    {
+      Ensure = 'Present'
+      Name = 'NET-Framework-45-Features'
+    }
+        
+    WindowsFeature RPCProxy
+    {
+      Ensure = 'Present'
+      Name = 'RPC-over-HTTP-proxy'
+    }
+        
+    WindowsFeature RSATClus
+    {
+      Ensure = 'Present'
+      Name = 'RSAT-Clustering'
+    }
+        
+    WindowsFeature RSATClusCmd
+    {
+      Ensure = 'Present'
+      Name = 'RSAT-Clustering-CmdInterface'
+    }
+        
+    WindowsFeature RSATClusMgmt
+    {
+      Ensure = 'Present'
+      Name = 'RSAT-Clustering-Mgmt'
+    }
+        
+    WindowsFeature RSATClusPS
+    {
+      Ensure = 'Present'
+      Name = 'RSAT-Clustering-PowerShell'
+    }
+        
+    WindowsFeature WebConsole
+    {
+      Ensure = 'Present'
+      Name = 'Web-Mgmt-Console'
+    }
+        
+    WindowsFeature WAS
+    {
+      Ensure = 'Present'
+      Name = 'WAS-Process-Model'
+    }
+        
+    WindowsFeature WebAsp
+    {
+      Ensure = 'Present'
+      Name = 'Web-Asp-Net45'
+    }
+        
+    WindowsFeature WBA
+    {
+      Ensure = 'Present'
+      Name = 'Web-Basic-Auth'
+    }
+        
+    WindowsFeature WCA
+    {
+      Ensure = 'Present'
+      Name = 'Web-Client-Auth'
+    }
+        
+    WindowsFeature WDA
+    {
+      Ensure = 'Present'
+      Name = 'Web-Digest-Auth'
+    }
+        
+    WindowsFeature WDB
+    {
+      Ensure = 'Present'
+      Name = 'Web-Dir-Browsing'
+    }
+        
+    WindowsFeature WDC
+    {
+      Ensure = 'Present'
+      Name = 'Web-Dyn-Compression'
+    }
+        
+    WindowsFeature WebHttp
+    {
+      Ensure = 'Present'
+      Name = 'Web-Http-Errors'
+    }
+        
+    WindowsFeature WebHttpLog
+    {
+      Ensure = 'Present'
+      Name = 'Web-Http-Logging'
+    }
+        
+    WindowsFeature WebHttpRed
+    {
+      Ensure = 'Present'
+      Name = 'Web-Http-Redirect'
+    }
+        
+    WindowsFeature WebHttpTrac
+    {
+      Ensure = 'Present'
+      Name = 'Web-Http-Tracing'
+    }
+        
+    WindowsFeature WebISAPI
+    {
+      Ensure = 'Present'
+      Name = 'Web-ISAPI-Ext'
+    }
+        
+    WindowsFeature WebISAPIFilt
+    {
+      Ensure = 'Present'
+      Name = 'Web-ISAPI-Filter'
+    }
+        
+    WindowsFeature WebLgcyMgmt
+    {
+      Ensure = 'Present'
+      Name = 'Web-Lgcy-Mgmt-Console'
+    }
+        
+    WindowsFeature WebMetaDB
+    {
+      Ensure = 'Present'
+      Name = 'Web-Metabase'
+    }
+        
+    WindowsFeature WebMgmtSvc
+    {
+      Ensure = 'Present'
+      Name = 'Web-Mgmt-Service'
+    }
+        
+    WindowsFeature WebNet45
+    {
+      Ensure = 'Present'
+      Name = 'Web-Net-Ext45'
+    }
+        
+    WindowsFeature WebReq
+    {
+      Ensure = 'Present'
+      Name = 'Web-Request-Monitor'
+    }
+        
+    WindowsFeature WebSrv
+    {
+      Ensure = 'Present'
+      Name = 'Web-Server'
+    }
+        
+    WindowsFeature WebStat
+    {
+      Ensure = 'Present'
+      Name = 'Web-Stat-Compression'
+    }
+        
+    WindowsFeature WebStatCont
+    {
+      Ensure = 'Present'
+      Name = 'Web-Static-Content'
+    }
+        
+    WindowsFeature WebWindAuth
+    {
+      Ensure = 'Present'
+      Name = 'Web-Windows-Auth'
+    }
+        
+    WindowsFeature WebWMI
+    {
+      Ensure = 'Present'
+      Name = 'Web-WMI'
+    }
+        
+    WindowsFeature WebIF
+    {
+      Ensure = 'Present'
+      Name = 'Windows-Identity-Foundation'
+    }
+        
+    WindowsFeature RSATADDS
+    {
+      Ensure = 'Present'
+      Name = 'RSAT-ADDS'
+    }
   
     #Check if a reboot is needed before installing Exchange
     xPendingReboot BeforeExchangeInstall
     {
       Name      = "BeforeExchangeInstall"
-
-      DependsOn  = '[Function]ExchangeBinaries'
     }
 
     #Do the Exchange install
     xExchInstall InstallExchange
     {
       Path       = $Binary
-      Arguments  = "/mode:Install /role:Mailbox /Iacceptexchangeserverlicenseterms"
+      Arguments  = "/mode:Install /role:Mailbox /IAcceptExchangeServerLicenseTerms"
       Credential = $Creds
 
       DependsOn  = '[xPendingReboot]BeforeExchangeInstall'

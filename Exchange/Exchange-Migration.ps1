@@ -138,6 +138,31 @@ Function Get-Prerequisite {
   }
 }
 
+          #Mounts Exchange 2016 image from share
+Function ExchangeBinaries {
+  Param(
+    [Parameter(Mandatory=$true]
+    [String]$SourceFile,
+    [bool]$finished=$false
+    )
+    $er = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
+  Do {
+        Try {          
+          $Binary = (Mount-DiskImage -ImagePath $SourceFile\ExchangeServer2016-x64-cu5.iso `
+          -PassThru | Get-Volume).Driveletter + ":"
+          $finished = $true
+          $ErrorActionPreference = $er
+          Return $Binary
+        }
+        Catch {
+          $SourceFile = Read-Host(`
+           "The path $SourceFile does not contain the ISO file, please enter the correct path for the Exchange 2016 ISO Image folder")
+           $finished = $false
+        }
+      }
+  While ($finished -eq $false)
+
 Function Install-Prerequisite {
   [CmdletBinding()]
   Param(
@@ -164,6 +189,7 @@ Function Install-Prerequisite {
       
       Write-Verbose -Message "Total amount of files to be installed is $total, starting installation"
       Log-Write -LogPath $sLogPath -LineValue "Total amount of files to be installed is $total, starting installation"
+      
       
       Foreach($element in $InstallFiles) {
         $i++
