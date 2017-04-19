@@ -13,13 +13,11 @@
     [Parameter(Mandatory=$true)]
     [String]$Binary,
     [Parameter(Mandatory=$true)]
-    [String]$UCMASource
-    
+    [String]$UCMASource    
   )
 
-  Import-DscResource -Module xExchange
-  Import-DscResource -Module xPendingReboot
-  Import-DscResource -Module xWindowsUpdate
+  Import-DscResource -ModuleName xExchange, xPendingReboot, xWindowsUpdate
+  
   Node $AllNodes.NodeName
   {
     LocalConfigurationManager
@@ -237,8 +235,35 @@
     {
       Ensure = 'Present'
       Name = 'RSAT-ADDS'
+    } 
+ 
+    #Check if a reboot is needed before installing KB3199986
+    xPendingReboot "BeforeKB3199986"
+    {
+      Name      = "BeforeKB3199986"      
     }
-  
+    
+    xHotfix KB3199986
+    {
+      DependsOn = ""BeforeKB3199986""
+      Ensure = "Present"
+      Path = "http://download.windowsupdate.com/c/msdownload/update/software/crup/2016/10/windows10.0-kb3199986-x64_5d4678c30de2de2bd7475073b061d0b3b2e5c3be.msu"
+      Id = "KB3199986"
+    }    
+    
+    #Check if a reboot is needed before installing KB3206632
+    xPendingReboot "BeforeKB3206632"
+    {
+      Name      = "BeforeKB3206632"      
+    }
+    
+    xHotFix KB3206632
+    {
+      Ensure = "Present"
+      Path = "http://download.windowsupdate.com/d/msdownload/update/software/secu/2016/12/windows10.0-kb3206632-x64_b2e20b7e1aa65288007de21e88cd21c3ffb05110.msu"
+      Id = "KB3206632"
+    }
+      
     #Check if a reboot is needed before installing Exchange
     xPendingReboot BeforeExchangeInstall
     {
