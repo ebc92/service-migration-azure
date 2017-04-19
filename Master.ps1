@@ -94,9 +94,14 @@ Function Migrate-AD {
         )        
     }
 
-    InstallADDC -ConfigurationData $cd -DNS 192.168.58.113 -ComputerName $VMName -DomainName amstel.local -DomainCredentials $Credentials -SafeModeCredentials $Credentials
+    Log-Write -LogPath $sLogFile -LineValue "Creating DSC configuration document.."
+    $result = InstallADDC -ConfigurationData $cd -DNS 192.168.58.113 -ComputerName $VMName -DomainName amstel.local -DomainCredentials $Credentials -SafeModeCredentials $Credentials
+    
+    Log-Write -LogPath $sLogFile -LineValue $result
     Set-DscLocalConfigurationManager -ComputerName $ADServer -Path $DSCDocument -Credential $LocalCredentials
-    Start-DscConfiguration -ComputerName $ADServer -Path $DSCDocument -Credential $LocalCredentials -Wait -Force -Verbose
+    Start-DscConfiguration -ComputerName $ADServer -Path $DSCDocument -Credential $LocalCredentials -Wait -Force -Verbose 4> $sLogFile
 
 }
+
+
 Migrate-AD -Credentials $cred
