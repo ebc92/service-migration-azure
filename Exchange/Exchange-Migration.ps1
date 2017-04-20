@@ -1,4 +1,17 @@
-﻿#requires -version 2
+﻿#Requires -version 4.0
+######################################################
+#########################\O/##########################
+##   ______          _                              ##
+##  |  ____|        | |                             ##
+##  | |__  __  _____| |__   __ _ _ __   __ _  ___   ##
+##  |  __| \ \/ / __| '_ \ / _` | '_ \ / _` |/ _ \  ##
+##  | |____ >  < (__| | | | (_| | | | | (_| |  __/  ##
+##  |______/_/\_\___|_| |_|\__,_|_| |_|\__, |\___|  ##
+##                                      __/ |       ##
+##                                     |___/        ##
+######################################################
+######################################################
+
 <#
     .SYNOPSIS
     <Overview of script>
@@ -56,9 +69,9 @@ Function Get-Prerequisite {
     [parameter(Mandatory=$true)]
     [string]$fileShare,
     [parameter(Mandatory=$true)]
-    [string]$tarComp,
+    [string]$ComputerName,
     [parameter(Mandatory=$true)]
-    [PSCredential]$cred
+    [PSCredential]$DomainCredential
   )
   
   Begin{
@@ -66,8 +79,8 @@ Function Get-Prerequisite {
       New-Item -ItemType Directory -Path $sLogPath > $null
     }
     $variableOutput = '        $fileShare ' + "= $fileShare `n"`
-    +'        $tarComp ' + "= $tarComp `n"`
-    +'        $cred ' + "= $cred"
+    +'        $tarComp ' + "= $ComputerName `n"`
+    +'        $DomainCredential ' + "= $DomainCredential"
     Log-Write -LogPath $sLogFile -LineValue "Downloading prerequisites for Microsoft Exchange 2013..."
     Log-Write -LogPath $sLogFile -LineValue "The following variables are set for $MyInvocation.MyCommand.Name:"
     Log-Write -LogPath $sLogFile -LineValue "$variableOutput"
@@ -76,7 +89,7 @@ Function Get-Prerequisite {
   Process{
     Try{
       #Checking package provider list for NuGet
-      $nuget = Invoke-Command -Credential $cred -ComputerName $tarComp -ScriptBlock { 
+      $nuget = Invoke-Command -Credential $DomainCredential -ComputerName $ComputerName -ScriptBlock { 
         $nuget = Get-PackageProvider | Where-Object -Property Name -eq nuget
         Return $nuget 
       }
@@ -139,6 +152,7 @@ Function Mount-Exchange {
     [String]$SourceFile,
     [bool]$finished=$false
     )
+
     $er = $ErrorActionPreference
     $ErrorActionPreference = "Continue"
   Do {
@@ -165,7 +179,7 @@ Function Install-Prerequisite {
     [parameter(Mandatory=$true)]
     [string]$tarComp,
     [parameter(Mandatory=$true)]
-    [PSCredential]$cred
+    [PSCredential]$DomainCredential
   )
   
   Begin{
@@ -183,12 +197,14 @@ Function Install-Prerequisite {
       
       Write-Verbose -Message "Total amount of files to be installed is $total, starting installation"
       Log-Write -LogPath $sLogPath -LineValue "Total amount of files to be installed is $total, starting installation"
+
+      Install-Module -Name xExchange, xPendingReboot, xWindowsUpdate
       
       
       Foreach($element in $InstallFiles) {
         $i++
         Write-Progress -Activity 'Installing prerequisites for Exchange 2013' -Status "Currently installing file $i of $total"`
-        -PercentComplete (($i / $total) * 100)        Write-Verbose -Message "Installing file $i of $total"        Write-Verbose -Message "Installing $element.name"        Log-Write -LogPath $sLogPath -LineValue "Installing file $i of $total"        Log-Write -LogPath $sLogPath -LineValue "Installing $element.name"        Invoke-Command -ComputerName $tarComp -Credential $cred -ScriptBlock {
+        -PercentComplete (($i / $total) * 100)        Write-Verbose -Message "Installing file $i of $total"        Write-Verbose -Message "Installing $element.name"        Log-Write -LogPath $sLogPath -LineValue "Installing file $i of $total"        Log-Write -LogPath $sLogPath -LineValue "Installing $element.name"        Invoke-Command -ComputerName $tarComp -Credential $DomainCredential -ScriptBlock {
           Start-Process -FilePath $element.FullName -ArgumentList '/passive /norestart' -Wait
         }
       }

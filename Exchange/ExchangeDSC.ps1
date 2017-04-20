@@ -1,19 +1,20 @@
-﻿
-#    ______          _                            _____   _____  _____ 
-#   |  ____|        | |                          |  __ \ / ____|/ ____|
-#   | |__  __  _____| |__   __ _ _ __   __ _  ___| |  | | (___ | |     
-#   |  __| \ \/ / __| '_ \ / _` | '_ \ / _` |/ _ \ |  | |\___ \| |     
-#   | |____ >  < (__| | | | (_| | | | | (_| |  __/ |__| |____) | |____ 
-#   |______/_/\_\___|_| |_|\__,_|_| |_|\__, |\___|_____/|_____/ \_____|
-#                                       __/ |                          
-#                                      |___/                           
-
-Configuration InstallExchange
-{
+﻿###########################################################################
+####################################\O/####################################
+##   ______          _                            _____   _____  _____   ##
+##  |  ____|        | |                          |  __ \ / ____|/ ____|  ##
+##  | |__  __  _____| |__   __ _ _ __   __ _  ___| |  | | (___ | |       ##
+##  |  __| \ \/ / __| '_ \ / _` | '_ \ / _` |/ _ \ |  | |\___ \| |       ##
+##  | |____ >  < (__| | | | (_| | | | | (_| |  __/ |__| |____) | |____   ##
+##  |______/_/\_\___|_| |_|\__,_|_| |_|\__, |\___|_____/|_____/ \_____|  ##
+##                                      __/ |                            ##
+##                                     |___/                             ##
+###########################################################################
+###########################################################################
+Configuration InstallExchange {
   param
   (
     [Parameter(Mandatory=$true)]   
-    [PSCredential]$Creds,
+    [PSCredential]$DomainCredential,
     [Parameter(Mandatory=$true)]
     [String]$ComputerName,
     [Parameter(Mandatory=$true)]
@@ -23,8 +24,11 @@ Configuration InstallExchange
     [Parameter(Mandatory=$true)]
     [String]$Binary,
     [Parameter(Mandatory=$true)]
-    [String]$UCMASource    
+    [String]$UCMASource,
+    [Parameter(Mandatory=$true)]
+    [String]$fileShare
   )
+  
 
   Import-DscResource -ModuleName xExchange, xPendingReboot, xWindowsUpdate
   
@@ -275,7 +279,23 @@ Configuration InstallExchange
       Path = "http://download.windowsupdate.com/d/msdownload/update/software/secu/2016/12/windows10.0-kb3206632-x64_b2e20b7e1aa65288007de21e88cd21c3ffb05110.msu"
       Id = "KB3206632"
     }
-      
+    
+    #Check if a reboot is needed before installing UCMA v4.0
+    xPendingReboot BeforeUCMA
+    {
+      Name      = "BeforeUCMA"
+    }
+    
+    Package UCMA
+    {
+      Name      = 'UCMA 4.0' 
+      Ensure    = 'Present'
+      Path      = '$fileshare'
+      ProductID = 'ED98ABF5-B6BF-47ED-92AB-1CDCAB964447'
+      Arguments = '/passive /norestart'
+      Credential= "$DomainCredential"
+    }
+    
     #Check if a reboot is needed before installing Exchange
     xPendingReboot BeforeExchangeInstall
     {
@@ -287,7 +307,7 @@ Configuration InstallExchange
     {
       Path       = $Binary
       Arguments  = "/mode:Install /role:Mailbox /IAcceptExchangeServerLicenseTerms"
-      Credential = $Creds
+      Credential = $DomainCredential
 
       DependsOn  = '[xPendingReboot]BeforeExchangeInstall'
     }
@@ -302,16 +322,16 @@ Configuration InstallExchange
   }
 }
 
-if ($null -eq $Creds)
+if ($null -eq $DomainCredential)
 {
-  $Creds = Get-Credential -Message "Enter credentials for establishing Remote Powershell sessions to Exchange"
+  $DomainCredential = Get-Credential -Message "Enter credentials for establishing Remote Powershell sessions to Exchange"
 }
 
 ###Compiles the example
-InstallExchange -ConfigurationData $PSScriptRoot\InstallExchange-Config.psd1 -Creds $Creds
+InstallExchange -ConfigurationData $PSScriptRoot\DSCConfig\InstallExchange-Config.psd1 -Creds $DomainCredential
 
 ###Sets up LCM on target computers to decrypt credentials, and to allow reboot during resource execution
-Set-DscLocalConfigurationManager -Path .\InstallExchange -Verbose
+Set-DscLocalConfigurationManager -Path $PSScriptRoot\DSConfig -Verbose
 
 ###Pushes configuration and waits for execution
-Start-DscConfiguration -Path .\InstallExchange -Verbose -Wait
+Start-DscConfiguration -Path $PSScriptRoot\DSConfig -Verbose -Wait
