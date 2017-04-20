@@ -74,7 +74,7 @@ Function Get-Prerequisite {
   Process{
     Try{
       [int]$i = 0
-      $downloadArray = @(
+      $downloadArray2013 = @(
         "https://download.microsoft.com/download/2/C/4/2C47A5C1-A1F3-4843-B9FE-84C0032C61EC/UcmaRuntimeSetup.exe"
         "https://download.microsoft.com/download/0/A/2/0A28BBFA-CBFA-4C03-A739-30CCA5E21659/FilterPack64bit.exe"
         "https://download.microsoft.com/download/A/A/3/AA345161-18B8-45AE-8DC8-DA6387264CB9/filterpack2010sp1-kb2460041-x64-fullfile-en-us.exe"
@@ -138,6 +138,31 @@ Function Get-Prerequisite {
   }
 }
 
+          #Mounts Exchange 2016 image from share
+Function ExchangeBinaries {
+  Param(
+    [Parameter(Mandatory=$true]
+    [String]$SourceFile,
+    [bool]$finished=$false
+    )
+    $er = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
+  Do {
+        Try {          
+          $Binary = (Mount-DiskImage -ImagePath $SourceFile\ExchangeServer2016-x64-cu5.iso `
+          -PassThru | Get-Volume).Driveletter + ":"
+          $finished = $true
+          $ErrorActionPreference = $er
+          Return $Binary
+        }
+        Catch {
+          $SourceFile = Read-Host(`
+           "The path $SourceFile does not contain the ISO file, please enter the correct path for the Exchange 2016 ISO Image folder")
+           $finished = $false
+        }
+      }
+  While ($finished -eq $false)
+
 Function Install-Prerequisite {
   [CmdletBinding()]
   Param(
@@ -164,6 +189,7 @@ Function Install-Prerequisite {
       
       Write-Verbose -Message "Total amount of files to be installed is $total, starting installation"
       Log-Write -LogPath $sLogPath -LineValue "Total amount of files to be installed is $total, starting installation"
+      
       
       Foreach($element in $InstallFiles) {
         $i++
