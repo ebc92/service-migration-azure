@@ -78,8 +78,7 @@ $VMName = "AMSTEL-AD"
 $DSCDocument = Join-Path -Path $PSScriptRoot -ChildPath "InstallADDC"
 
 $ADScriptPath = Join-Path -Path $PSScriptRoot -ChildPath "\ADDC\ADDC-Migration.ps1"
-
-& $ADScriptPath
+& $ADScriptPath -ADServer $ADServer -VMName $VMName -DSCDocument $DSCDocument
 
 #-----------------------------------------------------------[SQL Server]---------------------------------------------------------------
 
@@ -89,6 +88,9 @@ $PackagePath = "\\158.38.43.116\share\MSSQL"
 $InstanceName = "AMSTELSQL"
 $Credential = (Get-Credential)
 $SqlCredential = (Get-Credential)
+
+$SQLScriptPath = Join-Path -Path $PSScriptRoot -ChildPath "\MSSQL\MSSQL-Migration.ps1"
+& $SQLScriptPath -ComputerName $ComputerName -Source $Source -PackagePath $PackagePath -InstanceName $InstanceName -Credential $Credential -SqlCredential $SqlCredential
 
 #-----------------------------------------------------------[File and sharing]---------------------------------------------------------
 
