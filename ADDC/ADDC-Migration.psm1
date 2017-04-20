@@ -5,27 +5,30 @@ Param(
     Try {
         Move-ADDirectoryServerOperationMasterRole -Identity $ComputerName -OperationMasterRole 0,1,2,3,4 -Confirm:$false -ErrorAction Stop
         Write-Output "All Operation Master roles were successfully migrated."
+        Log-Write -LogPath $sLogFile -LineValue "All Operation Master roles were successfully migrated."
     } Catch {
-            Write-Output $_.Exception.message
+        Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $false
     }
 }
 
-Function Start-GpoCopy {
-Param ($DNS, $Credential )
+Function Start-GpoExport {
+Param ($Path, $DNS, $DomainCredential )
+    #Configure-ClientDNS script assumes client only has one ethernet adapter
     Try {
-        New-Item -Name "Configure-ClientDNS.ps1" -Path '.\Support\GPO\{23479CB6-4EC3-4B0E-8DF3-A5F046CC623F}\DomainSysvol\GPO\Machine\Scripts\Startup\' `
-        -Value "Set-DnsClientServerAddress -InterfaceIndex (Get-NetAdapter)[0].ifIndex -ServerAddresses $DNS" -ErrorAction Stop
+        New-Item -Name "Configure-ClientDNS.ps1" -ItemType File -Path (Join-Path -Path $Path -ChildPath 'Support\GPO\{23479CB6-4EC3-4B0E-8DF3-A5F046CC623F}\DomainSysvol\GPO\Machine\Scripts\Startup\') `
+        -Value "Set-DnsClientServerAddress -InterfaceIndex (Get-NetAdapter)[0].ifIndex -ServerAddresses $DNS" -Force -ErrorAction Stop
+        Log-Write -LogPath $sLogFile -LineValue "Successfully exported GPO for configuring new client DNS.."
     } Catch {
-        
+        Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $false
     }
 
-    New-PSDrive -PSProvider FileSystem -Name "share" -Root \\158.38.43.115\C$\Share -Credential $Credential -ErrorAction Stop
-    Copy-Item '.\Support\GPO\' -Destination share:\ -Recurse
+    New-PSDrive -PSProvider FileSystem -Name "share" -Root \\192.168.58.115\C$\share -Credential $DomainCredential -ErrorAction Stop
+    Copy-Item -Path (Join-Path -Path $Path -ChildPath "Support\GPO\") -Destination share:\ -Recurse -Force
 }
 
 Function Start-GpoImport {
 Param ($Credential)
-    New-PSDrive -PSProvider FileSystem -Name "share" -Root \\158.38.43.115\C$\Share -Credential $Credential -ErrorAction Stop
+    New-PSDrive -PSProvider FileSystem -Name "share" -Root \\192.168.58.115\C$\share -Credential $Credential -ErrorAction Stop
     Copy-Item 'share:\GPO' -Recurse -Destination C:\GPO
     $GpoName = "Post-Migration DNS GPO"
     New-GPO -Name $GpoName

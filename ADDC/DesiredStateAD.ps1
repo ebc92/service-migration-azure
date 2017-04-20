@@ -3,6 +3,9 @@
     Param (
         [Parameter(Mandatory)]
         [ValidateNotNullOrEmpty()]
+        [String]$VMName,
+        [Parameter(Mandatory)]
+        [ValidateNotNullOrEmpty()]
         [String]$DNS,
         [Parameter(Mandatory)]
         [ValidateNotNullOrEmpty()]
@@ -28,7 +31,7 @@
 
     Import-DscResource -ModuleName xActiveDirectory, xNetworking, xComputerManagement
 
-    Node "localhost" {
+    Node $ComputerName {
 
         LocalConfigurationManager {
             ActionAfterReboot = 'ContinueConfiguration'
@@ -43,7 +46,7 @@
         }
 
         xComputer JoinDomain {
-            Name = $ComputerName
+            Name = $VMName
             DomainName = $DomainName 
             Credential = $DomainCredentials  # Credential to join to domain
             DependsOn = '[xDNSServerAddress]DnsServerAddress'
@@ -80,6 +83,8 @@
         }
 
         Script ReplicateDomain {
+
+            DependsOn = "[xADDomainController]DomainController"
 
             GetScript = { Return Get-ADDomain }  
 

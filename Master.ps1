@@ -30,7 +30,7 @@ In:::the/    ::::dMMMMMb::::    \ Land::of:
 $VerbosePreference = "Continue"
 
 #Dot source dsc, functions, scripts and libraries
-$functions = @("Support\Get-GredentialObject.ps1", "Libraries\Log-Functions.ps1", "Support\Start-RebootCheck.ps1", "Support\DSC\InstallADDC.ps1")
+$functions = @("Support\Get-GredentialObject.ps1", "Libraries\Log-Functions.ps1", "Support\Start-RebootCheck.ps1", "ADDC\DesiredStateAD.ps1")
 $functions | % {
     Try {
         $path = Join-Path -Path $PSScriptRoot -ChildPath $_
@@ -73,15 +73,15 @@ $module | % {
 
 #-----------------------------------------------------------[Active Directory]---------------------------------------------------------
 
-$ADServer = 192.168.59.113
+$ComputerName = "192.168.59.113"
 $VMName = "AMSTEL-AD"
-$DSCDocument = Join-Path -Path $PSScriptRoot -ChildPath "InstallADDC"
+$DSCDocument = Join-Path -Path $PSScriptRoot -ChildPath "\DesiredStateAD"
 
 $ADScriptPath = Join-Path -Path $PSScriptRoot -ChildPath "\ADDC\ADDC-Migration.ps1"
-& $ADScriptPath -ADServer $ADServer -VMName $VMName -DSCDocument $DSCDocument
+& $ADScriptPath -ComputerName $ComputerName -VMName $VMName -DSCDocument $DSCDocument
 
 #-----------------------------------------------------------[SQL Server]---------------------------------------------------------------
-
+<#
 $ComputerName = "158.38.43.114"
 $Source = "158.38.43.113"
 $PackagePath = "\\158.38.43.116\share\MSSQL"
@@ -91,7 +91,7 @@ $SqlCredential = (Get-Credential)
 
 $SQLScriptPath = Join-Path -Path $PSScriptRoot -ChildPath "\MSSQL\MSSQL-Migration.ps1"
 & $SQLScriptPath -ComputerName $ComputerName -Source $Source -PackagePath $PackagePath -InstanceName $InstanceName -Credential $Credential -SqlCredential $SqlCredential
-
+#>
 #-----------------------------------------------------------[File and sharing]---------------------------------------------------------
 
 #-----------------------------------------------------------[Exchange]-----------------------------------------------------------------
