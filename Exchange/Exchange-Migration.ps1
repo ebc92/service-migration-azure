@@ -65,23 +65,16 @@ Function Get-Prerequisite {
     if(!($verifyLogPath)) {
       New-Item -ItemType Directory -Path $sLogPath > $null
     }
-    $variableOutput = '        $fileShare ' + "= $fileShare"
+    $variableOutput = '        $fileShare ' + "= $fileShare `n"`
+    +'        $tarComp ' + "= $tarComp `n"`
+    +'        $cred ' + "= $cred"
     Log-Write -LogPath $sLogFile -LineValue "Downloading prerequisites for Microsoft Exchange 2013..."
-    Log-Write -LogPath $sLogFile -LineValue "The following variables are set for Get-Prerequisite:"
+    Log-Write -LogPath $sLogFile -LineValue "The following variables are set for $MyInvocation.MyCommand.Name:"
     Log-Write -LogPath $sLogFile -LineValue "$variableOutput"
   }
   
   Process{
     Try{
-      [int]$i = 0
-      $downloadArray2013 = @(
-        "https://download.microsoft.com/download/2/C/4/2C47A5C1-A1F3-4843-B9FE-84C0032C61EC/UcmaRuntimeSetup.exe"
-        "https://download.microsoft.com/download/0/A/2/0A28BBFA-CBFA-4C03-A739-30CCA5E21659/FilterPack64bit.exe"
-        "https://download.microsoft.com/download/A/A/3/AA345161-18B8-45AE-8DC8-DA6387264CB9/filterpack2010sp1-kb2460041-x64-fullfile-en-us.exe"
-      )
-      
-      $total = $downloadArray.Count
-      
       #Checking package provider list for NuGet
       $nuget = Invoke-Command -Credential $cred -ComputerName $tarComp -ScriptBlock { 
         $nuget = Get-PackageProvider | Where-Object -Property Name -eq nuget
@@ -106,23 +99,24 @@ Function Get-Prerequisite {
       } else {
         Write-Verbose -Message "NuGet already installed, continuing prerequisite checks"
         Log-Write -LogPath $sLogFile -LineValue "NuGet already installed, continuing prerequisite checks"
-      }
-      
-      Write-Verbose -Message "Total amount of files to be donwloaded is $total, proceeding to download"
-      Log-Write -LogPath $sLogFile -LineValue "Total amount of files to be donwloaded is $total, proceeding to download"
-      
-      #Loop to download all files in the folder created earlier
-      foreach($element in $downloadArray) {
-        $i++
-        Write-Verbose -Message "Currently downloading file $i of $total"
-        Log-Write -LogPath $sLogFile -LineValue "Currently downloading file $i of $total"
-        Write-Progress -Activity 'Downloading prerequsites for Exchange 2013' -Status "Currently downloading file $i of $total"`
-        -PercentComplete (($i / $total) * 100)
-        Start-BitsTransfer -Source $element -Destination $fileshare -Description 'Downloading prerequisites'
-        Write-Verbose -Message "Downloading file from $element to $fileShare"
-        Log-Write -LogPath $sLogFile -LineValue "Downloading file from $element to $fileShare"
-      }
-    }      
+      }  
+          
+      #Downloading UCMA 4.0 Runtime      
+      Write-Verbose -Message "Starting download of UCMA Runtime 4.0"
+      Log-Write -LogPath $sLogFile -LineValue "Starting download of UCMA Runtime 4.0"
+
+      Start-BitsTransfer -Source https://download.microsoft.com/download/2/C/4/2C47A5C1-A1F3-4843-B9FE-84C0032C61EC/UcmaRuntimeSetup.exe -Destination $fileshare -Description 'Downloading prerequisites'
+      Write-Verbose -Message "Downloading file from https://download.microsoft.com/download/2/C/4/2C47A5C1-A1F3-4843-B9FE-84C0032C61EC/UcmaRuntimeSetup.exe to $fileShare"
+      Log-Write -LogPath $sLogFile -LineValue "Downloading file from https://download.microsoft.com/download/2/C/4/2C47A5C1-A1F3-4843-B9FE-84C0032C61EC/UcmaRuntimeSetup.exe to $fileShare"
+
+      #Downloading Exchange 2016
+      Write-Verbose -Message "Starting download of Exchange 2016 CU5"
+      Log-Write -LogPath $sLogFile -LineValue "Starting download of Exchange 2016 CU5"
+      Start-BitsTransfer -Source https://download.microsoft.com/download/A/A/7/AA7F69B2-9E25-4073-8945-E4B16E827B7A/ExchangeServer2016-x64-cu5.iso -Destination $fileshare -Description 'Downloading prerequisites'
+      Write-Verbose -Message "Downloading file from https://download.microsoft.com/download/A/A/7/AA7F69B2-9E25-4073-8945-E4B16E827B7A/ExchangeServer2016-x64-cu5.iso to $fileShare"
+      Log-Write -LogPath $sLogFile -LineValue "Downloading file from https://download.microsoft.com/download/A/A/7/AA7F69B2-9E25-4073-8945-E4B16E827B7A/ExchangeServer2016-x64-cu5.iso to $fileShare"
+
+    }     
     Catch {
       Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $True
       Break
@@ -138,10 +132,10 @@ Function Get-Prerequisite {
   }
 }
 
-          #Mounts Exchange 2016 image from share
-Function ExchangeBinaries {
+#Mounts Exchange 2016 image from share
+Function Mount-Exchange {
   Param(
-    [Parameter(Mandatory=$true]
+    [Parameter(Mandatory=$true)]
     [String]$SourceFile,
     [bool]$finished=$false
     )
@@ -177,7 +171,7 @@ Function Install-Prerequisite {
   Begin{
     $variableOutput = '        $fileShare ' + "= $fileShare"
     Log-Write -LogPath $sLogFile -LineValue 'Installing prerequisites for Microsoft Exchange 2013...'
-    Log-Write -LogPath $sLogFile -LineValue "The following variables are set for Install-Prerequisite:"
+    Log-Write -LogPath $sLogFile -LineValue "The following variables are set for $MyInvocation.MyCommand.Name :"
     Log-Write -LogPath $sLogFile -LineValue "$variableOutput"
   }
   
