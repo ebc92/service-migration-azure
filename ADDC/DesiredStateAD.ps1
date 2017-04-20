@@ -1,20 +1,24 @@
-﻿Configuration InstallADDC {
+﻿Configuration DesiredStateAD {
 
     Param (
         [Parameter(Mandatory)]
+        [ValidateNotNullOrEmpty()]
         [String]$DNS,
         [Parameter(Mandatory)]
+        [ValidateNotNullOrEmpty()]
         [String]$ComputerName,
         [Parameter(Mandatory)]
+        [ValidateNotNullOrEmpty()]
         [String]$DomainName,
         [Parameter(Mandatory)]
-        [System.Management.Automation.PSCredential]
+        [ValidateNotNullOrEmpty()]
+        [PSCredential]
         $DomainCredentials,
         [Parameter(Mandatory)]
-        [System.Management.Automation.PSCredential]
+        [ValidateNotNullOrEmpty()] 
+        [PSCredential]
         $SafeModeCredentials
     )
-
 
     <# TODO:
         * Enable remoting from push server using e.g. template.

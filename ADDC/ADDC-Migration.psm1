@@ -1,22 +1,34 @@
-﻿Function Start-ADDCDeployment {
-    Param (
-        [Parameter(Mandatory=$true)]
-        [String]$DNS,
-        [Parameter(Mandatory=$true)]
-        [String]$DomainName,
-        [Parameter(Mandatory=$true)]
-        [PSCredential]$LocalCredentials
-    )
-
+﻿Function Move-OperationMasterRoles {
+Param(
+    $ComputerName
+)
     Try {
-            Log-Write -LogPath $sLogFile -LineValue "Generating MOF-file from DSC script.."s
-            ADDCInstall -DNS $DNS -DomainName $DomainName -DomainCredential $DomainCredential
-
-            Log-Write -LogPath $sLogFile -LineValue "Starting DSC configuration."
-            Start-DscConfiguration -ComputerName $ComputerName -Path .\SQLInstall -Verbose -Wait -Force -Credential $LocalCredentials
-            Log-Write -LogPath $sLogFile -LineValue "DSC configuration was succcessfully executed"
-
-        } Catch {
-            Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $False
+        Move-ADDirectoryServerOperationMasterRole -Identity $ComputerName -OperationMasterRole 0,1,2,3,4 -Confirm:$false -ErrorAction Stop
+        Write-Output "All Operation Master roles were successfully migrated."
+    } Catch {
+            Write-Output $_.Exception.message
     }
+}
+
+Function Start-GpoCopy {
+Param ($DNS, $Credential )
+    Try {
+        New-Item -Name "Configure-ClientDNS.ps1" -Path '.\Support\GPO\{23479CB6-4EC3-4B0E-8DF3-A5F046CC623F}\DomainSysvol\GPO\Machine\Scripts\Startup\' `
+        -Value "Set-DnsClientServerAddress -InterfaceIndex (Get-NetAdapter)[0].ifIndex -ServerAddresses $DNS" -ErrorAction Stop
+    } Catch {
+        
+    }
+
+    New-PSDrive -PSProvider FileSystem -Name "share" -Root \\158.38.43.115\C$\Share -Credential $Credential -ErrorAction Stop
+    Copy-Item '.\Support\GPO\' -Destination share:\ -Recurse
+}
+
+Function Start-GpoImport {
+Param ($Credential)
+    New-PSDrive -PSProvider FileSystem -Name "share" -Root \\158.38.43.115\C$\Share -Credential $Credential -ErrorAction Stop
+    Copy-Item 'share:\GPO' -Recurse -Destination C:\GPO
+    $GpoName = "Post-Migration DNS GPO"
+    New-GPO -Name $GpoName
+    Import-GPO -BackupGpoName "Post-Migration DNS Update" -Path C:\GPO -TargetName $GpoName
+    New-GPLink -Name $GpoName -Target "OU=DNS Update,DC=amstel,DC=local"
 }

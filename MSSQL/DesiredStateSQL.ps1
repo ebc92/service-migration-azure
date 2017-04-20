@@ -1,6 +1,5 @@
-﻿Configuration SQLInstall
-{
-    param (
+﻿Configuration DesiredStateSQL {
+    Param (
         [Parameter(Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
         [String]
@@ -18,30 +17,25 @@
 
     Import-DscResource -ModuleName PSDesiredStateConfiguration
  
-    Node $AllNodes.where{ $_.Role.Contains("SqlServer") }.NodeName
-    {
-        Log ParamLog
-        {
+    Node $AllNodes.where{ $_.Role.Contains("SqlServer") }.NodeName {
+        Log ParamLog {
             Message = "Running SQLInstall. PackagePath = $PackagePath"
         }
  
-        WindowsFeature NetFramework35Core
-        {
+        WindowsFeature NetFramework35Core {
             Name = "NET-Framework-Core"
             Ensure = "Present"
             Source = $WinSources
         }
  
-        WindowsFeature NetFramework45Core
-        {
+        WindowsFeature NetFramework45Core {
             Name = "NET-Framework-45-Core"
             Ensure = "Present"
             Source = $WinSources
         }
  
         # copy the sqlserver iso
-        File SQLServerIso
-        {
+        File SQLServerIso {
             Credential = $Credential
             SourcePath = "$PackagePath\en_sql_server_2016_enterprise_x64_dvd_8701793.iso"
             DestinationPath = "c:\temp\SQLServer.iso"
@@ -50,8 +44,7 @@
         }
  
         # copy the ini file to the temp folder
-        File SQLServerIniFile
-        {
+        File SQLServerIniFile {
             Credential = $Credential
             SourcePath = "$PackagePath\DeploymentConfig.ini"
             DestinationPath = "c:\temp"
@@ -64,10 +57,10 @@
         #
         # Install SqlServer using ini file
         #
-        Script InstallSQLServer
-        {
-            GetScript =
-            {
+        Script InstallSQLServer {
+
+            GetScript = {
+
                 $sqlInstances = gwmi win32_service -computerName localhost | ? { $_.Name -match "mssql*" -and $_.PathName -match "sqlservr.exe" } | % { $_.Caption }
                 $res = $sqlInstances -ne $null -and $sqlInstances -gt 0
                 $vals = @{
@@ -76,8 +69,8 @@
                 }
                 $vals
             }
-            SetScript =
-            {
+            SetScript = {
+
                 # mount the iso
                 $setupDriveLetter = (Mount-DiskImage -ImagePath c:\temp\SQLServer.iso -PassThru | Get-Volume).DriveLetter + ":"
                 if ($setupDriveLetter -eq $null) {
@@ -90,8 +83,9 @@
                 Write-Verbose "Running SQL Install - check %programfiles%\Microsoft SQL Server\130\Setup Bootstrap\Log\ for logs..."
                 Invoke-Expression $cmd | Write-Verbose
             }
-            TestScript =
-            {
+
+            TestScript = {
+
                 $sqlInstances = gwmi win32_service -computerName localhost | ? { $_.Name -match "mssql*" -and $_.PathName -match "sqlservr.exe" } | % { $_.Caption }
                 $res = $sqlInstances -ne $null -and $sqlInstances -gt 0
                 if ($res) {
@@ -157,6 +151,5 @@
             
         }
     }
-
 
 }

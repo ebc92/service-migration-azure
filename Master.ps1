@@ -70,38 +70,26 @@ $module | % {
         Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $False
     }
 }
-#Install PSGET
-#(new-object Net.WebClient).DownloadString("http://psget.net/GetPsGet.ps1") | iex
 
-Function Migrate-AD {
-    Param($Credentials, $VMName)
+#-----------------------------------------------------------[Active Directory]---------------------------------------------------------
 
-    $ADServer = 192.168.59.113
-    $VMName = "AMSTEL-AD"
-    $DSCDocument = Join-Path -Path $PSScriptRoot -ChildPath "InstallADDC"
-    
-    #$target = New-AzureStackTenantDeployment -VMName "TenantAD" -IPAddress "192.168.59.113/24"
+$ADServer = 192.168.59.113
+$VMName = "AMSTEL-AD"
+$DSCDocument = Join-Path -Path $PSScriptRoot -ChildPath "InstallADDC"
 
-    Invoke-Command -ComputerName "192.168.59.113" -Credential $LocalCredentials -ScriptBlock {Install-Module xComputerManagement, xPendingReboot, xActiveDirectory, xNetworking -Force}
+$ADScriptPath = Join-Path -Path $PSScriptRoot -ChildPath "\ADDC\ADDC-Migration.ps1"
 
-    $cd = @{
-        AllNodes = @(
-            @{
-                NodeName = "192.168.59.113"
-                PSDscAllowDomainUser = $true
-                PSDscAllowPlainTextPassword = $true
-            }
-        )        
-    }
+& $ADScriptPath
 
-    Log-Write -LogPath $sLogFile -LineValue "Creating DSC configuration document.."
-    $result = InstallADDC -ConfigurationData $cd -DNS 192.168.58.113 -ComputerName $VMName -DomainName amstel.local -DomainCredentials $Credentials -SafeModeCredentials $Credentials
-    
-    Log-Write -LogPath $sLogFile -LineValue $result
-    Set-DscLocalConfigurationManager -ComputerName $ADServer -Path $DSCDocument -Credential $LocalCredentials
-    Start-DscConfiguration -ComputerName $ADServer -Path $DSCDocument -Credential $LocalCredentials -Wait -Force -Verbose 4> $sLogFile
+#-----------------------------------------------------------[SQL Server]---------------------------------------------------------------
 
-}
+$ComputerName = "158.38.43.114"
+$Source = "158.38.43.113"
+$PackagePath = "\\158.38.43.116\share\MSSQL"
+$InstanceName = "AMSTELSQL"
+$Credential = (Get-Credential)
+$SqlCredential = (Get-Credential)
 
+#-----------------------------------------------------------[File and sharing]---------------------------------------------------------
 
-Migrate-AD -Credentials $cred
+#-----------------------------------------------------------[Exchange]-----------------------------------------------------------------
