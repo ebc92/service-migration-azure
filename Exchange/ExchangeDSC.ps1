@@ -34,7 +34,7 @@ Configuration InstallExchange {
     #Specifies settings for the local configuration manager. Sets apply mode to apply only so it does not try to fix on eventual drift
     LocalConfigurationManager
     {
-      CertificateId      = 7879F4B34C555A72A42C284050A3EA0E0DDFF1F5
+      CertificateId      = '7879F4B34C555A72A42C284050A3EA0E0DDFF1F5'
       ConfigurationMode  = 'ApplyOnly'
       RebootNodeIfNeeded = $true
     }
