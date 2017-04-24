@@ -25,6 +25,7 @@ Configuration InstallExchange {
     [String]$Domain
   )
   
+  $UCMASource = $UCMASource + "\UcmaRuntimeSetup.exe"
   $ExchangeBinary = $ExchangeBinary + "\setup.exe"
   Import-DscResource -ModuleName xExchange, xPendingReboot, xWindowsUpdate, PSDesiredStateConfiguration
   
