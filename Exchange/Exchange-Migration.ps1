@@ -216,9 +216,12 @@ Function Install-Prerequisite {
           }
         );
       }
-
+      
+      #Dot source DSC configuration
+      ".$PSScriptRoot\ExchangeDSC.ps1"
+      
       #Compiles DSC Script
-      $PSScriptRoot\ExchangeDSC -ConfigurationData $ConfigData -DomainCredential $DomainCredential -ComputerName $ComputerName -ExchangeBinary $ExchangeBinary	 -UCMASource $fileShare -Domain $Domain
+      ExchangeDSC -ConfigurationData $ConfigData -DomainCredential $DomainCredential -ComputerName $ComputerName -ExchangeBinary $ExchangeBinary	 -UCMASource $fileShare -Domain $Domain
 
       #Sets up LCM on target comp
       Set-DscLocalConfigurationManager -Path $PSScriptRoot\ExchangeDSC -Verbose
