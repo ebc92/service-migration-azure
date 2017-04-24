@@ -257,7 +257,7 @@ Configuration InstallExchange {
     
     xHotfix KB3199986
     {
-      DependsOn = ""BeforeKB3199986""
+      DependsOn = "BeforeKB3199986"
       Ensure = "Present"
       Path = "http://download.windowsupdate.com/c/msdownload/update/software/crup/2016/10/windows10.0-kb3199986-x64_5d4678c30de2de2bd7475073b061d0b3b2e5c3be.msu"
       Id = "KB3199986"
@@ -301,7 +301,7 @@ Configuration InstallExchange {
     #Do the Exchange install
     xExchInstall InstallExchange
     {
-      Path       = $ExchangeBinary
+      Path       = $ExchangeBinary/setup.exe
       Arguments  = "/mode:Install /role:Mailbox /OrganizationName:$Domain /IAcceptExchangeServerLicenseTerms "
       Credential = $DomainCredential
 

@@ -41,7 +41,7 @@
 #---------------------------------------------------------[Initialisations]--------------------------------------------------------
 
 #Set Error Action to Silently Continue
-$ErrorActionPreference = 'SilentlyContinue'
+$ErrorActionPreference = 'Continue'
 
 #Dot Source required Function Libraries
 $DotPath = Resolve-Path "$PSScriptRoot\..\Libraries\Log-Functions.ps1"
@@ -221,10 +221,10 @@ Function Install-Prerequisite {
       }
       
       #Dot source DSC configuration
-      ".$PSScriptRoot\ExchangeDSC.ps1"
+      . "$PSScriptRoot\ExchangeDSC.ps1"
       
       #Compiles DSC Script
-      ExchangeDSC -ConfigurationData $ConfigData -DomainCredential $DomainCredential -ComputerName $ComputerName -ExchangeBinary $ExchangeBinary	 -UCMASource $fileShare -Domain $Domain
+      ExchangeDSC -ConfigurationData $ConfigData -DomainCredential $DomainCredential -ComputerName $ComputerName -ExchangeBinary $ExchangeBinary\Setup.exe	 -UCMASource $fileShare -Domain $Domain
 
       #Sets up LCM on target comp
       Set-DscLocalConfigurationManager -Path $PSScriptRoot\ExchangeDSC -Verbose
@@ -292,8 +292,8 @@ $cred = Get-Credential
 
 Get-Prerequisite -fileShare $fileshare -ComputerName 192.168.58.116 -DomainCredential $cred
 
-#Mount-Exchange -SourceFile $fileshare
+Mount-Exchange -SourceFile $fileshare
 
-#Install-Prerequisite -fileShare $fileshare -ComputerName 192.168.58.116 -DomainCredential $cred -ExchangeBinary $ExchangeBinary
+Install-Prerequisite -fileShare $fileshare -ComputerName 192.168.58.116 -DomainCredential $cred -ExchangeBinary $ExchangeBinary
 
 Log-Finish -LogPath $sLogFile
