@@ -44,7 +44,7 @@
 $ErrorActionPreference = 'SilentlyContinue'
 
 #Dot Source required Function Libraries
-. 'C:\Scripts\Functions\Logging_Functions.ps1'
+. "$PSScriptRoot\..\Libraries\Log_Functions.ps1"
 
 #Define all variables during testing, remove for production
 $baseDir = 'C:\tempExchange'
@@ -89,10 +89,12 @@ Function Get-Prerequisite {
   Process{
     Try{
       #Checking package provider list for NuGet
-      $nuget = Invoke-Command -Credential $DomainCredential -ComputerName $ComputerName -ScriptBlock { 
+      $nuSession = New-PSSession -ComputerName $ComputerName -Credential $DomainCredential
+      $nuget = Invoke-Command -Session $nuSession -ScriptBlock { 
         $nuget = Get-PackageProvider | Where-Object -Property Name -eq nuget
         Return $nuget 
       }
+      Remove-PSSession -Name $nuSession
      
       #Creating the required folders if they do not exist 
       if (!($verifyPath)) {
@@ -289,7 +291,7 @@ $cred = Get-Credential
 
 Get-Prerequisite -fileShare $fileshare -ComputerName 192.168.58.116 -DomainCredential $cred
 
-Mount-Exchange -SourceFile $fileshare
+#Mount-Exchange -SourceFile $fileshare
 
 #Install-Prerequisite -fileShare $fileshare -ComputerName 192.168.58.116 -DomainCredential $cred -ExchangeBinary $ExchangeBinary
 
