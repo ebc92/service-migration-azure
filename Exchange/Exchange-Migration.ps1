@@ -206,6 +206,31 @@ Function Install-Prerequisite {
 
       Install-Module -Name xExchange, xPendingReboot, xWindowsUpdate
       
+      $DSC = Resolve-Path -Path .\ExchangeDSC.ps1
+      . $DSC
+      
+      #Configuration Data
+      $ConfigData=@{
+        AllNodes = @(
+          @{
+            NodeName = '*'
+          }
+
+          @{
+            NodeName = "$ComputerName"
+          }
+        )
+      }
+      
+      #Compiles DSC Script
+      InstallExchange -ConfigurationData $ConfigData -DomainCredential $DomainCredential -ComputerName $ComputerName -ExchangeBinary $ExchangeBinary\Setup.exe	 -UCMASource $fileShare -Domain $Domain
+
+      #Sets up LCM on target comp
+      Set-DscLocalConfigurationManager -Path $PSScriptRoot\ExchangeDSC -Verbose
+
+      #Pushes DSC script to target
+      Start-DscConfiguration -Path $PSScriptRoot\ExchangeDSC -Verbose -Wait
+      
       <#     Foreach($element in $InstallFiles) {
           $i++
           Write-Progress -Activity 'Installing prerequisites for Exchange 2016' -Status "Currently installing file $i of $total"`

@@ -317,30 +317,3 @@ Configuration InstallExchange {
     }
   }
 }
-
-
-      
-#Configuration Data
-$ConfigData=@{
-  AllNodes = @(
-    @{
-      NodeName = '*'
-    }
-
-    @{
-      NodeName = "$ComputerName"
-    }
-  )
-}
-      
-#Dot source DSC configuration
-. "$PSScriptRoot\ExchangeDSC.ps1"
-      
-#Compiles DSC Script
-ExchangeDSC -ConfigurationData $ConfigData -DomainCredential $DomainCredential -ComputerName $ComputerName -ExchangeBinary $ExchangeBinary\Setup.exe	 -UCMASource $fileShare -Domain $Domain
-
-#Sets up LCM on target comp
-Set-DscLocalConfigurationManager -Path $PSScriptRoot\ExchangeDSC -Verbose
-
-#Pushes DSC script to target
-Start-DscConfiguration -Path $PSScriptRoot\ExchangeDSC -Verbose -Wait
