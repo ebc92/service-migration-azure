@@ -291,6 +291,6 @@ Get-Prerequisite -fileShare $fileshare -ComputerName 192.168.58.116 -DomainCrede
 
 Mount-Exchange -SourceFile $fileshare
 
-Install-Prerequisite -fileShare $fileshare -ComputerName 192.168.58.116 -DomainCredential $cred -ExchangeBinary $ExchangeBinary
+#Install-Prerequisite -fileShare $fileshare -ComputerName 192.168.58.116 -DomainCredential $cred -ExchangeBinary $ExchangeBinary
 
 Log-Finish -LogPath $sLogFile
