@@ -15,6 +15,9 @@
         [String]$DomainName,
         [Parameter(Mandatory)]
         [ValidateNotNullOrEmpty()]
+        [String]$InterfaceAlias,
+        [Parameter(Mandatory)]
+        [ValidateNotNullOrEmpty()]
         [PSCredential]
         $DomainCredentials,
         [Parameter(Mandatory)]
@@ -32,7 +35,7 @@
     Import-DscResource -ModuleName xActiveDirectory, xNetworking, xComputerManagement
 
     Node $ComputerName {
-
+        
         LocalConfigurationManager {
             ActionAfterReboot = 'ContinueConfiguration'
             ConfigurationMode = 'ApplyOnly'
@@ -41,7 +44,7 @@
 
         xDNSServerAddress DnsServerAddress {
             Address        = $DNS
-            InterfaceAlias = "Ethernet"
+            InterfaceAlias = $InterfaceAlias
             AddressFamily  = 'IPv4'
         }
 
@@ -104,7 +107,7 @@
 
         Script MoveControllerRoles {
 
-            DependsOn = "[Script]MoveControllerRoles"
+            DependsOn = "[Script]ReplicateDomain"
 
             GetScript = { Return "foo" }  
 

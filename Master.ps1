@@ -47,7 +47,7 @@ $functions | % {
 $sScriptVersion = "1.0"
 $sLogPath = "C:\Logs"
 $sLogName = "service-migration-azure.log"
-$sLogFile = Join-Path -Path $sLogPath -ChildPath $sLogName
+$global:sLogFile = Join-Path -Path $sLogPath -ChildPath $sLogName
 
 #-----------------------------------------------------------[Execution]------------------------------------------------------------
 
@@ -73,12 +73,7 @@ $module | % {
 
 #-----------------------------------------------------------[Active Directory]---------------------------------------------------------
 
-$ComputerName = "192.168.59.113"
-$VMName = "AMSTEL-AD"
-$DSCDocument = Join-Path -Path $PSScriptRoot -ChildPath "\DesiredStateAD"
-
-$ADScriptPath = Join-Path -Path $PSScriptRoot -ChildPath "\ADDC\ADDC-Migration.ps1"
-& $ADScriptPath -ComputerName $ComputerName -VMName $VMName -DSCDocument $DSCDocument
+& (Join-Path -Path $PSScriptRoot -ChildPath "\ADDC\ADDC-Migration.ps1")
 
 #-----------------------------------------------------------[SQL Server]---------------------------------------------------------------
 <#
