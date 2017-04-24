@@ -281,7 +281,11 @@ Function Install-Prerequisite {
 Log-Start -LogPath $sLogPath -LogName $sLogName -ScriptVersion $sScriptVersion
 $i = 0
 
-Get-Prerequisite -fileshare $fileshare
-#Install-Prerequisite -fileShare $fileshare
+#Temporary to run commands during test environment
+$cred = Get-Credential
+
+Get-Prerequisite -fileShare $fileshare -ComputerName 192.168.58.116 -DomainCredential $cred
+
+Install-Prerequisite -fileShare $fileshare -ComputerName 192.168.58.116 -DomainCredential $cred -ExchangeBinary $ExchangeBinary
 
 Log-Finish -LogPath $sLogFile
