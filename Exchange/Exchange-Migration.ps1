@@ -147,29 +147,29 @@ Function Get-Prerequisite {
 
 #Mounts Exchange 2016 image from share
 Function Mount-Exchange {
-Param(
-  [Parameter(Mandatory=$true)]
-  [String]$SourceFile,
+  Param(
+    [Parameter(Mandatory=$true)]
+    [String]$SourceFile
+  )
   [bool]$finished=$false
-)
-
-$er = $ErrorActionPreference
-$ErrorActionPreference = "Continue"
-Do {
-  Try {          
-    $ExchangeBinary = (Mount-DiskImage -ImagePath $SourceFile\ExchangeServer2016-x64-cu5.iso `
-    -PassThru | Get-Volume).Driveletter + ":"
-    $finished = $true
-    $ErrorActionPreference = $er
-    Return $ExchangeBinary
+  $er = $ErrorActionPreference
+  $ErrorActionPreference = "Continue"
+  Do {
+    Try {          
+      $ExchangeBinary = (Mount-DiskImage -ImagePath $SourceFile\ExchangeServer2016-x64-cu5.iso `
+      -PassThru | Get-Volume).Driveletter + ":"
+      $finished = $true
+      $ErrorActionPreference = $er
+      Return $ExchangeBinary
+    }
+    Catch {
+      $SourceFile = Read-Host(`
+      "The path $SourceFile does not contain the ISO file, please enter the correct path for the Exchange 2016 ISO Image folder")
+      $finished = $false
+    }
   }
-  Catch {
-    $SourceFile = Read-Host(`
-    "The path $SourceFile does not contain the ISO file, please enter the correct path for the Exchange 2016 ISO Image folder")
-    $finished = $false
-  }
+  While ($finished -eq $false)
 }
-While ($finished -eq $false)
 
 Function Install-Prerequisite {
   [CmdletBinding()]
@@ -285,6 +285,8 @@ $i = 0
 $cred = Get-Credential
 
 Get-Prerequisite -fileShare $fileshare -ComputerName 192.168.58.116 -DomainCredential $cred
+
+Mount-Exchange -SourceFile $fileshare
 
 Install-Prerequisite -fileShare $fileshare -ComputerName 192.168.58.116 -DomainCredential $cred -ExchangeBinary $ExchangeBinary
 

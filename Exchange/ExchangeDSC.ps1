@@ -20,7 +20,7 @@ Configuration InstallExchange {
     [Parameter(Mandatory=$true)]
     [String]$ExchangeBinary,
     [Parameter(Mandatory=$true)]
-    [String]$UCMASource
+    [String]$UCMASource,
     [Parameter(Mandatory=$true)]
     [String]$Domain
   )
@@ -286,7 +286,7 @@ Configuration InstallExchange {
     {
       Name      = 'UCMA 4.0' 
       Ensure    = 'Present'
-      Path      = '$fileshare'
+      Path      = "$fileshare"
       ProductID = 'ED98ABF5-B6BF-47ED-92AB-1CDCAB964447'
       Arguments = '/passive /norestart'
       Credential= "$DomainCredential"
@@ -318,29 +318,8 @@ Configuration InstallExchange {
   }
 }
 
-#Configuration Data
-$ConfigData=@{
-  AllNodes = @(
-    @{
-      NodeName = "*"
-    }
-
-    @{
-      NodeName = "$ComputerName"
-    }
-  );
-}
 
 if ($null -eq $DomainCredential)
 {
   $DomainCredential = Get-Credential -Message "Enter credentials for establishing Remote Powershell sessions to Exchange"
 }
-
-###Compiles the example
-InstallExchange -ConfigurationData $PSScriptRoot\DSCConfig\InstallExchange-Config.psd1 -Creds $DomainCredential
-
-###Sets up LCM on target computers to decrypt credentials, and to allow reboot during resource execution
-Set-DscLocalConfigurationManager -Path $PSScriptRoot\DSConfig -Verbose
-
-###Pushes configuration and waits for execution
-Start-DscConfiguration -Path $PSScriptRoot\DSConfig -Verbose -Wait
