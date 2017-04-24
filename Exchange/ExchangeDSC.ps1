@@ -25,8 +25,8 @@ Configuration InstallExchange {
     [String]$Domain
   )
   
-
-  Import-DscResource -ModuleName xExchange, xPendingReboot, xWindowsUpdate
+  $ExchangeBinary = $ExchangeBinary + "\setup.exe"
+  Import-DscResource -ModuleName xExchange, xPendingReboot, xWindowsUpdate, PSDesiredStateConfiguration
   
   Node $AllNodes.NodeName
   {
@@ -301,7 +301,7 @@ Configuration InstallExchange {
     #Do the Exchange install
     xExchInstall InstallExchange
     {
-      Path       = $ExchangeBinary\setup.exe
+      Path       = $ExchangeBinary
       Arguments  = "/mode:Install /role:Mailbox /OrganizationName:$Domain /IAcceptExchangeServerLicenseTerms "
       Credential = $DomainCredential
 

@@ -218,6 +218,7 @@ Function Install-Prerequisite {
 
           @{
             NodeName = "$ComputerName"
+            PSDscAllowDomainUser = $true
           }
         )
       }
