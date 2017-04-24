@@ -1,15 +1,17 @@
-﻿
-$ComputerName = "192.168.58.114"
-$VMName = "TESTSRV-2"
-$DSCDocument = Resolve-Path (Join-Path -Path $PSScriptRoot -ChildPath "..\DesiredStateAD")
-
-$InterfaceAlias = "Ethernet0"
+﻿#Getting migration variables from configuration file
+$AzureStack = $SMAConfig.Global.Get_Item('azurestack')
+$DNS =   $SMAConfig.ADDC.Get_Item('source')
+$ComputerName = $SMAConfig.ADDC.Get_Item('destination')
+$VMName = $SMAConfig.ADDC.Get_Item('hostname')
+$InterfaceAlias = $SMAConfig.ADDC.Get_Item('interfacealias')
+$DomainName = $SMAConfig.ADDC.Get_Item('domainname')
     
+#AzureStack VM Provisioning
 #$target = New-AzureStackTenantDeployment -VMName $VMName -IPAddress "192.168.59.113/24"
 #Log-Write -LogPath $sLogFile -LineValue "VM was provisioned, target is $($target)"
 
-Invoke-Command -ComputerName "192.168.58.114" -Credential $LocalCredentials -ScriptBlock {Install-Module xComputerManagement, xActiveDirectory, xNetworking -Force}
-
+#DSC Prerequisities
+Invoke-Command -ComputerName $ComputerName -Credential $LocalCredentials -ScriptBlock {Install-Module xComputerManagement, xActiveDirectory, xNetworking -Force}
 $cd = @{
     AllNodes = @(
         @{
@@ -19,21 +21,15 @@ $cd = @{
         }
     )
 }
-    
+
+#DSC Deployment
 Log-Write -LogPath $sLogFile -LineValue "Creating DSC configuration document.."
-
-$result = DesiredStateAD -ComputerName $ComputerName -$InterfaceAlias -VMName $VMName -ConfigurationData $cd -DNS 192.168.58.113 -DomainName amstel.local -DomainCredentials $DomainCredential -SafeModeCredentials $DomainCredential
-
+DesiredStateAD -ComputerName $ComputerName -$InterfaceAlias -VMName $VMName -ConfigurationData $cd -DNS $DNS -DomainName $DomainName -DomainCredentials $DomainCredential -SafeModeCredentials $DomainCredential
+$DSCDocument = Resolve-Path (Join-Path -Path $PSScriptRoot -ChildPath "..\DesiredStateAD")
 Set-DscLocalConfigurationManager -ComputerName $ADServer -Path $DSCDocument -Credential $LocalCredentials
-
 Start-DscConfiguration -ComputerName $ComputerName -Path $DSCDocument -Credential $LocalCredentials -Wait -Force -Verbose 4>> $sLogFile
 
-#Move operation master roles
-
-#---------dns update-------
-
-
-#Import-Module (Join-Path -Path $PSScriptRoot -ChildPath "ADDC-Migration.psm1") -Force
+#DNS GPO Update
 $SMARoot = Resolve-Path -Path (Join-Path -Path $PSScriptRoot -ChildPath "..\")
-Start-GpoExport -Path $SMARoot -DNS "192.168.58.114" -DomainCredential $DomainCredential
+Start-GpoExport -Path $SMARoot -DNS $ComputerName -DomainCredential $DomainCredential
 

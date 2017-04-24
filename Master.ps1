@@ -30,7 +30,7 @@ In:::the/    ::::dMMMMMb::::    \ Land::of:
 $VerbosePreference = "Continue"
 
 #Dot source dsc, functions, scripts and libraries
-$functions = @("Support\Get-GredentialObject.ps1", "Libraries\Log-Functions.ps1", "Support\Start-RebootCheck.ps1", "ADDC\DesiredStateAD.ps1")
+$functions = @("Support\Get-GredentialObject.ps1", "Libraries\Manage-Configuration.ps1", "Libraries\Log-Functions.ps1", "Support\Start-RebootCheck.ps1", "ADDC\DesiredStateAD.ps1")
 $functions | % {
     Try {
         $path = Join-Path -Path $PSScriptRoot -ChildPath $_
@@ -45,9 +45,8 @@ $functions | % {
 #----------------------------------------------------------[Declarations]----------------------------------------------------------
 
 $sScriptVersion = "1.0"
-$sLogPath = "C:\Logs"
-$sLogName = "service-migration-azure.log"
-$global:sLogFile = Join-Path -Path $sLogPath -ChildPath $sLogName
+$global:SMAConfig = Get-IniContent -FilePath (Join-Path -Path $PSScriptRoot -ChildPath "Configuration.ini")
+$global:sLogFile = $SMAConfig.Global.Get_Item('logpath')
 
 #-----------------------------------------------------------[Execution]------------------------------------------------------------
 
@@ -73,20 +72,12 @@ $module | % {
 
 #-----------------------------------------------------------[Active Directory]---------------------------------------------------------
 
-& (Join-Path -Path $PSScriptRoot -ChildPath "\ADDC\ADDC-Migration.ps1")
+#& (Join-Path -Path $PSScriptRoot -ChildPath "\ADDC\ADDC-Migration.ps1")
 
 #-----------------------------------------------------------[SQL Server]---------------------------------------------------------------
-<#
-$ComputerName = "158.38.43.114"
-$Source = "158.38.43.113"
-$PackagePath = "\\158.38.43.116\share\MSSQL"
-$InstanceName = "AMSTELSQL"
-$Credential = (Get-Credential)
-$SqlCredential = (Get-Credential)
 
-$SQLScriptPath = Join-Path -Path $PSScriptRoot -ChildPath "\MSSQL\MSSQL-Migration.ps1"
-& $SQLScriptPath -ComputerName $ComputerName -Source $Source -PackagePath $PackagePath -InstanceName $InstanceName -Credential $Credential -SqlCredential $SqlCredential
-#>
+#& (Join-Path -Path $PSScriptRoot -ChildPath "\MSSQL\MSSQL-Migration.ps1")
+
 #-----------------------------------------------------------[File and sharing]---------------------------------------------------------
 
 #-----------------------------------------------------------[Exchange]-----------------------------------------------------------------
