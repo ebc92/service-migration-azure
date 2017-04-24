@@ -81,7 +81,7 @@ Function Get-Prerequisite {
     $variableOutput = '        $fileShare ' + "= $fileShare `n"`
     +'        $tarComp ' + "= $ComputerName `n"`
     +'        $DomainCredential ' + "= $DomainCredential"
-    Log-Write -LogPath $sLogFile -LineValue "Downloading prerequisites for Microsoft Exchange 2013..."
+    Log-Write -LogPath $sLogFile -LineValue "Downloading prerequisites for Microsoft Exchange 2016..."
     Log-Write -LogPath $sLogFile -LineValue "The following variables are set for $MyInvocation.MyCommand.Name:"
     Log-Write -LogPath $sLogFile -LineValue "$variableOutput"
   }
@@ -147,29 +147,29 @@ Function Get-Prerequisite {
 
 #Mounts Exchange 2016 image from share
 Function Mount-Exchange {
-  Param(
-    [Parameter(Mandatory=$true)]
-    [String]$SourceFile,
-    [bool]$finished=$false
-    )
+Param(
+  [Parameter(Mandatory=$true)]
+  [String]$SourceFile,
+  [bool]$finished=$false
+)
 
-    $er = $ErrorActionPreference
-    $ErrorActionPreference = "Continue"
-  Do {
-        Try {          
-          $Binary = (Mount-DiskImage -ImagePath $SourceFile\ExchangeServer2016-x64-cu5.iso `
-          -PassThru | Get-Volume).Driveletter + ":"
-          $finished = $true
-          $ErrorActionPreference = $er
-          Return $Binary
-        }
-        Catch {
-          $SourceFile = Read-Host(`
-           "The path $SourceFile does not contain the ISO file, please enter the correct path for the Exchange 2016 ISO Image folder")
-           $finished = $false
-        }
-      }
-  While ($finished -eq $false)
+$er = $ErrorActionPreference
+$ErrorActionPreference = "Continue"
+Do {
+  Try {          
+    $ExchangeBinary = (Mount-DiskImage -ImagePath $SourceFile\ExchangeServer2016-x64-cu5.iso `
+    -PassThru | Get-Volume).Driveletter + ":"
+    $finished = $true
+    $ErrorActionPreference = $er
+    Return $ExchangeBinary
+  }
+  Catch {
+    $SourceFile = Read-Host(`
+    "The path $SourceFile does not contain the ISO file, please enter the correct path for the Exchange 2016 ISO Image folder")
+    $finished = $false
+  }
+}
+While ($finished -eq $false)
 
 Function Install-Prerequisite {
   [CmdletBinding()]
@@ -177,9 +177,11 @@ Function Install-Prerequisite {
     [parameter(Mandatory=$true)]
     [string]$fileShare,
     [parameter(Mandatory=$true)]
-    [string]$tarComp,
+    [string]$ComputerName,
     [parameter(Mandatory=$true)]
-    [PSCredential]$DomainCredential
+    [PSCredential]$DomainCredential,
+    [parameter(Mandatory=$true)]
+    [String]$ExchangeBinary
   )
   
   Begin{
@@ -194,20 +196,43 @@ Function Install-Prerequisite {
       [int]$i = 0
       $InstallFiles = Get-ChildItem -Path $fileShare
       $total = $InstallFiles.Count
+      $Domain = $env:USERDOMAIN
       
       Write-Verbose -Message "Total amount of files to be installed is $total, starting installation"
       Log-Write -LogPath $sLogPath -LineValue "Total amount of files to be installed is $total, starting installation"
 
       Install-Module -Name xExchange, xPendingReboot, xWindowsUpdate
+
       
-      
-      Foreach($element in $InstallFiles) {
-        $i++
-        Write-Progress -Activity 'Installing prerequisites for Exchange 2013' -Status "Currently installing file $i of $total"`
-        -PercentComplete (($i / $total) * 100)        Write-Verbose -Message "Installing file $i of $total"        Write-Verbose -Message "Installing $element.name"        Log-Write -LogPath $sLogPath -LineValue "Installing file $i of $total"        Log-Write -LogPath $sLogPath -LineValue "Installing $element.name"        Invoke-Command -ComputerName $tarComp -Credential $DomainCredential -ScriptBlock {
-          Start-Process -FilePath $element.FullName -ArgumentList '/passive /norestart' -Wait
-        }
+      #Configuration Data
+      $ConfigData=@{
+        AllNodes = @(
+          @{
+            NodeName = "*"
+          }
+
+          @{
+            NodeName = "$ComputerName"
+          }
+        );
       }
+
+      #Compiles DSC Script
+      $PSScriptRoot\ExchangeDSC -ConfigurationData $ConfigData -DomainCredential $DomainCredential -ComputerName $ComputerName -ExchangeBinary $ExchangeBinary	 -UCMASource $fileShare -Domain $Domain
+
+      #Sets up LCM on target comp
+      Set-DscLocalConfigurationManager -Path $PSScriptRoot\ExchangeDSC -Verbose
+
+      #Pushes DSC script to target
+      Start-DscConfiguration -Path $PSScriptRoot\ExchangeDSC -Verbose -Wait
+      
+      <#     Foreach($element in $InstallFiles) {
+          $i++
+          Write-Progress -Activity 'Installing prerequisites for Exchange 2016' -Status "Currently installing file $i of $total"`
+          -PercentComplete (($i / $total) * 100)          Write-Verbose -Message "Installing file $i of $total"          Write-Verbose -Message "Installing $element.name"          Log-Write -LogPath $sLogPath -LineValue "Installing file $i of $total"          Log-Write -LogPath $sLogPath -LineValue "Installing $element.name"          Invoke-Command -ComputerName $tarComp -Credential $DomainCredential -ScriptBlock {
+          Start-Process -FilePath $element.FullName -ArgumentList '/passive /norestart' -Wait
+          }
+      }#>
     }
        
     Catch {
@@ -224,32 +249,32 @@ Function Install-Prerequisite {
     }
   }
 }
-Function Migrate-Transport {
-  [CmdletBinding()]
-  Param(
-  )
+<#Function Migrate-Transport {
+    [CmdletBinding()]
+    Param(
+    )
   
-  Begin{
+    Begin{
     Log-Write -LogPath $sLogFile -LineValue '<Write what happens>...'
-  }
+    }
   
-  Process{
+    Process{
     Try{
      
     }      
     Catch {
-      Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $True
-      Break
+    Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $True
+    Break
     }
-  }
+    }
   
-  End{
+    End{
     If($?){
-      Log-Write -LogPath $sLogFile -LineValue "Completed Successfully."
-      Log-Write -LogPath $sLogFile -LineValue " "
+    Log-Write -LogPath $sLogFile -LineValue "Completed Successfully."
+    Log-Write -LogPath $sLogFile -LineValue " "
     }
-  }
-}
+    }
+} #>
 
 #-----------------------------------------------------------[Execution]------------------------------------------------------------
 

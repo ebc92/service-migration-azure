@@ -18,15 +18,11 @@ Configuration InstallExchange {
     [Parameter(Mandatory=$true)]
     [String]$ComputerName,
     [Parameter(Mandatory=$true)]
-    [String]$Binary,
+    [String]$ExchangeBinary,
     [Parameter(Mandatory=$true)]
-    [String]$SourceFile,
+    [String]$UCMASource
     [Parameter(Mandatory=$true)]
-    [String]$Binary,
-    [Parameter(Mandatory=$true)]
-    [String]$UCMASource,
-    [Parameter(Mandatory=$true)]
-    [String]$fileShare
+    [String]$Domain
   )
   
 
@@ -305,8 +301,8 @@ Configuration InstallExchange {
     #Do the Exchange install
     xExchInstall InstallExchange
     {
-      Path       = $Binary
-      Arguments  = "/mode:Install /role:Mailbox /IAcceptExchangeServerLicenseTerms"
+      Path       = $ExchangeBinary
+      Arguments  = "/mode:Install /role:Mailbox /OrganizationName:$Domain /IAcceptExchangeServerLicenseTerms "
       Credential = $DomainCredential
 
       DependsOn  = '[xPendingReboot]BeforeExchangeInstall'
@@ -320,6 +316,19 @@ Configuration InstallExchange {
       DependsOn = '[xExchInstall]InstallExchange'
     }
   }
+}
+
+#Configuration Data
+$ConfigData=@{
+  AllNodes = @(
+    @{
+      NodeName = "*"
+    }
+
+    @{
+      NodeName = "$ComputerName"
+    }
+  );
 }
 
 if ($null -eq $DomainCredential)
