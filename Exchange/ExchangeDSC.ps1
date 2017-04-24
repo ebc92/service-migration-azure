@@ -301,7 +301,7 @@ Configuration InstallExchange {
     #Do the Exchange install
     xExchInstall InstallExchange
     {
-      Path       = $ExchangeBinary/setup.exe
+      Path       = $ExchangeBinary\setup.exe
       Arguments  = "/mode:Install /role:Mailbox /OrganizationName:$Domain /IAcceptExchangeServerLicenseTerms "
       Credential = $DomainCredential
 
