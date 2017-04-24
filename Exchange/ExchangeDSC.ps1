@@ -48,7 +48,7 @@ Configuration InstallExchange {
     {
       Ensure = 'Present'
       Name = 'AS-HTTP-Activation'
-      DepedsOn = '[xPendingReboot]BeforeServerRoles'
+      DependsOn = '[xPendingReboot]BeforeServerRoles'
     }
         
     WindowsFeature DesktopExp
@@ -316,10 +316,4 @@ Configuration InstallExchange {
       DependsOn = '[xExchInstall]InstallExchange'
     }
   }
-}
-
-
-if ($null -eq $DomainCredential)
-{
-  $DomainCredential = Get-Credential -Message "Enter credentials for establishing Remote Powershell sessions to Exchange"
 }
