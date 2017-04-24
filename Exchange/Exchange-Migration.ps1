@@ -214,6 +214,7 @@ Function Install-Prerequisite {
         AllNodes = @(
           @{
             NodeName = '*'
+            CertificateFile = "C:\Users\Administrator\PowerShellEncrypt.cer"
           }
 
           @{
