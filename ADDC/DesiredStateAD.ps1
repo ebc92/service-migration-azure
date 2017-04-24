@@ -97,8 +97,20 @@
 
                 repadmin /replicate $env:COMPUTERNAME $Master[0] $DomainDN /full
 
-                new-item -path C:\ -itemtype file -name somefile
+            }
 
+            TestScript = { return $false }
+        }
+
+        Script MoveControllerRoles {
+
+            DependsOn = "[Script]MoveControllerRoles"
+
+            GetScript = { Return "foo" }  
+
+            SetScript = {
+
+                    Move-ADDirectoryServerOperationMasterRole -Identity localhost -OperationMasterRole 0,1,2,3,4 -Confirm:$false -Force
             }
 
             TestScript = { return $false }
