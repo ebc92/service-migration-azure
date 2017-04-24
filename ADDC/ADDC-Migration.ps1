@@ -7,9 +7,9 @@ $InterfaceAlias = $SMAConfig.ADDC.Get_Item('interfacealias')
 $DomainName = $SMAConfig.ADDC.Get_Item('domainname')
     
 #AzureStack VM Provisioning
-#$target = New-AzureStackTenantDeployment -VMName $VMName -IPAddress "192.168.59.113/24"
+$target = New-AzureStackTenantDeployment -VMName $VMName -IPAddress "192.168.59.113/24"
 #Log-Write -LogPath $sLogFile -LineValue "VM was provisioned, target is $($target)"
-Log-Write -LogPath $sLogFile -LineValue "AzureStack variable is set to $AzureStack)"
+Log-Write -LogPath $sLogFile -LineValue "AzureStack variable is set to $AzureStack"
 
 #DSC Prerequisities
 Invoke-Command -ComputerName $ComputerName -Credential $LocalCredentials -ScriptBlock {Install-Module xComputerManagement, xActiveDirectory, xNetworking -Force}

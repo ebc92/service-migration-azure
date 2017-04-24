@@ -20,9 +20,6 @@ Function Start-MSSQLInstallConfig{
       Log-Write -LogPath $sLogFile -LineValue "Looking for existing SQL ConfigurationFile."
       $ConfigPath = Get-ChildItem -Path 'C:\Program Files\Microsoft SQL Server' -Filter 'ConfigurationFile.ini' -Recurse
 
-      $iniUpdate = Join-Path -Path $PSScriptRoot -ChildPath '\..\Support\Update-IniFile.ps1'
-      . $iniUpdate
-
       $Options = (Get-IniContent -filePath $ConfigPath.FullName).OPTIONS
       $Options.Set_Item('QUIET','"TRUE"')
       $Options.Set_Item('SUPPRESSPRIVACYSTATEMENTNOTICE','"TRUE"')
@@ -35,12 +32,11 @@ Function Start-MSSQLInstallConfig{
       Log-Write -LogPath $sLogFile -LineValue "Unattended config was written to $OriginPath\DeploymentConfig.ini"
 
       New-PSDrive -PSProvider FileSystem -Name "pkg" -Root $PackagePath -Credential $Credential -ErrorAction Stop
-      Copy-Item -Path "$OriginPath\DeploymentConfig.ini" -Destination 'pkg:\'
+      Copy-Item -Path "$OriginPath\DeploymentConfig.ini" -Destination 'pkg:\' -ErrorAction Stop
  
       }  Catch {
       Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $False
       Log-Write -Logpath $sLogFile -LineValue "No existing configuration file was found, please provide it and rerun."
-      Break
     }
   }
   
@@ -67,19 +63,17 @@ Function Start-MSSQLDeployment{
 
             Log-Write -LogPath $sLogFile -LineValue "Generating MOF-file from DSC script."
 
-            $configData = @{
+            $cd = @{
                 AllNodes = @(
                     @{
-                        NodeName = "*"
-                        PSDscAllowPlainTextPassword = $true
-                    }, @{
                         NodeName = $ComputerName
                         Role = "SqlServer"
+                        PSDscAllowPlainTextPassword = $true
                     }
                 );
             }
 
-            SQLInstall -ConfigurationData $configData -PackagePath $PackagePath -WinSources "$PackagePath\sxs" -Credential $Credential
+            DesiredStateSQL -ConfigurationData $cd -PackagePath $PackagePath -WinSources "$PackagePath\sxs" -Credential $Credential
 
             Log-Write -LogPath $sLogFile -LineValue "Starting DSC configuration."
             Start-DscConfiguration -ComputerName $ComputerName -Path .\SQLInstall -Verbose -Wait -Force -Credential $Credential -ErrorAction Stop

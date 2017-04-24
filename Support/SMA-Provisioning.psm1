@@ -195,6 +195,27 @@ Function New-AzureStackWindowsVM {
         } Catch {
             Log-Write -LogPath $sLogFile -LineValue "Could not create VM with the specified configuration."
         }
+
+
+        <#
+        Custom Script Extension
+        #>
+        
+
+        Try {
+            Set-AzureRmVMCustomScriptExtension -ResourceGroupName $ResourceGroup `
+            -VMName $VMName `
+            -Location $Location `
+            -FileUri "https://raw.githubusercontent.com/ebc92/service-migration-azure/master/Support/Set-TrustedHost.ps1" `
+            -Run 'Set-TrustedHost.ps1' `
+            -Argument '192.168.58.113' `
+            -Name TrustedHostExtension `
+            -ErrorAction Stop
+            Log-Write -LogPath $sLogFile -LineValue "Successfully added TrustedHost ScriptExtension to the provisioned VM."
+        } Catch {
+            Log-Write -LogPath $sLogFile -LineValue "Could not add TrustedHost ScriptExtension to the provisioned VM."
+        }
+
         return $VMNic.PrivateIPAddress
     }
     
@@ -211,6 +232,8 @@ Function New-AzureStackWindowsVM {
     }
   }
 }
+
+Function 
 
 #Function New-RDPortMap must be run on MAS-BGPNAT
 Function New-RDPortMap {

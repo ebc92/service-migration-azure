@@ -30,7 +30,7 @@ In:::the/    ::::dMMMMMb::::    \ Land::of:
 $VerbosePreference = "Continue"
 
 #Dot source dsc, functions, scripts and libraries
-$functions = @("Support\Get-GredentialObject.ps1", "Libraries\Manage-Configuration.ps1", "Libraries\Log-Functions.ps1", "Support\Start-RebootCheck.ps1", "ADDC\DesiredStateAD.ps1")
+$functions = @("Support\Get-GredentialObject.ps1", "Libraries\Manage-Configuration.ps1", "Libraries\Log-Functions.ps1", "MSSQL\DesiredStateSQL.ps1", "ADDC\DesiredStateAD.ps1")
 $functions | % {
     Try {
         $path = Join-Path -Path $PSScriptRoot -ChildPath $_
