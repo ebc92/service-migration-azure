@@ -44,7 +44,8 @@
 $ErrorActionPreference = 'SilentlyContinue'
 
 #Dot Source required Function Libraries
-. "$PSScriptRoot\..\Libraries\Log_Functions.ps1"
+$DotPath = Resolve-Path "$PSScriptRoot\..\Libraries\Log-Functions.ps1"
+. $DotPath
 
 #Define all variables during testing, remove for production
 $baseDir = 'C:\tempExchange'
