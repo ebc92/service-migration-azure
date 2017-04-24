@@ -42,15 +42,14 @@ $functions | % {
     }
 }
 
-#----------------------------------------------------------[Declarations]----------------------------------------------------------
+#----------------------------------------------------------[Global Declarations]----------------------------------------------------------
 
-$sScriptVersion = "1.0"
 $global:SMAConfig = Get-IniContent -FilePath (Join-Path -Path $PSScriptRoot -ChildPath "Configuration.ini")
 $global:sLogFile = $SMAConfig.Global.Get_Item('logpath')
 
 #-----------------------------------------------------------[Execution]------------------------------------------------------------
 
-Log-Start -LogPath $sLogPath -LogName $sLogName -ScriptVersion $sScriptVersion
+Log-Start -LogPath $sLogPath -LogName $sLogName -ScriptVersion "1.0"
 
 $m = "Starting service migration execution.."
 Log-Write -LogPath $sLogFile -LineValue $m
@@ -80,4 +79,10 @@ $module | % {
 
 #-----------------------------------------------------------[File and sharing]---------------------------------------------------------
 
+#& (Join-Path -Path $PSScriptRoot -ChildPath "\File-Share\FSS-Migration.ps1")
+
 #-----------------------------------------------------------[Exchange]-----------------------------------------------------------------
+
+#& (Join-Path -Path $PSScriptRoot -ChildPath "\Exchange\Exchange-Migration.ps1")
+
+Log-Finish -LogPath $sLogPath -NoExit $true
