@@ -534,13 +534,11 @@ function New-SelfSignedCertificateEx
   $ErrorActionPreference = [System.Management.Automation.ActionPreference]::Continue;
 }
 
-Function New-Certificate {
+Function New-DSCCertificate {
   [CmdletBinding()]
   Param(
     [parameter(Mandatory=$true)]
-    [string]$ComputerName,
-    [Parameter]
-    [string]$StoreLocation = "LocalMachine"
+    [string]$ComputerName
     )
     New-SelfSignedCertificateEx `
       -Subject 'CN=$ComputerName' `
