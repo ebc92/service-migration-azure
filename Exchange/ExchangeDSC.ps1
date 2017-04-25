@@ -22,7 +22,9 @@ Configuration InstallExchange {
     [Parameter(Mandatory=$true)]
     [String]$UCMASource,
     [Parameter(Mandatory=$true)]
-    [String]$Domain
+    [String]$Domain,
+    [Parameter(Mandatory=$true)]
+    [String]$CertThumb
   )
   
 

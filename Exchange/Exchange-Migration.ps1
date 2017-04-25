@@ -587,7 +587,7 @@ Function Install-Prerequisite {
       #Log-Write -LogPath $sLogPath -LineValue "Total amount of files to be installed is $total, starting installation"
 
       #Get Certificate thumbprint
-      $CertThumb = (Get-ChildItem -Path Cert:\LocalMachine\My | Where-Object {$_.Subject -eq 'localhost'}).Thumbprint
+      $CertThumb = (Get-ChildItem -Path Cert:\LocalMachine\My | Where-Object {$_.Subject -eq "CN=localhost"}).Thumbprint
       
       Install-Module -Name xExchange, xPendingReboot, xWindowsUpdate
       
@@ -678,12 +678,12 @@ $i = 0
 #Temporary to run commands during test environment
 $cred = Get-Credential
 
-Get-Prerequisite -fileShare $fileshare -ComputerName 192.168.58.116 -DomainCredential $cred
+Get-Prerequisite -fileShare $fileshare -ComputerName 192.168.58.116 -DomainCredential $cred -Verbose
 
-Mount-Exchange -SourceFile $fileshare
+Mount-Exchange -SourceFile $fileshare -Verbose
 
-New-Certificate -ComputerName localhost
+New-DSCCertificate -ComputerName localhost -Verbose
 
-Install-Prerequisite -fileShare $fileshare -ComputerName 192.168.58.116 -DomainCredential $cred -ExchangeBinary $ExchangeBinary
+Install-Prerequisite -fileShare $fileshare -ComputerName 192.168.58.116 -DomainCredential $cred -ExchangeBinary $ExchangeBinary -Verbose
 
 #Log-Finish -LogPath $sLogFile
