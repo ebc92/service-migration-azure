@@ -608,7 +608,7 @@ Function Install-Prerequisite {
         AllNodes = @(
           @{
             NodeName = '*'
-            CertificateFile = "C:\tempExchange\Cert\dsccert.cer"
+            CertificateFile = "C:\tempExchange\Cert\dsccert.pfx"
             Thumbprint = $CertThumb
           }
 
