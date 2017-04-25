@@ -589,17 +589,26 @@ Function Install-Prerequisite {
       #Get Certificate thumbprint
       $CertThumb = (Get-ChildItem -Path Cert:\LocalMachine\My | Where-Object {$_.Subject -eq "CN=localhost"}).Thumbprint
       
+      #Set Certificate export filepath
+      $certfilepath = "C:\tempExchange\Cert\dsccert.pfx"
+      
       Install-Module -Name xExchange, xPendingReboot, xWindowsUpdate
       
       $DSC = Resolve-Path -Path .\ExchangeDSC.ps1
       . $DSC
+      
+      #Sett password for exported cert
+      $certpw = ConvertTo-SecureString -String "NotSoSecure" -AsPlainText -Force
+      
+      #Export Certificate
+      Get-ChildItem -Path Cert:\LocalMachine\My\$CertThumb | Export-PfxCertificate -FilePath $certfilepath -Password $certpw
       
       #Configuration Data
       $ConfigData=@{
         AllNodes = @(
           @{
             NodeName = '*'
-            CertificateFile = "C:\Cert"
+            CertificateFile = "C:\tempExchange\Cert\dsccert.cer"
             Thumbprint = $CertThumb
           }
 

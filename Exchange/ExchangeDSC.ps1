@@ -26,10 +26,9 @@ Configuration InstallExchange {
     [Parameter(Mandatory=$true)]
     [String]$CertThumb
   )
-  
 
   #Import Certificate
-  Import-PfxCertificate -CertStoreLocation Cert::LocalMachine\My -FilePath C:\Cert
+  Import-PfxCertificate -Password NotSoSecure -CertStoreLocation Cert:\LocalMachine\My -FilePath C:\tempExchange\Cert\dsccert.pfx
 
   $UCMASource = $UCMASource + "\UcmaRuntimeSetup.exe"
   $ExchangeBinary = $ExchangeBinary + "\setup.exe"
