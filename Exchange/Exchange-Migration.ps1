@@ -174,6 +174,30 @@ Function Mount-Exchange {
   While ($finished -eq $false)
 }
 
+Function New-Certificate {
+  [CmdletBinding()]
+  Param(
+    [parameter(Mandatory=$true)]
+    [string]$ComputerName,
+    [Parameter]
+    [string]$StoreLocation = "LocalMachine"
+    )
+    New-SelfSignedCertificate `
+      -Subject 'CN=$ComputerName' `
+      -EKU 'Document Encryption' `
+      -KeyUsage 'KeyEncipherment, DataEncipherment' `
+      -SAN localhost `
+      -FriendlyName 'DSC certificate' `
+      -Exportable `
+      -StoreLocation "$StoreLocation" `
+      -StoreName 'My' `
+      -KeyLength 2048 `
+      -ProviderName 'Microsoft Enhanced Cryptographic Provider v1.0' `
+      -AlgorithmName 'RSA' `
+      -SignatureAlgorithm 'SHA256'
+    }
+
+
 Function Install-Prerequisite {
   [CmdletBinding()]
   Param(
@@ -204,6 +228,9 @@ Function Install-Prerequisite {
       Write-Verbose -Message "Total amount of files to be installed is $total, starting installation"
       #Log-Write -LogPath $sLogPath -LineValue "Total amount of files to be installed is $total, starting installation"
 
+      #Get Certificate thumbprint
+      $CertThumb = (Get-ChildItem -Path Cert:\LocalMachine\My | Where-Object {$_.Subject -eq 'localhost'}).Thumbprint
+      
       Install-Module -Name xExchange, xPendingReboot, xWindowsUpdate
       
       $DSC = Resolve-Path -Path .\ExchangeDSC.ps1
@@ -214,7 +241,8 @@ Function Install-Prerequisite {
         AllNodes = @(
           @{
             NodeName = '*'
-            CertificateFile = "C:\Users\Administrator\PowerShellEncrypt.cer"
+            CertificateFile = "C:\Cert"
+            Thumbprint = $CertThumb
           }
 
           @{
@@ -224,7 +252,7 @@ Function Install-Prerequisite {
           }
         )
       }
-      
+      	
       #Compiles DSC Script
       InstallExchange -ConfigurationData $ConfigData -DomainCredential $DomainCredential -ComputerName $ComputerName -ExchangeBinary $ExchangeBinary\Setup.exe	 -UCMASource $fileShare -Domain $Domain
 
@@ -295,6 +323,8 @@ $cred = Get-Credential
 Get-Prerequisite -fileShare $fileshare -ComputerName 192.168.58.116 -DomainCredential $cred
 
 Mount-Exchange -SourceFile $fileshare
+
+New-Certificate -ComputerName localhost
 
 Install-Prerequisite -fileShare $fileshare -ComputerName 192.168.58.116 -DomainCredential $cred -ExchangeBinary $ExchangeBinary
 

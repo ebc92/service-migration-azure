@@ -25,6 +25,10 @@ Configuration InstallExchange {
     [String]$Domain
   )
   
+
+  #Import Certificate
+  Import-PfxCertificate -CertStoreLocation Cert::LocalMachine\My -FilePath C:\Cert
+
   $UCMASource = $UCMASource + "\UcmaRuntimeSetup.exe"
   $ExchangeBinary = $ExchangeBinary + "\setup.exe"
   Import-DscResource -ModuleName xExchange, xPendingReboot, xWindowsUpdate, PSDesiredStateConfiguration
@@ -34,7 +38,7 @@ Configuration InstallExchange {
     #Specifies settings for the local configuration manager. Sets apply mode to apply only so it does not try to fix on eventual drift
     LocalConfigurationManager
     {
-      CertificateId      = '7879F4B34C555A72A42C284050A3EA0E0DDFF1F5'
+      CertificateId      = $Allnodes.Thumbprint
       ConfigurationMode  = 'ApplyOnly'
       RebootNodeIfNeeded = $true
     }
