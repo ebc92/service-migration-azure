@@ -60,20 +60,7 @@ $logDate = (Get-Date -Format dd_M_yyyy_HHmm).ToString()
 $sLogPath = "$baseDir\log\"
 $sLogName = "Migrate-Exchange-$logDate.log"
 $sLogFile = Join-Path -Path $sLogPath -ChildPath $sLogName
-$verifyLogPath = Test-Path -Path $sLogPath
-$VerifyLogItem = Test-Path -Path $sLogFile
 
-
-#---------------------------------------------------------[Create Log File]---------------------------------------------------------
-#Check if log folder exists
-if(!($verifyLogPath)) {
-  New-Item -ItemType Directory -Path $sLogPath > $null
-}
-    
-#Checks if the log item exists, and creates it if not
-if(!($VerifyLogItem)) {
-  New-Item -Path $sLogPath -Name $sLogName
-}
     
 $DotPath = Resolve-Path "$PSScriptRoot\..\Libraries\Log-Functions.ps1"
 . $DotPath
@@ -143,9 +130,10 @@ Function Get-Prerequisite {
       #Downloading Exchange 2016
       #Write-Verbose -Message "Starting download of Exchange 2016 CU5"
       Log-Write -LogPath $sLogFile -LineValue "Starting download of Exchange 2016 CU5"
-      Start-BitsTransfer -Source https://download.microsoft.com/download/A/A/7/AA7F69B2-9E25-4073-8945-E4B16E827B7A/ExchangeServer2016-x64-cu5.iso -Destination $fileshare -Description 'Downloading prerequisites'
       Write-Verbose -Message "Downloading file from https://download.microsoft.com/download/A/A/7/AA7F69B2-9E25-4073-8945-E4B16E827B7A/ExchangeServer2016-x64-cu5.iso to $fileShare"
       Log-Write -LogPath $sLogFile -LineValue "Downloading file from https://download.microsoft.com/download/A/A/7/AA7F69B2-9E25-4073-8945-E4B16E827B7A/ExchangeServer2016-x64-cu5.iso to $fileShare"
+      Start-BitsTransfer -Source https://download.microsoft.com/download/A/A/7/AA7F69B2-9E25-4073-8945-E4B16E827B7A/ExchangeServer2016-x64-cu5.iso -Destination $fileshare -Description 'Downloading prerequisites'
+      
 
     }     
     Catch {
