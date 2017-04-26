@@ -5,6 +5,7 @@ Function Start-MSSQLInstallConfig{
   )
   
   Begin{
+  
     Write-Output $sLogFile
     Log-Write -LogPath $sLogFile -LineValue "Starting the MSSQL deployment process.."
     if (Get-Module -ListAvailable -Name Sqlps){

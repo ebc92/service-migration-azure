@@ -43,7 +43,9 @@ $functions | % {
 }
 
 #----------------------------------------------------------[Global Declarations]----------------------------------------------------------
-
+#ToDo: Read path & name from config file
+$sLogPath = "C:\Logs"
+$sLogName = "service-migration-azure.log"
 $global:SMAConfig = Get-IniContent -FilePath (Join-Path -Path $PSScriptRoot -ChildPath "Configuration.ini")
 $global:sLogFile = $SMAConfig.Global.Get_Item('logpath')
 
@@ -75,7 +77,7 @@ $module | % {
 
 #-----------------------------------------------------------[SQL Server]---------------------------------------------------------------
 
-#& (Join-Path -Path $PSScriptRoot -ChildPath "\MSSQL\MSSQL-Migration.ps1")
+& (Join-Path -Path $PSScriptRoot -ChildPath "\MSSQL\MSSQL-Migration.ps1")
 
 #-----------------------------------------------------------[File and sharing]---------------------------------------------------------
 
@@ -85,4 +87,4 @@ $module | % {
 
 #& (Join-Path -Path $PSScriptRoot -ChildPath "\Exchange\Exchange-Migration.ps1")
 
-Log-Finish -LogPath $sLogPath -NoExit $true
+Log-Finish -LogPath $sLogFile -NoExit $true

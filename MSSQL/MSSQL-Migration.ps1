@@ -1,20 +1,35 @@
-﻿Param(
-    $ComputerName, 
-    $Source, 
-    $PackagePath, 
-    $InstanceName, 
-    $Credential, 
-    $SqlCredential
-)
+﻿#Getting migration variables from configuration file
+$AzureStack = $SMAConfig.Global.Get_Item('azurestack')
+$Source = $SMAConfig.MSSQL.Get_Item('source')
+$Destination =   $SMAConfig.MSSQL.Get_Item('destination')
+$Instance = $SMAConfig.MSSQL.Get_Item('instance')
+$PackagePath = Join-Path -Path $SMAConfig.Global.Get_Item('fileshare') -ChildPath $SMAConfig.MSSQL.Get_Item('packagepath')
 
-#Install modules on remote computer.
-Invoke-Command -ComputerName $ComputerName -FilePath $ModulePath -Credential $Credential 
+$LogPath = SMAConfig.Global.Get_Item('logpath')
 
-Start-MSSQLInstallConfig -PackagePath $PackagePath -Credential $Credential
+#Todo: retrieve creds & concatenate source to trustedhost
+$Credential = $DomainCredential
+$SqlCredential
 
-Start-MSSQLDeployment -ComputerName $ComputerName -PackagePath $PackagePath -InstanceName $InstanceName -Credential $Credential
+#Install SMA
+$SMARoot = Resolve-Path -Path (Join-Path -Path $PSScriptRoot -ChildPath "..\")
+Invoke-Command -ComputerName $Source -FilePath (Join-Path $SMARoot -ChildPath ".\Support\Install-SMModule.ps1") -Credential $Credential
 
-Log-Write -LogPath $sLogFile -LineValue "SQL Server 2016 was successfully deployed on $ComputerName."
+$ScriptBlock = {
+    $sLogFile = $using:LogPath
+    $SMARoot = "C:\service-migration-azure"
+    . (Join-Path -Path $SMARoot -ChildPath "Libraries\Log-Functions.ps1")
+    Import-Module (Join-Path -Path $SMARoot -ChildPath "MSSQL\MSSQL-Migration.psm1") -Force
+    Start-MSSQLInstallConfig -PackagePath $using:PackagePath -Credential $using:Credential
+}
+
+Invoke-Command -ComputerName $Source -ScriptBlock $ScriptBlock -Credential $Credential
+
+#
+
+#Start-MSSQLDeployment -ComputerName $ComputerName -PackagePath $PackagePath -InstanceName $InstanceName -Credential $Credential
+
+#Log-Write -LogPath $sLogFile -LineValue "SQL Server 2016 was successfully deployed on $ComputerName."
 
 #Log-Write -LogPath $sLogFile -LineValue "Starting SQL Instance migration from $Source\$InstanceName to $ComputerName\$InstanceName."
 
