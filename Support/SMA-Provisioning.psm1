@@ -2,9 +2,6 @@
 
 #---------------------------------------------------------[Initialisations]--------------------------------------------------------
 
-#Set Error Action to Stop
-$ErrorActionPreference = "Stop"
-
 #Declaring the service-migration azure path from relative path
 $SMARoot = Resolve-Path -Path (Join-Path -Path $PSScriptRoot -ChildPath "..\")
 
@@ -25,7 +22,10 @@ $sLogFile = Join-Path -Path $sLogPath -ChildPath $sLogName
 
 Function New-AzureStackTenantDeployment {
     Param(
-        [String]$ResourceGroupName = "sma-vm-provisioning"
+        [String]$ResourceGroupName = "sma-vm-provisioning",
+        [Parameter(Mandatory=$true)]
+        [String]$VMName,
+        [String]$IPAddress
     )
     $Connect = "C:\Users\AzureStackAdmin\Desktop\AzureStack-Tools-master\Connect\AzureStack.Connect.psm1"
     $ComputeAdmin = "C:\Users\AzureStackAdmin\Desktop\AzureStack-Tools-master\ComputeAdmin\AzureStack.ComputeAdmin.psm1"
@@ -37,11 +37,10 @@ Function New-AzureStackTenantDeployment {
     Log-Start -LogPath $sLogPath -LogName $sLogName -ScriptVersion $sScriptVersion
 
     Try{ 
-        $context = Get-AzureRmContext
+        $context = Get-AzureRmContext -ErrorAction Stop
     } Catch {
         Log-Write -LogPath $sLogFile -LineValue "Azure Resource Manager context could not be retrieved. Verify that you are logged in."
         Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $False
-      Break
     }
 
     $exists = Get-AzureRmResourceGroup -Name $ResourceGroupName
@@ -53,15 +52,24 @@ Function New-AzureStackTenantDeployment {
         Log-Write -LogPath $sLogFile -LineValue "Resource Group already exists."
     }
 
-    $VMNic = New-AzureStackVnet -NetworkIP "192.168.59.112/24" -ResourceGroupName $ResourceGroupName -VNetName "AMSTEL-vnet"
-    New-AzureStackWindowsVM -VMName "TenantGateway" -VMNic $VMNic
+    Try {
+        $VMNic = New-AzureStackVnet -NetworkIP $IPAddress -ResourceGroupName $ResourceGroupName -VNetName "AMSTEL-vnet" -VMName $VMName -ErrorAction Stop
+    } Catch {
+        Log-Write -LogPath $sLogFile -LineValue "The VM deployment failed because no NIC was returned."
+        Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $False
+    }
+
+    $ProvisionedIP = New-AzureStackWindowsVM -VMName $VMName -VMNic $VMNic -ErrorAction Stop
+    return $ProvisionedIP
 }
 
 Function New-AzureStackVnet{
+    [CmdletBinding()]
     Param(
     $NetworkIP,
     $ResourceGroupName,
     $VNetName,
+    $VMName,
     $Location = "local"
     )
 
@@ -71,7 +79,7 @@ Function New-AzureStackVnet{
 
     # Prerequisites
     $ErrorActionPreference = "SilentlyContinue"
-    $VMNicName = $VNetName + "-NIC"
+    $VMNicName = $VMName + "-NIC"
     $nsgName = $VNetName + "-NSG"
 
     $vnet = Get-AzureRmVirtualNetwork -ResourceGroupName $ResourceGroupName -Name $VNetName
@@ -79,8 +87,6 @@ Function New-AzureStackVnet{
     $nsg = Get-AzureRmNetworkSecurityGroup -ResourceGroupName $res -Name $nsgName
     $nsRules = Get-AzureRmNetworkSecurityRuleConfig -NetworkSecurityGroup $nsg
     $nic = Get-AzureRmNetworkInterface -ResourceGroupName $res -Name $VMNicName
-
-    $ErrorActionPreference = "Stop"
     
     Try {
 
@@ -137,6 +143,7 @@ Function New-AzureStackVnet{
 }
 
 Function New-AzureStackWindowsVM {
+    [CmdletBinding()]
   Param(
     [Parameter(Mandatory=$true)]
     [String]$VMName,
@@ -155,18 +162,22 @@ Function New-AzureStackWindowsVM {
 
         # Get the VM Image Offer
         $offer = Get-AzureRmVMImageOffer -Location $Location -PublisherName MicrosoftWindowsServer
+        Log-Write -LogPath $sLogFile -LineValue "Retrieved the Windows Server VM Image Offer."
 
         # Get the VM Image SKU
         $sku = Get-AzureRMVMImageSku -Location $Location -PublisherName $offer.PublisherName -Offer $offer.Offer
-
+        Log-Write -LogPath $sLogFile -LineValue "Retrieved the VM Image SKU."
+     
         # Define a credential object
         $cred = Get-Credential
 
         $StorageAccount = Get-AzureRmStorageAccount | Where-Object {$_.StorageAccountName -eq $StorageAccountName}
+        Log-Write -LogPath $sLogFile -LineValue "Retrieved the $($StorageAccountName) Storage Account."
 
         #If the storage account does not exist it will be created.
         if(!$StorageAccount){
                 New-AzureRmStorageAccount -ResourceGroupName $ResourceGroup -Name $StorageAccountName -Type Standard_LRS -Location $Location
+                Log-Write -LogPath $sLogFile -LineValue "Created the $($StorageAccountName) Storage Account."
         }
 
         $OSDiskName = $VMName + "OSDisk"
@@ -179,18 +190,44 @@ Function New-AzureStackWindowsVM {
         Set-AzureRmVMOSDisk -Name $OSDiskName -VhdUri $OSDiskUri -CreateOption FromImage | `
         Add-AzureRmVMNetworkInterface -Id $VMNic.Id
 
-        New-AzureRmVM -ResourceGroupName $ResourceGroup -Location $Location -VM $vmConfig -Verbose
+        Try {
+            New-AzureRmVM -ResourceGroupName $ResourceGroup -Location $Location -VM $vmConfig -Verbose
+        } Catch {
+            Log-Write -LogPath $sLogFile -LineValue "Could not create VM with the specified configuration."
+        }
 
+
+        <#
+        Custom Script Extension
+        #>
+        
+
+        Try {
+            Set-AzureRmVMCustomScriptExtension -ResourceGroupName $ResourceGroup `
+            -VMName $VMName `
+            -Location $Location `
+            -FileUri "https://raw.githubusercontent.com/ebc92/service-migration-azure/master/Support/Set-TrustedHost.ps1" `
+            -Run 'Set-TrustedHost.ps1' `
+            -Argument '192.168.58.113' `
+            -Name TrustedHostExtension `
+            -ErrorAction Stop
+            Log-Write -LogPath $sLogFile -LineValue "Successfully added TrustedHost ScriptExtension to the provisioned VM."
+        } Catch {
+            Log-Write -LogPath $sLogFile -LineValue "Could not add TrustedHost ScriptExtension to the provisioned VM."
+        }
+
+        return $VMNic.PrivateIPAddress
     }
     
     Catch{
       Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $False
-      Break
     }
   }
   
   End{
     If($?){
+      Log-Write -LogPath $sLogFile -LineValue "Successfully created the VM:"
+      Log-Write -LogPath $sLogFile -LineValue "VM Name: $($VMName) `nResource Group: $($ResourceGroup) `nVM Size: $($VMSize) `nIP Address: $($VMNic.PrivateIPAddress) `nStorage account: $($StorageAccountName) "
       Log-Write -LogPath $sLogFile -LineValue "VM provisioning completed successfully."
     }
   }

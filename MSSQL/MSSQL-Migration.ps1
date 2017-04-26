@@ -1,46 +1,50 @@
-﻿Param($ComputerName, $Source, $PackagePath, $InstanceName, $Credential)
+﻿#Getting migration variables from configuration file
+$AzureStack = $SMAConfig.Global.Get_Item('azurestack')
+$Source = $SMAConfig.MSSQL.Get_Item('source')
+$Destination =   $SMAConfig.MSSQL.Get_Item('destination')
+$Instance = $SMAConfig.MSSQL.Get_Item('instance')
+$PackagePath = Join-Path -Path $SMAConfig.Global.Get_Item('fileshare') -ChildPath $SMAConfig.MSSQL.Get_Item('packagepath')
 
-$ComputerName = "158.38.43.114"
-$Source = "158.38.43.113"
-$PackagePath = "\\158.38.43.116\share\MSSQL"
-$InstanceName = "AMSTELSQL"
-$Credential = (Get-Credential)
-$SqlCredential = (Get-Credential)
+$LogPath = $SMAConfig.Global.Get_Item('logpath')
 
-#---------------------------------------------------------[Initialisations]--------------------------------------------------------
+#Todo: retrieve creds & concatenate source to trustedhost
+$Credential = $DomainCredential
+$SqlCredential
 
-#Set Error Action to Stop
-$ErrorActionPreference = "Stop"
+#Install SMA
+$SMARoot = Resolve-Path -Path (Join-Path -Path $PSScriptRoot -ChildPath "..\")
+Invoke-Command -ComputerName $Source -FilePath (Join-Path $SMARoot -ChildPath ".\Support\Install-SMModule.ps1") -Credential $Credential
 
-#Dot Source required Function Libraries
-. "C:\service-migration-azure\Libraries\Log-Functions.ps1"
+$ScriptBlock = {
+    $sLogFile = $using:LogPath
+    $SMARoot = "C:\service-migration-azure"
 
-#----------------------------------------------------------[Log File Info]----------------------------------------------------------
 
-$sScriptVersion = "0.1"
-$sLogPath = "C:\Logs\service-migration-azure"
-$sLogName = "MSSQL-Migration.log"
-$sLogFile = Join-Path -Path $sLogPath -ChildPath $sLogName
+    #Dot source libraries
+    $functions = @("Libraries\Log-Functions.ps1", "\Libraries\Manage-Configuration.ps1")
+    $functions | % {
+    Try {
+        $path = Join-Path -Path $SMARoot -ChildPath $_
+        . $path -ErrorAction Stop
+        $m = "Successfully sourced $($_)"
+        Log-Write -LogPath $sLogFile -LineValue $m
+    } Catch {
+        Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception
+    }
+}
 
-#-----------------------------------------------------------[Execution]------------------------------------------------------------
+    Import-Module (Join-Path -Path $SMARoot -ChildPath "MSSQL\MSSQL-Migration.psm1") -Force
+    Start-MSSQLInstallConfig -PackagePath $using:PackagePath -Credential $using:Credential
+}
 
-Import-Module $PSScriptRoot\MSSQL-Migration.psm1 -Force
+Invoke-Command -ComputerName $Source -ScriptBlock $ScriptBlock -Credential $Credential
 
-$ModulePath = Join-Path -Path $PSScriptRoot -ChildPath "..\Support\Install-SMModule.ps1"
+#
 
-Log-Start -LogPath $sLogPath -LogName $sLogName -ScriptVersion $sScriptVersion
+#Start-MSSQLDeployment -ComputerName $ComputerName -PackagePath $PackagePath -InstanceName $InstanceName -Credential $Credential
 
-#Install modules on remote computer.
-Invoke-Command -ComputerName $ComputerName -FilePath $ModulePath -Credential $Credential 
-
-Start-MSSQLInstallConfig -PackagePath $PackagePath -Credential $Credential
-
-Start-MSSQLDeployment -ComputerName $ComputerName -PackagePath $PackagePath -InstanceName $InstanceName -Credential $Credential
-
-Log-Write -LogPath $sLogFile -LineValue "SQL Server 2016 was successfully deployed on $ComputerName."
+#Log-Write -LogPath $sLogFile -LineValue "SQL Server 2016 was successfully deployed on $ComputerName."
 
 #Log-Write -LogPath $sLogFile -LineValue "Starting SQL Instance migration from $Source\$InstanceName to $ComputerName\$InstanceName."
 
 #Start-MSSQLMigration -Source $Source -Destination $ComputerName -InstanceName $InstanceName -Share $PackagePath -SqlCredential $SqlCredential -Credentials $Credential
-
-#Log-Finish -LogPath $sLogFile -NoExit $True

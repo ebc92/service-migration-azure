@@ -4,7 +4,7 @@ http://dbatools.io
 (c) 2017 dbatools / Chrissy LeMaire
 #>
 
-Remove-Module dbatools -ErrorAction SilentlyContinue
+Remove-Module ADDC-Migration, MSSQL-Migration -ErrorAction SilentlyContinue
 $url = 'https://github.com/ebc92/service-migration-azure/archive/master.zip'
 $path = Join-Path -Path 'C:\' -ChildPath 'service-migration-azure'
 $temp = ([System.IO.Path]::GetTempPath()).TrimEnd("\")

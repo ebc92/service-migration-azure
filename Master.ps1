@@ -26,17 +26,15 @@ In:::the/    ::::dMMMMMb::::    \ Land::of:
 
 #---------------------------------------------------------[Initialisations]--------------------------------------------------------
 
-#Set Error Action to stop so that exceptions can be caught
-$ErrorActionPreference = "Stop"
-
+#Prefer verbose output
 $VerbosePreference = "Continue"
 
 #Dot source dsc, functions, scripts and libraries
-$functions = @("Support\Get-GredentialObject.ps1", "Libraries\Log-Functions.ps1", "Support\Start-RebootCheck.ps1", "Support\DSC\InstallADDC.ps1")
+$functions = @("Support\Get-GredentialObject.ps1", "Libraries\Manage-Configuration.ps1", "Libraries\Log-Functions.ps1", "MSSQL\DesiredStateSQL.ps1", "ADDC\DesiredStateAD.ps1")
 $functions | % {
     Try {
         $path = Join-Path -Path $PSScriptRoot -ChildPath $_
-        . $path
+        . $path -ErrorAction Stop
         $m = "Successfully sourced $($_)"
         Write-Verbose $m
     } Catch {
@@ -44,26 +42,26 @@ $functions | % {
     }
 }
 
-#----------------------------------------------------------[Declarations]----------------------------------------------------------
-
-$sScriptVersion = "1.0"
+#----------------------------------------------------------[Global Declarations]----------------------------------------------------------
+#ToDo: Read path & name from config file
 $sLogPath = "C:\Logs"
 $sLogName = "service-migration-azure.log"
-$sLogFile = Join-Path -Path $sLogPath -ChildPath $sLogName
+$global:SMAConfig = Get-IniContent -FilePath (Join-Path -Path $PSScriptRoot -ChildPath "Configuration.ini")
+$global:sLogFile = $SMAConfig.Global.Get_Item('logpath')
 
 #-----------------------------------------------------------[Execution]------------------------------------------------------------
 
-Log-Start -LogPath $sLogPath -LogName $sLogName -ScriptVersion $sScriptVersion
+Log-Start -LogPath $sLogPath -LogName $sLogName -ScriptVersion "1.0"
 
 $m = "Starting service migration execution.."
 Log-Write -LogPath $sLogFile -LineValue $m
 Write-Verbose $m
 
-$module = @("ADDC\ADDC-Migration.psm1", "MSSQL\MSSQL-Migration.psm1", "File-Share\FSS-Migration.psm1", "Exchange\Exchange-Migration.psm1")
+$module = @("ADDC\ADDC-Migration.psm1", "MSSQL\MSSQL-Migration.psm1", "Support\SMA-Provisioning.psm1", "File-Share\FSS-Migration.psm1", "Exchange\Exchange-Migration.psm1")
 
 $module | % {
     Try {
-        Import-Module (Join-Path -Path $PSScriptRoot -ChildPath $_) -Force
+        Import-Module (Join-Path -Path $PSScriptRoot -ChildPath $_) -Force -ErrorAction Stop
         $m = "Successfully imported $($_)"
         Log-Write -LogPath $sLogFile -LineValue $m
         Write-Verbose $m
@@ -72,25 +70,21 @@ $module | % {
         Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $False
     }
 }
-#Install PSGET
-#(new-object Net.WebClient).DownloadString("http://psget.net/GetPsGet.ps1") | iex
 
-Function Migrate-AD {
-    Param($Credentials)
-    
-    $target = "192.168.58.114"
-    Invoke-Command -ComputerName $target -Credential $cred -ScriptBlock {Install-Module xDSCDomainjoin, xPendingReboot, xActiveDirectory }
+#-----------------------------------------------------------[Active Directory]---------------------------------------------------------
 
-    $cd = @{
-        AllNodes = @(
-            @{
-                NodeName = "192.168.58.114"
-                PSDscAllowDomainUser = $true
-                PSDscAllowPlainTextPassword = $true
-            }
-        )        
-    }
+#& (Join-Path -Path $PSScriptRoot -ChildPath "\ADDC\ADDC-Migration.ps1")
 
-    InstallADDC -ConfigurationData $cd -DNS 192.168.58.113 -DomainName AMSTEL -DomainCredentials $Credentials -SafeModeCredentials $Credentials
-}
-Migrate-AD -Credentials $cred
+#-----------------------------------------------------------[SQL Server]---------------------------------------------------------------
+
+& (Join-Path -Path $PSScriptRoot -ChildPath "\MSSQL\MSSQL-Migration.ps1")
+
+#-----------------------------------------------------------[File and sharing]---------------------------------------------------------
+
+#& (Join-Path -Path $PSScriptRoot -ChildPath "\File-Share\FSS-Migration.ps1")
+
+#-----------------------------------------------------------[Exchange]-----------------------------------------------------------------
+
+#& (Join-Path -Path $PSScriptRoot -ChildPath "\Exchange\Exchange-Migration.ps1")
+
+Log-Finish -LogPath $sLogFile -NoExit $true
