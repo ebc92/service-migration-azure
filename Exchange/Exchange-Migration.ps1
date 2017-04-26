@@ -65,6 +65,11 @@ $sLogFile = Join-Path -Path $sLogPath -ChildPath $sLogName
 $DotPath = Resolve-Path "$PSScriptRoot\..\Libraries\Log-Functions.ps1"
 . $DotPath
 
+#Checking if executables already exist
+$UCMAExist = Test-Path c:\tempExchange\Executables\UcmaRuntimeSetup.exe
+
+$ExchangeExist = Test-Path -Path c:\tempExchange\Executables\ExchangeServer2016-x64-cu5.iso
+
 #-----------------------------------------------------------[Functions]------------------------------------------------------------
 Function Get-Prerequisite {
   [CmdletBinding()]
@@ -119,20 +124,37 @@ Function Get-Prerequisite {
         Log-Write -LogPath $sLogFile -LineValue "NuGet already installed, continuing prerequisite checks"
       }  
           
-      #Downloading UCMA 4.0 Runtime      
-      Write-Verbose -Message "Starting download of UCMA Runtime 4.0"
-      Log-Write -LogPath $sLogFile -LineValue "Starting download of UCMA Runtime 4.0"
+      
+      if (!($UCMAExist)) {
+        #Downloading UCMA 4.0 Runtime      
+        Write-Verbose -Message "Starting download of UCMA Runtime 4.0"
+        Log-Write -LogPath $sLogFile -LineValue "Starting download of UCMA Runtime 4.0"
 
-      Start-BitsTransfer -Source https://download.microsoft.com/download/2/C/4/2C47A5C1-A1F3-4843-B9FE-84C0032C61EC/UcmaRuntimeSetup.exe -Destination $fileshare -Description 'Downloading prerequisites'
-      Write-Verbose -Message "Downloading file from https://download.microsoft.com/download/2/C/4/2C47A5C1-A1F3-4843-B9FE-84C0032C61EC/UcmaRuntimeSetup.exe to $fileShare"
-      Log-Write -LogPath $sLogFile -LineValue "Downloading file from https://download.microsoft.com/download/2/C/4/2C47A5C1-A1F3-4843-B9FE-84C0032C61EC/UcmaRuntimeSetup.exe to $fileShare"
+        Start-BitsTransfer -Source https://download.microsoft.com/download/2/C/4/2C47A5C1-A1F3-4843-B9FE-84C0032C61EC/UcmaRuntimeSetup.exe -Destination $fileshare -Description 'Downloading prerequisites'
+        Write-Verbose -Message "Downloading file from https://download.microsoft.com/download/2/C/4/2C47A5C1-A1F3-4843-B9FE-84C0032C61EC/UcmaRuntimeSetup.exe to $fileShare"
+        Log-Write -LogPath $sLogFile -LineValue "Downloading file from https://download.microsoft.com/download/2/C/4/2C47A5C1-A1F3-4843-B9FE-84C0032C61EC/UcmaRuntimeSetup.exe to $fileShare"
+        Write-Verbose -Message "UCMA successfully downloaded"
+        Log-Write -LogPath $sLogFile -LineValue "UCMA successfully downloaded"
+      }else{
+        #UCMA already exist, no need to download
+        Write-Verbose -Message "UCMA already exist, no need to download"
+        Log-Write -LogPath $sLogFile -LineValue "UCMA already exist, no need to download"
+      }
 
-      #Downloading Exchange 2016
-      #Write-Verbose -Message "Starting download of Exchange 2016 CU5"
-      Log-Write -LogPath $sLogFile -LineValue "Starting download of Exchange 2016 CU5"
-      Write-Verbose -Message "Downloading file from https://download.microsoft.com/download/A/A/7/AA7F69B2-9E25-4073-8945-E4B16E827B7A/ExchangeServer2016-x64-cu5.iso to $fileShare"
-      Log-Write -LogPath $sLogFile -LineValue "Downloading file from https://download.microsoft.com/download/A/A/7/AA7F69B2-9E25-4073-8945-E4B16E827B7A/ExchangeServer2016-x64-cu5.iso to $fileShare"
-      Start-BitsTransfer -Source https://download.microsoft.com/download/A/A/7/AA7F69B2-9E25-4073-8945-E4B16E827B7A/ExchangeServer2016-x64-cu5.iso -Destination $fileshare -Description 'Downloading prerequisites'
+      if (!($ExchangeExist)) {
+        #Downloading Exchange 2016
+        #Write-Verbose -Message "Starting download of Exchange 2016 CU5"
+        Log-Write -LogPath $sLogFile -LineValue "Starting download of Exchange 2016 CU5"
+        Write-Verbose -Message "Downloading file from https://download.microsoft.com/download/A/A/7/AA7F69B2-9E25-4073-8945-E4B16E827B7A/ExchangeServer2016-x64-cu5.iso to $fileShare"
+        Log-Write -LogPath $sLogFile -LineValue "Downloading file from https://download.microsoft.com/download/A/A/7/AA7F69B2-9E25-4073-8945-E4B16E827B7A/ExchangeServer2016-x64-cu5.iso to $fileShare"
+        Start-BitsTransfer -Source https://download.microsoft.com/download/A/A/7/AA7F69B2-9E25-4073-8945-E4B16E827B7A/ExchangeServer2016-x64-cu5.iso -Destination $fileshare -Description 'Downloading prerequisites'
+        Write-Verbose -Message "Exchange 2016 successfully downloaded"
+        Log-Write -LogPath $sLogFile -LineValue "Exchange 2016 successfully downloaded"
+      }else{
+        #Exchange ISO already exists, no need to download
+        Write-Verbose -Message "Exchange ISO already exists, no need to download"
+        Log-Write -LogPath $sLogFile -LineValue "Exchange ISO already exists, no need to download"
+      }
       
 
     }     
@@ -704,6 +726,6 @@ Mount-Exchange -SourceFile $fileshare -Verbose
 
 New-DSCCertificate -ComputerName localhost -Verbose
 
-Install-Prerequisite -fileShare $fileshare -ComputerName 192.168.58.116 -DomainCredential $cred -ExchangeBinary $ExchangeBinary -Verbose
+Install-Prerequisite -fileShare $fileshare -ComputerName 192.168.58.116 -DomainCredential $cred -Verbose
 
 Log-Finish -LogPath $sLogFile
