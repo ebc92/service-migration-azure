@@ -625,7 +625,13 @@ Function Install-Prerequisite {
       $Domain = "Nikolaitl"
       $CertExportPath = "C:\tempExchange\Cert\dsccert.cert"
       $ExchangeBinary = (Get-WmiObject win32_volume | Where-Object -Property Label -eq "EXCHANGESERVER2016-X64-CU5").Name
-    
+      $VerifyCertPath = (Test-Path -Path "C:\tempExchange")
+      
+      #Check to see if certificate directory exists, and creates it if not
+      if (!($VerifyCertPath)){
+        Write-Verbose -Message "Creating folder for certificate"    
+        New-Item -Path "C:\tempExchange\Cert" -ItemType Directory -ErrorAction Ignore
+      }
       
       Write-Verbose -Message "Total amount of files to be installed is $total, starting installation"
       Log-Write -LogPath $sLogFile -LineValue "Total amount of files to be installed is $total, starting installation"
