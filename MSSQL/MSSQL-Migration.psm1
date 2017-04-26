@@ -4,7 +4,7 @@ Function Start-MSSQLInstallConfig{
     [PSCredential]$Credential
   )
   
-  Process{
+  Process {
     Try{
 
       Log-Write -LogPath $sLogFile -LineValue "Building the MSSQL deployment configuration.."
@@ -47,7 +47,7 @@ Function Start-MSSQLInstallConfig{
     }
 }
 
-Function Start-MSSQLMigration{
+Function Start-MSSQLMigration {
   Param(
     [String]$Source,
     [String]$Destination,
@@ -57,7 +57,8 @@ Function Start-MSSQLMigration{
     [String]$Share
   )
   
-  Begin{
+  Process{
+
     Log-Write -LogPath $sLogFile -LineValue "Starting the MSSQL migration process.."
     Try {
         Log-Write -LogPath $sLogFile -LineValue "Installing dbatools.."
@@ -69,19 +70,15 @@ Function Start-MSSQLMigration{
         Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $False
         Log-Write -Logpath $sLogFile -LineValue "dbatools installation failed.."
     }
-  }
-  
-  Process{
+
     Try{
         $ConnectionTest = Test-WsmanSqlConnection -SqlServer "$Destination\$InstanceName" -SqlCredential $SqlCredential
         If (!ConnectionTest.ConnectSuccess){
-        Log-Write -Logpath $sLogFile -LineValue "Could not establish connection to the destination server."
-        Break
+            Log-Write -Logpath $sLogFile -LineValue "Could not establish connection to the destination server."
         }
     } Catch {
         Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $False
         Log-Write -Logpath $sLogFile -LineValue "Could not run the connection test."
-        Break
     }
     
     Try {
@@ -89,7 +86,6 @@ Function Start-MSSQLMigration{
     } Catch {
         Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $False
         Log-Write -Logpath $sLogFile -LineValue "Could not run the migration."
-        Break
     }
   }
 }
