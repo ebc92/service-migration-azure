@@ -616,7 +616,7 @@ Function Install-Prerequisite {
       
       Install-Module -Name xExchange, xPendingReboot, xWindowsUpdate
       
-      $DSC = Resolve-Path -Path .\ExchangeDSC.ps1
+      $DSC = Resolve-Path -Path $PSScriptRoot\InstallExchange.ps1
       . $DSC
       
       #Sett password for exported cert
