@@ -654,10 +654,26 @@ Function Install-Prerequisite {
       
       #Sett password for exported cert
       $certpw = ConvertTo-SecureString -String "NotSoSecure" -AsPlainText -Force
+      
+      #Configuration data for DSC
+      $ConfigData=@{
+        AllNodes = @(
+          @{
+            NodeName = '*'
+            CertificateFile = "C:\tempExchange\Cert\dsccert.cer"
+            Thumbprint = $CertThumb
+          }
+
+          @{
+            NodeName = "$nodename"
+            PSDscAllowDomainUser = $true
+          }
+        )
+      }
                   
       Write-Verbose -Message "Compiling DSC script"
       #Compiles DSC Script
-      InstallExchange -DomainCredential $DomainCredential -ExchangeBinary $ExchangeBinary `
+      InstallExchange -ConfigurationData $ConfigData -DomainCredential $DomainCredential -ExchangeBinary $ExchangeBinary `
       -CertThumb $CertThumb- -FileShare $fileShare -nodename $ComputerName -Verbose 
 
       Write-Verbose -Message "Setting up LCM on target computer"
