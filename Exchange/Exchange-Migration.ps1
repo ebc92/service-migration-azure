@@ -649,6 +649,10 @@ Function Install-Prerequisite {
       
       Install-Module -Name xExchange, xPendingReboot, xWindowsUpdate -Force
       
+      #InstallUCMA
+      Write-Verbose -Message "Staring Install of UCMA"
+      Start-Process -FilePath $fileShare\UcmaRuntimeSetup.exe -ArgumentList '/passive /norestart' -Wait
+      
       $DSC = Resolve-Path -Path $PSScriptRoot\InstallExchange.ps1
       . $DSC
       

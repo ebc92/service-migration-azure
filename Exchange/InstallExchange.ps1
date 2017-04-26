@@ -229,22 +229,6 @@
       Ensure = 'Present'
       Name = 'RSAT-ADDS'
     }
-    
-    #Check if a reboot is needed before installing UCMA v4.0
-    xPendingReboot BeforeUCMA
-    {
-      Name      = "BeforeUCMA"
-    }
-      
-    Package UCMA
-    {
-      Name      = 'UCMA 4.0' 
-      Ensure    = 'Present'
-      Path      = "$fileshare"
-      ProductID = 'ED98ABF5-B6BF-47ED-92AB-1CDCAB964447'
-      Arguments = '/passive /norestart'
-      Credential= "$DomainCredential"
-    }
 
     #Copy the Exchange setup files locally
     File ExchangeBinaries
