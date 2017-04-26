@@ -560,7 +560,7 @@ Function New-DSCCertificate {
       -SAN localhost `
       -FriendlyName 'DSC certificate' `
       -Exportable `
-      -StoreLocation "$StoreLocation" `
+      -StoreLocation "LocalMachine" `
       -StoreName 'My' `
       -KeyLength 2048 `
       -ProviderName 'Microsoft Enhanced Cryptographic Provider v1.0' `
