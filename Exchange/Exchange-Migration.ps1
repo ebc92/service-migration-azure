@@ -625,7 +625,7 @@ Function Install-Prerequisite {
       $Domain = "Nikolaitl"
       $CertExportPath = "C:\tempExchange\Cert\dsccert.cert"
       $ExchangeBinary = (Get-WmiObject win32_volume | Where-Object -Property Label -eq "EXCHANGESERVER2016-X64-CU5").Name
-      $VerifyCertPath = (Test-Path -Path "C:\tempExchange")
+      $VerifyCertPath = (Test-Path -Path "C:\tempExchange\Cert\")
       
       #Check to see if certificate directory exists, and creates it if not
       if (!($VerifyCertPath)){
