@@ -628,7 +628,7 @@ Function Install-Prerequisite {
     
       
       Write-Verbose -Message "Total amount of files to be installed is $total, starting installation"
-      Log-Write -LogPath $sLogPath -LineValue "Total amount of files to be installed is $total, starting installation"
+      Log-Write -LogPath $sLogFile -LineValue "Total amount of files to be installed is $total, starting installation"
 
       Write-Verbose -Message "Getting Certificate Thumbprint"
       #Get Certificate thumbprint
