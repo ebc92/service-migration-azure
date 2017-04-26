@@ -65,18 +65,18 @@ $VerifyLogItem = Test-Path -Path $sLogFile
 
 
 #---------------------------------------------------------[Create Log File]---------------------------------------------------------
-    #Check if log folder exists
-    if(!($verifyLogPath)) {
-      New-Item -ItemType Directory -Path $sLogPath > $null
-    }
+#Check if log folder exists
+if(!($verifyLogPath)) {
+  New-Item -ItemType Directory -Path $sLogPath > $null
+}
     
-    #Checks if the log item exists, and creates it if not
-    if(!($VerifyLogItem)) {
-      New-Item -Path $sLogPath -Name $sLogName
-    }
+#Checks if the log item exists, and creates it if not
+if(!($VerifyLogItem)) {
+  New-Item -Path $sLogPath -Name $sLogName
+}
     
-    $DotPath = Resolve-Path "$PSScriptRoot\..\Libraries\Log-Functions.ps1"
-    . $DotPath
+$DotPath = Resolve-Path "$PSScriptRoot\..\Libraries\Log-Functions.ps1"
+. $DotPath
 
 #-----------------------------------------------------------[Functions]------------------------------------------------------------
 Function Get-Prerequisite {
@@ -172,21 +172,32 @@ Function Mount-Exchange {
   [bool]$finished=$false
   $er = $ErrorActionPreference
   $ErrorActionPreference = "Continue"
-  Do {
-    Try {          
-      $ExchangeBinary = (Mount-DiskImage -ImagePath $SourceFile\ExchangeServer2016-x64-cu5.iso `
-      -PassThru | Get-Volume).Driveletter + ":"
-      $finished = $true
-      $ErrorActionPreference = $er
-      Return $ExchangeBinary
+  
+  #Makes sure $ExchangeBinary variable is emtpy
+  $ExchangeBinary = $null
+  
+  $ExchangeBinary = (Get-WmiObject win32_volume | Where-Object -Property Label -eq "EXCHANGESERVER2016-X64-CU5").Name
+  
+  if ($ExhcangeBinary -eq $null)
+  {
+    Do {
+      Try {          
+        Mount-DiskImage -ImagePath $SourceFile\ExchangeServer2016-x64-cu5.iso
+        $finished = $true
+        $ErrorActionPreference = $er
+        Return $ExchangeBinary
+      }
+      Catch {
+        $SourceFile = Read-Host(`
+        "The path $SourceFile does not contain the ISO file, please enter the correct path for the Exchange 2016 ISO Image folder")
+        $finished = $false
+      }
     }
-    Catch {
-      $SourceFile = Read-Host(`
-      "The path $SourceFile does not contain the ISO file, please enter the correct path for the Exchange 2016 ISO Image folder")
-      $finished = $false
-    }
+    While ($finished -eq $false)
   }
-  While ($finished -eq $false)
+  
+  
+
 }
 
 #Function to create certificate gotten from 
@@ -553,27 +564,27 @@ Function New-DSCCertificate {
   [CmdletBinding()]
   Param(
     [string]$ComputerName
-    )
+  )
 
-    #Checks if the certificate used already exists
-    $certverifypath = [bool](dir cert:\LocalMachine\My\ | Where-Object { $_.subject -like "cn=localhost" })
-    if(!($certverifypath)) {
+  #Checks if the certificate used already exists
+  $certverifypath = [bool](dir cert:\LocalMachine\My\ | Where-Object { $_.subject -like "cn=localhost" })
+  if(!($certverifypath)) {
     New-SelfSignedCertificateEx `
-      -Subject "CN=localhost" `
-      -EKU 'Document Encryption' `
-      -KeyUsage 'KeyEncipherment, DataEncipherment' `
-      -SAN localhost `
-      -FriendlyName 'DSC certificate' `
-      -Exportable `
-      -StoreLocation "LocalMachine" `
-      -StoreName 'My' `
-      -KeyLength 2048 `
-      -ProviderName 'Microsoft Enhanced Cryptographic Provider v1.0' `
-      -AlgorithmName 'RSA' `
-      -SignatureAlgorithm 'SHA256' `
-      -Verbose
-      }else{
-        #donothing      
+    -Subject "CN=localhost" `
+    -EKU 'Document Encryption' `
+    -KeyUsage 'KeyEncipherment, DataEncipherment' `
+    -SAN localhost `
+    -FriendlyName 'DSC certificate' `
+    -Exportable `
+    -StoreLocation "LocalMachine" `
+    -StoreName 'My' `
+    -KeyLength 2048 `
+    -ProviderName 'Microsoft Enhanced Cryptographic Provider v1.0' `
+    -AlgorithmName 'RSA' `
+    -SignatureAlgorithm 'SHA256' `
+    -Verbose
+  }else{
+    #donothing      
   }
 }
 
@@ -586,9 +597,7 @@ Function Install-Prerequisite {
     [parameter(Mandatory=$true)]
     [string]$ComputerName,
     [parameter(Mandatory=$true)]
-    [PSCredential]$DomainCredential,
-    [parameter(Mandatory=$true)]
-    [String]$ExchangeBinary
+    [PSCredential]$DomainCredential
   )
   
   Begin{
@@ -605,6 +614,7 @@ Function Install-Prerequisite {
       $total = $InstallFiles.Count
       $Domain = "Nikolaitl"
       $CertExportPath = "C:\tempExchange\Cert\dsccert.cert"
+      $ExchangeBinary = (Get-WmiObject win32_volume | Where-Object -Property Label -eq "EXCHANGESERVER2016-X64-CU5").Name
     
       
       Write-Verbose -Message "Total amount of files to be installed is $total, starting installation"
