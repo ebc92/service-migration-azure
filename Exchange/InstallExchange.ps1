@@ -3,10 +3,8 @@
   param
   (
     [PSCredential]$DomainCredential,
-    [String]$FileShare,
-    [String]$CertThumb,
-    [String]$ExchangeBinary,
-    [String]$nodename
+    [String]$FileShare
+    [String]$ExchangeBinary
   )
 
   Import-DscResource -Module xExchange
@@ -291,20 +289,7 @@ if ($null -eq $DomainCredential)
   $Creds = Get-Credential -Message "Enter credentials for establishing Remote Powershell sessions to Exchange"
 }
 
-$ConfigData=@{
-  AllNodes = @(
-    @{
-      NodeName = '*'
-      CertificateFile = "C:\tempExchange\Cert\dsccert.cer"
-      Thumbprint = $CertThumb
-    }
 
-    @{
-      NodeName = "$nodename"
-      PSDscAllowDomainUser = $true
-    }
-  )
-}
 
 ###Sets up LCM on target computers to decrypt credentials, and to allow reboot during resource execution
 #Set-DscLocalConfigurationManager -Path .\InstallExchange -Verbose

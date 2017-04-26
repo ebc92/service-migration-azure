@@ -652,9 +652,6 @@ Function Install-Prerequisite {
       $DSC = Resolve-Path -Path $PSScriptRoot\InstallExchange.ps1
       . $DSC
       
-      #Sett password for exported cert
-      $certpw = ConvertTo-SecureString -String "NotSoSecure" -AsPlainText -Force
-      
       #Configuration data for DSC
       $ConfigData=@{
         AllNodes = @(
@@ -665,7 +662,7 @@ Function Install-Prerequisite {
           }
 
           @{
-            NodeName = "$nodename"
+            NodeName = "$ComputerName"
             PSDscAllowDomainUser = $true
           }
         )
@@ -674,7 +671,7 @@ Function Install-Prerequisite {
       Write-Verbose -Message "Compiling DSC script"
       #Compiles DSC Script
       InstallExchange -ConfigurationData $ConfigData -DomainCredential $DomainCredential -ExchangeBinary $ExchangeBinary `
-      -CertThumb $CertThumb- -FileShare $fileShare -nodename $ComputerName -Verbose 
+      -FileShare $fileShare -Verbose 
 
       Write-Verbose -Message "Setting up LCM on target computer"
       #Sets up LCM on target comp
