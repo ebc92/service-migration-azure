@@ -63,6 +63,21 @@ $sLogFile = Join-Path -Path $sLogPath -ChildPath $sLogName
 $verifyLogPath = Test-Path -Path $sLogPath
 $VerifyLogItem = Test-Path -Path $sLogFile
 
+
+#---------------------------------------------------------[Create Log File]---------------------------------------------------------
+    #Check if log folder exists
+    if(!($verifyLogPath)) {
+      New-Item -ItemType Directory -Path $sLogPath > $null
+    }
+    
+    #Checks if the log item exists, and creates it if not
+    if(!($VerifyLogItem)) {
+      New-Item -Path $sLogPath -Name $sLogName
+    }
+    
+    $DotPath = Resolve-Path "$PSScriptRoot\..\Libraries\Log-Functions.ps1"
+    . $DotPath
+
 #-----------------------------------------------------------[Functions]------------------------------------------------------------
 Function Get-Prerequisite {
   [CmdletBinding()]
@@ -77,17 +92,7 @@ Function Get-Prerequisite {
   
   Begin{
     #First checks if Log Path and creates it if not
-    if(!($verifyLogPath)) {
-      New-Item -ItemType Directory -Path $sLogPath > $null
-    }
-    
-    #Checks if the log item exists, and creates it if not
-    if(!($VerifyLogItem)) {
-      New-Item -Path $sLogPath -Name $sLogName
-    }
-    
-    $DotPath = Resolve-Path "$PSScriptRoot\..\Libraries\Log-Functions.ps1"
-    . $DotPath
+
    
     $variableOutput = '        $fileShare ' + "= $fileShare `n"`
     +'        $tarComp ' + "= $ComputerName `n"`
