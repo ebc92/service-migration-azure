@@ -1,49 +1,23 @@
-﻿###########################################################################
-####################################\O/####################################
-##   ______          _                            _____   _____  _____   ##
-##  |  ____|        | |                          |  __ \ / ____|/ ____|  ##
-##  | |__  __  _____| |__   __ _ _ __   __ _  ___| |  | | (___ | |       ##
-##  |  __| \ \/ / __| '_ \ / _` | '_ \ / _` |/ _ \ |  | |\___ \| |       ##
-##  | |____ >  < (__| | | | (_| | | | | (_| |  __/ |__| |____) | |____   ##
-##  |______/_/\_\___|_| |_|\__,_|_| |_|\__, |\___|_____/|_____/ \_____|  ##
-##                                      __/ |                            ##
-##                                     |___/                             ##
-###########################################################################
-###########################################################################
-Configuration InstallExchange {
+﻿Configuration InstallExchange
+{
   param
   (
-    [Parameter(Mandatory=$true)]   
     [PSCredential]$DomainCredential,
-    [Parameter(Mandatory=$true)]
-    [String]$ComputerName,
-    [Parameter(Mandatory=$true)]
-    [String]$ExchangeBinary,
-    [Parameter(Mandatory=$true)]
-    [String]$UCMASource,
-    [Parameter(Mandatory=$true)]
-    [String]$Domain,
-    [Parameter(Mandatory=$true)]
-    [String]$CertThumb
+    [String]$FileShare,
+    [String]$CertThumb,
+    [String]$ExchangeBinary
   )
 
-  #certpw
-  $certpw = ConvertTo-SecureString -String "NotSoSecure" -AsPlainText -Force
-  #Import Certificate
-  Import-PfxCertificate -Password NotSoSecure -CertStoreLocation Cert:\LocalMachine\My -FilePath C:\tempExchange\Cert\dsccert.pfx
+  Import-DscResource -Module xExchange
+  Import-DscResource -Module xPendingReboot
 
-  $UCMASource = $UCMASource + "\UcmaRuntimeSetup.exe"
-  $ExchangeBinary = $ExchangeBinary + "\setup.exe"
-  Import-DscResource -ModuleName xExchange, xPendingReboot, xWindowsUpdate, PSDesiredStateConfiguration
-  
   Node $AllNodes.NodeName
   {
-    #Specifies settings for the local configuration manager. Sets apply mode to apply only so it does not try to fix on eventual drift
     LocalConfigurationManager
     {
-      CertificateId      = $Allnodes.Thumbprint
-      ConfigurationMode  = 'ApplyOnly'
+      CertificateId      = $Node.Thumbprint
       RebootNodeIfNeeded = $true
+      ActionAfterReboot  = 'ContinueConfiguration'
     }
 
     #Check if a reboot is needed before installing Server Roles
@@ -262,7 +236,7 @@ Configuration InstallExchange {
     {
       Name      = "BeforeUCMA"
     }
-    
+      
     Package UCMA
     {
       Name      = 'UCMA 4.0' 
@@ -272,18 +246,30 @@ Configuration InstallExchange {
       Arguments = '/passive /norestart'
       Credential= "$DomainCredential"
     }
-    
+
+    #Copy the Exchange setup files locally
+    File ExchangeBinaries
+    {
+      Ensure          = 'Present'
+      Type            = 'Directory'
+      Recurse         = $true
+      SourcePath      = "$ExchangeBinary"
+      DestinationPath = 'C:\Binaries\E16CU5'
+    }
+
     #Check if a reboot is needed before installing Exchange
     xPendingReboot BeforeExchangeInstall
     {
       Name      = "BeforeExchangeInstall"
+
+      DependsOn  = '[File]ExchangeBinaries'
     }
 
     #Do the Exchange install
     xExchInstall InstallExchange
     {
-      Path       = $ExchangeBinary
-      Arguments  = "/mode:Install /role:Mailbox /OrganizationName:$Domain /IAcceptExchangeServerLicenseTerms "
+      Path       = "C:\Binaries\E16CU5\Setup.exe"
+      Arguments  = "/mode:Install /role:Mailbox /IAcceptExchangeServerLicenseTerms /OrganizationName:Nikolaitl"
       Credential = $DomainCredential
 
       DependsOn  = '[xPendingReboot]BeforeExchangeInstall'
@@ -298,3 +284,29 @@ Configuration InstallExchange {
     }
   }
 }
+
+if ($null -eq $DomainCredential)
+{
+  $Creds = Get-Credential -Message "Enter credentials for establishing Remote Powershell sessions to Exchange"
+}
+
+$ConfigData=@{
+  AllNodes = @(
+    @{
+      NodeName = '*'
+      CertificateFile = "C:\tempExchange\Cert\dsccert.cer"
+      Thumbprint = $CertThumb
+    }
+
+    @{
+      NodeName = "localhost"
+      PSDscAllowDomainUser = $true
+    }
+  )
+}
+
+###Sets up LCM on target computers to decrypt credentials, and to allow reboot during resource execution
+#Set-DscLocalConfigurationManager -Path .\InstallExchange -Verbose
+
+###Pushes configuration and waits for execution
+#Start-DscConfiguration -Path .\InstallExchange -Verbose -Wait

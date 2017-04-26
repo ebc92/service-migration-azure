@@ -62,6 +62,7 @@ $sLogPath = "$baseDir\log\"
 $sLogName = "Migrate-Exchange-$logDate.log"
 $sLogFile = Join-Path -Path $sLogPath -ChildPath $sLogName
 $verifyLogPath = Test-Path -Path $sLogPath
+$VerifyLogItem = Test-Path -Path $sLogFile
 
 #-----------------------------------------------------------[Functions]------------------------------------------------------------
 Function Get-Prerequisite {
@@ -76,15 +77,22 @@ Function Get-Prerequisite {
   )
   
   Begin{
+    #First checks if Log Path and creates it if not
     if(!($verifyLogPath)) {
       New-Item -ItemType Directory -Path $sLogPath > $null
     }
+    
+    #Checks if the log item exists, and creates it if not
+    if(!($VerifyLogItem)) {
+      New-Item -Path $sLogPath -Name $sLogName
+    }
+   
     $variableOutput = '        $fileShare ' + "= $fileShare `n"`
     +'        $tarComp ' + "= $ComputerName `n"`
     +'        $DomainCredential ' + "= $DomainCredential"
-    #Log-Write -LogPath $sLogFile -LineValue "Downloading prerequisites for Microsoft Exchange 2016..."
-    #Log-Write -LogPath $sLogFile -LineValue "The following variables are set for $MyInvocation.MyCommand.Name:"
-    #Log-Write -LogPath $sLogFile -LineValue "$variableOutput"
+    Log-Write -LogPath $sLogFile -LineValue "Downloading prerequisites for Microsoft Exchange 2016..."
+    Log-Write -LogPath $sLogFile -LineValue "The following variables are set for $MyInvocation.MyCommand.Name:"
+    Log-Write -LogPath $sLogFile -LineValue "$variableOutput"
   }
   
   Process{
@@ -101,48 +109,48 @@ Function Get-Prerequisite {
       if (!($verifyPath)) {
         New-Item -ItemType Directory -Path "$fileshare" > $null
         Write-Verbose -Message "Path not found, created required path on $fileshare" 
-        #Log-Write -LogPath $sLogFile -LineValue "Path not found, created required path on $fileshare"
+        Log-Write -LogPath $sLogFile -LineValue "Path not found, created required path on $fileshare"
       } else {
         Write-Verbose -Message "Path found on $fileshare"
-        #Log-Write -LogPath $sLogFile -LineValue "Path found on $fileShare"
+        Log-Write -LogPath $sLogFile -LineValue "Path found on $fileShare"
       }
       
       #Checking if NuGet is in the package provider list, and installing it if it's not
       if (!($nuget)) {
         Write-Verbose -Message "NuGet not installed, installing now..."
-        #Log-Write -LogPath $sLogFile -LineValue "Nuget not installed, installing now..."
+        Log-Write -LogPath $sLogFile -LineValue "Nuget not installed, installing now..."
         Install-PackageProvider -Name NuGet -Force
       } else {
         Write-Verbose -Message "NuGet already installed, continuing prerequisite checks"
-        #Log-Write -LogPath $sLogFile -LineValue "NuGet already installed, continuing prerequisite checks"
+        Log-Write -LogPath $sLogFile -LineValue "NuGet already installed, continuing prerequisite checks"
       }  
           
       #Downloading UCMA 4.0 Runtime      
       Write-Verbose -Message "Starting download of UCMA Runtime 4.0"
-      #Log-Write -LogPath $sLogFile -LineValue "Starting download of UCMA Runtime 4.0"
+      Log-Write -LogPath $sLogFile -LineValue "Starting download of UCMA Runtime 4.0"
 
       Start-BitsTransfer -Source https://download.microsoft.com/download/2/C/4/2C47A5C1-A1F3-4843-B9FE-84C0032C61EC/UcmaRuntimeSetup.exe -Destination $fileshare -Description 'Downloading prerequisites'
       Write-Verbose -Message "Downloading file from https://download.microsoft.com/download/2/C/4/2C47A5C1-A1F3-4843-B9FE-84C0032C61EC/UcmaRuntimeSetup.exe to $fileShare"
-      #Log-Write -LogPath $sLogFile -LineValue "Downloading file from https://download.microsoft.com/download/2/C/4/2C47A5C1-A1F3-4843-B9FE-84C0032C61EC/UcmaRuntimeSetup.exe to $fileShare"
+      Log-Write -LogPath $sLogFile -LineValue "Downloading file from https://download.microsoft.com/download/2/C/4/2C47A5C1-A1F3-4843-B9FE-84C0032C61EC/UcmaRuntimeSetup.exe to $fileShare"
 
       #Downloading Exchange 2016
       #Write-Verbose -Message "Starting download of Exchange 2016 CU5"
-      #Log-Write -LogPath $sLogFile -LineValue "Starting download of Exchange 2016 CU5"
+      Log-Write -LogPath $sLogFile -LineValue "Starting download of Exchange 2016 CU5"
       Start-BitsTransfer -Source https://download.microsoft.com/download/A/A/7/AA7F69B2-9E25-4073-8945-E4B16E827B7A/ExchangeServer2016-x64-cu5.iso -Destination $fileshare -Description 'Downloading prerequisites'
       Write-Verbose -Message "Downloading file from https://download.microsoft.com/download/A/A/7/AA7F69B2-9E25-4073-8945-E4B16E827B7A/ExchangeServer2016-x64-cu5.iso to $fileShare"
-      #Log-Write -LogPath $sLogFile -LineValue "Downloading file from https://download.microsoft.com/download/A/A/7/AA7F69B2-9E25-4073-8945-E4B16E827B7A/ExchangeServer2016-x64-cu5.iso to $fileShare"
+      Log-Write -LogPath $sLogFile -LineValue "Downloading file from https://download.microsoft.com/download/A/A/7/AA7F69B2-9E25-4073-8945-E4B16E827B7A/ExchangeServer2016-x64-cu5.iso to $fileShare"
 
     }     
     Catch {
-      #Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $True
+      Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $True
       Break
     }
   }
   
   End{
     If($?){
-      #Log-Write -LogPath $sLogFile -LineValue "Got all prerequisites successfully."
-      #Log-Write -LogPath $sLogFile -LineValue " "
+      Log-Write -LogPath $sLogFile -LineValue "Got all prerequisites successfully."
+      Log-Write -LogPath $sLogFile -LineValue " "
       Write-Verbose -Message 'Got all prerequisites successfully.'
     }
   }
@@ -537,11 +545,14 @@ function New-SelfSignedCertificateEx
 Function New-DSCCertificate {
   [CmdletBinding()]
   Param(
-    [parameter(Mandatory=$true)]
     [string]$ComputerName
     )
+
+    #Checks if the certificate used already exists
+    $certverifypath = [bool](dir cert:\LocalMachine\My\ | Where-Object { $_.subject -like "cn=localhost" })
+    if(!($certverifypath)) {
     New-SelfSignedCertificateEx `
-      -Subject 'CN=$ComputerName' `
+      -Subject "CN=localhost" `
       -EKU 'Document Encryption' `
       -KeyUsage 'KeyEncipherment, DataEncipherment' `
       -SAN localhost `
@@ -552,8 +563,12 @@ Function New-DSCCertificate {
       -KeyLength 2048 `
       -ProviderName 'Microsoft Enhanced Cryptographic Provider v1.0' `
       -AlgorithmName 'RSA' `
-      -SignatureAlgorithm 'SHA256'
-    }
+      -SignatureAlgorithm 'SHA256' `
+      -Verbose
+      }else{
+        #donothing      
+  }
+}
 
 
 Function Install-Prerequisite {
@@ -571,9 +586,9 @@ Function Install-Prerequisite {
   
   Begin{
     $variableOutput = '        $fileShare ' + "= $fileShare"
-    #Log-Write -LogPath $sLogFile -LineValue 'Installing prerequisites for Microsoft Exchange 2013...'
-    #Log-Write -LogPath $sLogFile -LineValue "The following variables are set for $MyInvocation.MyCommand.Name :"
-    #Log-Write -LogPath $sLogFile -LineValue "$variableOutput"
+    Log-Write -LogPath $sLogFile -LineValue 'Installing prerequisites for Microsoft Exchange 2013...'
+    Log-Write -LogPath $sLogFile -LineValue "The following variables are set for $MyInvocation.MyCommand.Name :"
+    Log-Write -LogPath $sLogFile -LineValue "$variableOutput"
   }
   
   Process{
@@ -581,16 +596,23 @@ Function Install-Prerequisite {
       [int]$i = 0
       $InstallFiles = Get-ChildItem -Path $fileShare
       $total = $InstallFiles.Count
-      $Domain = $env:USERDOMAIN
+      $Domain = "Nikolaitl"
+      $CertExportPath = "C:\tempExchange\Cert\dsccert.cert"
+    
       
       Write-Verbose -Message "Total amount of files to be installed is $total, starting installation"
-      #Log-Write -LogPath $sLogPath -LineValue "Total amount of files to be installed is $total, starting installation"
+      Log-Write -LogPath $sLogPath -LineValue "Total amount of files to be installed is $total, starting installation"
 
+      Write-Verbose -Message "Getting Certificate Thumbprint"
       #Get Certificate thumbprint
       $CertThumb = (Get-ChildItem -Path Cert:\LocalMachine\My | Where-Object {$_.Subject -eq "CN=localhost"}).Thumbprint
       
-      #Set Certificate export filepath
-      $certfilepath = "C:\tempExchange\Cert\dsccert.pfx"
+      #Exporting Certificate            
+      Write-Verbose -Message "Exporting cert to $CertExportPath"
+      
+      $CertExport = (Get-ChildItem -Path Cert:\LocalMachine\My\$CertThumb)
+      
+      Export-Certificate -Cert $CertExport -FilePath $CertExportPath -Type CERT
       
       Install-Module -Name xExchange, xPendingReboot, xWindowsUpdate
       
@@ -599,35 +621,19 @@ Function Install-Prerequisite {
       
       #Sett password for exported cert
       $certpw = ConvertTo-SecureString -String "NotSoSecure" -AsPlainText -Force
-      
-      #Export Certificate
-      Get-ChildItem -Path Cert:\LocalMachine\My\$CertThumb | Export-PfxCertificate -FilePath $certfilepath -Password $certpw
-      
-      #Configuration Data
-      $ConfigData=@{
-        AllNodes = @(
-          @{
-            NodeName = '*'
-            CertificateFile = "C:\tempExchange\Cert\dsccert.pfx"
-            Thumbprint = $CertThumb
-          }
-
-          @{
-            NodeName = "$ComputerName"
-            PSDscAllowDomainUser = $true
-            PSDscAllowPlainTextPassword = $true
-          }
-        )
-      }
-      	
+                  
+      Write-Verbose -Message "Compiling DSC script"
       #Compiles DSC Script
-      InstallExchange -ConfigurationData $ConfigData -DomainCredential $DomainCredential -ComputerName $ComputerName -ExchangeBinary $ExchangeBinary\Setup.exe	 -UCMASource $fileShare -Domain $Domain
+      InstallExchange -DomainCredential $DomainCredential -ExchangeBinary $ExchangeBinary `
+      -CertThumb $CertThumb- -FileShare $fileShare -Verbose 
 
+      Write-Verbose -Message "Setting up LCM on target computer"
       #Sets up LCM on target comp
-      Set-DscLocalConfigurationManager -Path $PSScriptRoot\ExchangeDSC -Verbose
+      Set-DscLocalConfigurationManager -Path $PSScriptRoot\InstallExchange -Verbose
 
+      Write-Verbose -Message "Pushing DSC script to target computer"
       #Pushes DSC script to target
-      Start-DscConfiguration -Path $PSScriptRoot\ExchangeDSC -Verbose -Wait
+      Start-DscConfiguration -Path $PSScriptRoot\InstallExchange -Verbose -Wait
       
       <#     Foreach($element in $InstallFiles) {
           $i++
@@ -639,15 +645,15 @@ Function Install-Prerequisite {
     }
        
     Catch {
-      #Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $True
+      Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $True
       Break
     }
   }
   
   End{
     If($?){
-      #Log-Write -LogPath $sLogFile -LineValue "Installed prerequisites successfully."
-      #Log-Write -LogPath $sLogFile -LineValue ""
+      Log-Write -LogPath $sLogFile -LineValue "Installed prerequisites successfully."
+      Log-Write -LogPath $sLogFile -LineValue ""
       Write-Verbose -Message "Installed prerequisites successfully."
     }
   }
@@ -681,18 +687,18 @@ Function Install-Prerequisite {
 
 #-----------------------------------------------------------[Execution]------------------------------------------------------------
 
-#Log-Start -LogPath $sLogPath -LogName $sLogName -ScriptVersion $sScriptVersion
+Log-Start -LogPath $sLogPath -LogName $sLogName -ScriptVersion $sScriptVersion
 $i = 0
 
 #Temporary to run commands during test environment
 $cred = Get-Credential
 
-Get-Prerequisite -fileShare $fileshare -ComputerName 192.168.58.116 -DomainCredential $cred -Verbose
+#Get-Prerequisite -fileShare $fileshare -ComputerName 192.168.58.116 -DomainCredential $cred -Verbose
 
-Mount-Exchange -SourceFile $fileshare -Verbose
+#Mount-Exchange -SourceFile $fileshare -Verbose
 
 New-DSCCertificate -ComputerName localhost -Verbose
 
 Install-Prerequisite -fileShare $fileshare -ComputerName 192.168.58.116 -DomainCredential $cred -ExchangeBinary $ExchangeBinary -Verbose
 
-#Log-Finish -LogPath $sLogFile
+Log-Finish -LogPath $sLogFile
