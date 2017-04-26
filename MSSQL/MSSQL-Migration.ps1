@@ -5,7 +5,7 @@ $Destination =   $SMAConfig.MSSQL.Get_Item('destination')
 $Instance = $SMAConfig.MSSQL.Get_Item('instance')
 $PackagePath = Join-Path -Path $SMAConfig.Global.Get_Item('fileshare') -ChildPath $SMAConfig.MSSQL.Get_Item('packagepath')
 
-$LogPath = SMAConfig.Global.Get_Item('logpath')
+$LogPath = $SMAConfig.Global.Get_Item('logpath')
 
 #Todo: retrieve creds & concatenate source to trustedhost
 $Credential = $DomainCredential
@@ -18,7 +18,21 @@ Invoke-Command -ComputerName $Source -FilePath (Join-Path $SMARoot -ChildPath ".
 $ScriptBlock = {
     $sLogFile = $using:LogPath
     $SMARoot = "C:\service-migration-azure"
-    . (Join-Path -Path $SMARoot -ChildPath "Libraries\Log-Functions.ps1")
+
+
+    #Dot source libraries
+    $functions = @("Libraries\Log-Functions.ps1", "\Libraries\Manage-Configuration.ps1")
+    $functions | % {
+    Try {
+        $path = Join-Path -Path $PSScriptRoot -ChildPath $_
+        . $path -ErrorAction Stop
+        $m = "Successfully sourced $($_)"
+        Log-Write -LogPath $sLogFile -LineValue $m
+    } Catch {
+        Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception
+    }
+}
+
     Import-Module (Join-Path -Path $SMARoot -ChildPath "MSSQL\MSSQL-Migration.psm1") -Force
     Start-MSSQLInstallConfig -PackagePath $using:PackagePath -Credential $using:Credential
 }
