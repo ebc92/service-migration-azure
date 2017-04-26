@@ -695,9 +695,9 @@ $i = 0
 #Temporary to run commands during test environment
 $cred = Get-Credential
 
-#Get-Prerequisite -fileShare $fileshare -ComputerName 192.168.58.116 -DomainCredential $cred -Verbose
+Get-Prerequisite -fileShare $fileshare -ComputerName 192.168.58.116 -DomainCredential $cred -Verbose
 
-#Mount-Exchange -SourceFile $fileshare -Verbose
+Mount-Exchange -SourceFile $fileshare -Verbose
 
 New-DSCCertificate -ComputerName localhost -Verbose
 
