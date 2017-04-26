@@ -24,7 +24,7 @@ $ScriptBlock = {
     $functions = @("Libraries\Log-Functions.ps1", "\Libraries\Manage-Configuration.ps1")
     $functions | % {
     Try {
-        $path = Join-Path -Path $PSScriptRoot -ChildPath $_
+        $path = Join-Path -Path $SMARoot -ChildPath $_
         . $path -ErrorAction Stop
         $m = "Successfully sourced $($_)"
         Log-Write -LogPath $sLogFile -LineValue $m

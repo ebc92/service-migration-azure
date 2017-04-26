@@ -233,8 +233,6 @@ Function New-AzureStackWindowsVM {
   }
 }
 
-Function 
-
 #Function New-RDPortMap must be run on MAS-BGPNAT
 Function New-RDPortMap {
     Param(
