@@ -623,7 +623,7 @@ Function Install-Prerequisite {
       $InstallFiles = Get-ChildItem -Path $fileShare
       $total = $InstallFiles.Count
       $Domain = "Nikolaitl"
-      $CertExportPath = "C:\tempExchange\Cert\dsccert.cert"
+      $CertExportPath = "C:\tempExchange\Cert\dsccert.cer"
       $ExchangeBinary = (Get-WmiObject win32_volume | Where-Object -Property Label -eq "EXCHANGESERVER2016-X64-CU5").Name
       $VerifyCertPath = (Test-Path -Path "C:\tempExchange\Cert\")
       
