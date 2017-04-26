@@ -655,6 +655,8 @@ Function Install-Prerequisite {
       
       $DSC = Resolve-Path -Path $PSScriptRoot\InstallExchange.ps1
       . $DSC
+
+      $ComputerFQDN = "WIN-HTR5HHBV6N3"
       
       #Configuration data for DSC
       $ConfigData=@{
@@ -666,7 +668,7 @@ Function Install-Prerequisite {
           }
 
           @{
-            NodeName = "$ComputerName"
+            NodeName = "$ComputerFQDN"
             PSDscAllowDomainUser = $true
           }
         )
@@ -675,7 +677,7 @@ Function Install-Prerequisite {
       Write-Verbose -Message "Compiling DSC script"
       #Compiles DSC Script
       InstallExchange -ConfigurationData $ConfigData -DomainCredential $DomainCredential -ExchangeBinary $ExchangeBinary `
-      -FileShare $fileShare -Verbose 
+      -FileShare $fileShare -Verbose
 
       Write-Verbose -Message "Setting up LCM on target computer"
       #Sets up LCM on target comp

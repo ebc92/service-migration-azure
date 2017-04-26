@@ -17,9 +17,10 @@
       CertificateId      = $Node.Thumbprint
       RebootNodeIfNeeded = $true
       ActionAfterReboot  = 'ContinueConfiguration'
+      ConfigurationMode  = 'ApplyOnly'
     }
 
-    #Check if a reboot is needed before installing Server Roles
+   <#Check if a reboot is needed before installing Server Roles
     xPendingReboot BeforeServerRoles
     {
       Name      = "BeforeServerRoles"
@@ -228,7 +229,7 @@
     {
       Ensure = 'Present'
       Name = 'RSAT-ADDS'
-    }
+    }#>
 
     #Copy the Exchange setup files locally
     File ExchangeBinaries
@@ -238,6 +239,7 @@
       Recurse         = $true
       SourcePath      = "$ExchangeBinary"
       DestinationPath = 'C:\Binaries\E16CU5'
+      Credential      = $DomainCredential
     }
 
     #Check if a reboot is needed before installing Exchange
