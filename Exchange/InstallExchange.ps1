@@ -5,7 +5,8 @@
     [PSCredential]$DomainCredential,
     [String]$FileShare,
     [String]$CertThumb,
-    [String]$ExchangeBinary
+    [String]$ExchangeBinary,
+    [String]$nodename
   )
 
   Import-DscResource -Module xExchange
@@ -299,7 +300,7 @@ $ConfigData=@{
     }
 
     @{
-      NodeName = "localhost"
+      NodeName = "$nodename"
       PSDscAllowDomainUser = $true
     }
   )

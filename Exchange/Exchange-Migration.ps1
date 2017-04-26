@@ -647,7 +647,7 @@ Function Install-Prerequisite {
       
       Export-Certificate -Cert $CertExport -FilePath $CertExportPath -Type CERT
       
-      Install-Module -Name xExchange, xPendingReboot, xWindowsUpdate
+      Install-Module -Name xExchange, xPendingReboot, xWindowsUpdate -Force
       
       $DSC = Resolve-Path -Path $PSScriptRoot\InstallExchange.ps1
       . $DSC
@@ -658,7 +658,7 @@ Function Install-Prerequisite {
       Write-Verbose -Message "Compiling DSC script"
       #Compiles DSC Script
       InstallExchange -DomainCredential $DomainCredential -ExchangeBinary $ExchangeBinary `
-      -CertThumb $CertThumb- -FileShare $fileShare -Verbose 
+      -CertThumb $CertThumb- -FileShare $fileShare -nodename $ComputerName -Verbose 
 
       Write-Verbose -Message "Setting up LCM on target computer"
       #Sets up LCM on target comp
