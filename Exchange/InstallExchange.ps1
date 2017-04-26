@@ -3,7 +3,7 @@
   param
   (
     [PSCredential]$DomainCredential,
-    [String]$FileShare
+    [String]$FileShare,
     [String]$ExchangeBinary
   )
 
@@ -282,6 +282,7 @@
       DependsOn = '[xExchInstall]InstallExchange'
     }
   }
+}
 
 if ($null -eq $DomainCredential)
 {
