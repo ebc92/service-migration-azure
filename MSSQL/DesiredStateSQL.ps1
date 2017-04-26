@@ -146,7 +146,7 @@
                 <# TODO:
                 Check desired state against current state.
                 For now, run regardless. #>
-                $res = $false
+                return $false
             }
             
         }
