@@ -44,8 +44,7 @@
 $ErrorActionPreference = 'Continue'
 
 #Dot Source required Function Libraries
-$DotPath = Resolve-Path "$PSScriptRoot\..\Libraries\Log-Functions.ps1"
-. $DotPath
+
 
 #Define all variables during testing, remove for production
 $baseDir = 'C:\tempExchange'
@@ -86,6 +85,9 @@ Function Get-Prerequisite {
     if(!($VerifyLogItem)) {
       New-Item -Path $sLogPath -Name $sLogName
     }
+    
+    $DotPath = Resolve-Path "$PSScriptRoot\..\Libraries\Log-Functions.ps1"
+    . $DotPath
    
     $variableOutput = '        $fileShare ' + "= $fileShare `n"`
     +'        $tarComp ' + "= $ComputerName `n"`
