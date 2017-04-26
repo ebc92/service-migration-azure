@@ -66,7 +66,7 @@ Function Log-Start{
     
     #Checks if the log item exists, and creates it if not
     if(!($VerifyLogItem)) {
-      New-Item -Path $LogPath -Name $LogName
+      New-Item -Path $LogPath -Name $LogName -ItemType File
     }
     
     #Create file and start logging
