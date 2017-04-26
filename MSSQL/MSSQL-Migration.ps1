@@ -39,6 +39,27 @@ $ScriptBlock = {
 
 Invoke-Command -ComputerName $Source -ScriptBlock $ScriptBlock -Credential $Credential
 
+$cd = @{
+                AllNodes = @(
+                    @{
+                        NodeName = $ComputerName
+                        Role = "SqlServer"
+                        PSDscAllowPlainTextPassword = $true
+                    }
+                );
+            }
+
+Try {
+    Log-Write -LogPath $sLogFile -LineValue "Generating MOF-file from DSC script."
+    DesiredStateSQL -ConfigurationData $cd -PackagePath $PackagePath -WinSources "$PackagePath\sxs" -Credential $Credential
+    Log-Write -LogPath $sLogFile -LineValue "Starting DSC configuration."
+    Start-DscConfiguration -ComputerName $ComputerName -Path .\DesiredStateSQL -Verbose -Wait -Force -Credential $Credential -ErrorAction Stop
+    Log-Write -LogPath $sLogFile -LineValue "DSC configuration was succcessfully executed"
+
+} Catch {
+    Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $False
+}
+
 #
 
 #Start-MSSQLDeployment -ComputerName $ComputerName -PackagePath $PackagePath -InstanceName $InstanceName -Credential $Credential
