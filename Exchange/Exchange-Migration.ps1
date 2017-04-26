@@ -188,7 +188,7 @@ Function Mount-Exchange {
   
   $ExchangeBinary = (Get-WmiObject win32_volume | Where-Object -Property Label -eq "EXCHANGESERVER2016-X64-CU5").Name
   
-  if ($ExhcangeBinary -eq $null)
+  if ($ExchangeBinary -eq $null)
   {
     Do {
       Try {          
