@@ -282,7 +282,6 @@
       DependsOn = '[xExchInstall]InstallExchange'
     }
   }
-}
 
 if ($null -eq $DomainCredential)
 {
