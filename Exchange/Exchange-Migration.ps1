@@ -188,7 +188,7 @@ Function Mount-Exchange {
   
   $ExchangeBinary = (Get-WmiObject win32_volume | Where-Object -Property Label -eq "EXCHANGESERVER2016-X64-CU5").Name
   
-  if ($ExhcangeBinary -eq $null)
+  if ($ExchangeBinary -eq $null)
   {
     Do {
       Try {          
@@ -623,12 +623,18 @@ Function Install-Prerequisite {
       $InstallFiles = Get-ChildItem -Path $fileShare
       $total = $InstallFiles.Count
       $Domain = "Nikolaitl"
-      $CertExportPath = "C:\tempExchange\Cert\dsccert.cert"
+      $CertExportPath = "C:\tempExchange\Cert\dsccert.cer"
       $ExchangeBinary = (Get-WmiObject win32_volume | Where-Object -Property Label -eq "EXCHANGESERVER2016-X64-CU5").Name
-    
+      $VerifyCertPath = (Test-Path -Path "C:\tempExchange\Cert\")
+      
+      #Check to see if certificate directory exists, and creates it if not
+      if (!($VerifyCertPath)){
+        Write-Verbose -Message "Creating folder for certificate"    
+        New-Item -Path "C:\tempExchange\Cert" -ItemType Directory -ErrorAction Ignore
+      }
       
       Write-Verbose -Message "Total amount of files to be installed is $total, starting installation"
-      Log-Write -LogPath $sLogPath -LineValue "Total amount of files to be installed is $total, starting installation"
+      Log-Write -LogPath $sLogFile -LineValue "Total amount of files to be installed is $total, starting installation"
 
       Write-Verbose -Message "Getting Certificate Thumbprint"
       #Get Certificate thumbprint
@@ -641,18 +647,37 @@ Function Install-Prerequisite {
       
       Export-Certificate -Cert $CertExport -FilePath $CertExportPath -Type CERT
       
-      Install-Module -Name xExchange, xPendingReboot, xWindowsUpdate
+      Install-Module -Name xExchange, xPendingReboot, xWindowsUpdate -Force
+      
+      #InstallUCMA
+      Write-Verbose -Message "Staring Install of UCMA"
+      Start-Process -FilePath $fileShare\UcmaRuntimeSetup.exe -ArgumentList '/passive /norestart' -Wait
       
       $DSC = Resolve-Path -Path $PSScriptRoot\InstallExchange.ps1
       . $DSC
+
+      $ComputerFQDN = "WIN-HTR5HHBV6N3"
       
-      #Sett password for exported cert
-      $certpw = ConvertTo-SecureString -String "NotSoSecure" -AsPlainText -Force
+      #Configuration data for DSC
+      $ConfigData=@{
+        AllNodes = @(
+          @{
+            NodeName = '*'
+            CertificateFile = "C:\tempExchange\Cert\dsccert.cer"
+            Thumbprint = $CertThumb
+          }
+
+          @{
+            NodeName = "$ComputerFQDN"
+            PSDscAllowDomainUser = $true
+          }
+        )
+      }
                   
       Write-Verbose -Message "Compiling DSC script"
       #Compiles DSC Script
-      InstallExchange -DomainCredential $DomainCredential -ExchangeBinary $ExchangeBinary `
-      -CertThumb $CertThumb- -FileShare $fileShare -Verbose 
+      InstallExchange -ConfigurationData $ConfigData -DomainCredential $DomainCredential -ExchangeBinary $ExchangeBinary `
+      -FileShare $fileShare -Verbose
 
       Write-Verbose -Message "Setting up LCM on target computer"
       #Sets up LCM on target comp
