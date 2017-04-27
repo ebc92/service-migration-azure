@@ -7,8 +7,8 @@
     [String]$ExchangeBinary
   )
 
-  Import-DscResource -Module xExchange
-  Import-DscResource -Module xPendingReboot
+  Import-DscResource -ModuleName xExchange
+  Import-DscResource -ModuleName xPendingReboot
 
   Node $AllNodes.NodeName
   {
@@ -20,7 +20,7 @@
       ConfigurationMode  = 'ApplyOnly'
     }
 
-   #Check if a reboot is needed before installing Server Roles
+    #Check if a reboot is needed before installing Server Roles
     xPendingReboot BeforeServerRoles
     {
       Name      = "BeforeServerRoles"
@@ -31,12 +31,6 @@
       Ensure = 'Present'
       Name = 'AS-HTTP-Activation'
       DependsOn = '[xPendingReboot]BeforeServerRoles'
-    }
-        
-    WindowsFeature DesktopExp
-    {
-      Ensure = 'Present'
-      Name = 'Desktop-Experience'
     }
         
     WindowsFeature NetFW45
