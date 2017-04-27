@@ -20,7 +20,7 @@
       ConfigurationMode  = 'ApplyOnly'
     }
 
-   Check if a reboot is needed before installing Server Roles
+   #Check if a reboot is needed before installing Server Roles
     xPendingReboot BeforeServerRoles
     {
       Name      = "BeforeServerRoles"
@@ -231,7 +231,7 @@
       Name = 'RSAT-ADDS'
     }
 
-    <#Copy the Exchange setup files locally
+    Copy the Exchange setup files locally
     File ExchangeBinaries
     {
       Ensure          = 'Present'
@@ -240,7 +240,7 @@
       SourcePath      = "$ExchangeBinary"
       DestinationPath = 'C:\Binaries\E16CU5'
       Credential      = $DomainCredential
-    } #>
+    }
 
     #Check if a reboot is needed before installing Exchange
     xPendingReboot BeforeExchangeInstall
