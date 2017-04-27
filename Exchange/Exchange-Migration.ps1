@@ -177,37 +177,44 @@ Function Get-Prerequisite {
 Function Mount-Exchange {
   Param(
     [Parameter(Mandatory=$true)]
-    [String]$SourceFile
+    [String]$SourceFile,
+    [Parameter(Mandatory=$true)]
+    [pscredential]$DomainCredential,
+    [Parameter(Mandatory=$true)]
+    [String]$ComputerName
   )
   [bool]$finished=$false
   $er = $ErrorActionPreference
   $ErrorActionPreference = "Continue"
   
+  $MountDrive = New-PSSession -ComputerName $ComputerName -Credential $DomainCredential
+  
   #Makes sure $ExchangeBinary variable is emtpy
-  $ExchangeBinary = $null
   
-  $ExchangeBinary = (Get-WmiObject win32_volume | Where-Object -Property Label -eq "EXCHANGESERVER2016-X64-CU5").Name
+  Invoke-Command -Session $MountDrive -Credential $DomainCredential -ScriptBlock { 
+    $ExchangeBinary = $null
   
-  if ($ExchangeBinary -eq $null)
-  {
-    Do {
-      Try {          
-        Mount-DiskImage -ImagePath $SourceFile\ExchangeServer2016-x64-cu5.iso
-        $finished = $true
-        $ErrorActionPreference = $er
-        Return $ExchangeBinary
+    $ExchangeBinary = (Get-WmiObject win32_volume | Where-Object -Property Label -eq "EXCHANGESERVER2016-X64-CU5").Name
+  
+    if ($ExchangeBinary -eq $null)
+    {
+      Do {
+        Try {          
+          Mount-DiskImage -ImagePath $using:SourceFile\ExchangeServer2016-x64-cu5.iso
+          $finished = $true
+          $ErrorActionPreference = $er
+          Return $ExchangeBinary
+        }
+        Catch {
+          $SourceFile = Read-Host(`
+          "The path $SourceFile does not contain the ISO file, please enter the correct path for the Exchange 2016 ISO Image folder")
+          $finished = $false
+        }
       }
-      Catch {
-        $SourceFile = Read-Host(`
-        "The path $SourceFile does not contain the ISO file, please enter the correct path for the Exchange 2016 ISO Image folder")
-        $finished = $false
-      }
-    }
-    While ($finished -eq $false)
+      While ($finished -eq $false)
+    }  
   }
-  
-  
-
+  Remove-PSSession -Name $MountDrive
 }
 
 #Function to create certificate gotten from 
