@@ -14,7 +14,7 @@ $IpCalc = Join-Path -Path $SMARoot -ChildPath "Libraries\ipcalculator.ps1"
 #----------------------------------------------------------[Declarations]----------------------------------------------------------
 
 $sScriptVersion = "0.1"
-$sLogPath = "C:\Logs\service-migration-azure"
+$sLogPath = "C:\Logs"
 $sLogName = "SMA-Provisioning.log"
 $sLogFile = Join-Path -Path $sLogPath -ChildPath $sLogName
 
@@ -29,6 +29,8 @@ Function New-AzureStackTenantDeployment {
     )
     $Connect = "C:\Users\AzureStackAdmin\Desktop\AzureStack-Tools-master\Connect\AzureStack.Connect.psm1"
     $ComputeAdmin = "C:\Users\AzureStackAdmin\Desktop\AzureStack-Tools-master\ComputeAdmin\AzureStack.ComputeAdmin.psm1"
+
+    $Location = "local"
 
     Import-Module AzureStack, AzureRM
     Import-Module $Connect
@@ -53,7 +55,9 @@ Function New-AzureStackTenantDeployment {
     }
 
     Try {
+    Write-Output "hey"
         $VMNic = New-AzureStackVnet -NetworkIP $IPAddress -ResourceGroupName $ResourceGroupName -VNetName "AMSTEL-vnet" -VMName $VMName -ErrorAction Stop
+        
     } Catch {
         Log-Write -LogPath $sLogFile -LineValue "The VM deployment failed because no NIC was returned."
         Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $False
@@ -78,15 +82,17 @@ Function New-AzureStackVnet{
     $res = $ResourceGroupName
 
     # Prerequisites
-    $ErrorActionPreference = "SilentlyContinue"
     $VMNicName = $VMName + "-NIC"
     $nsgName = $VNetName + "-NSG"
-
-    $vnet = Get-AzureRmVirtualNetwork -ResourceGroupName $ResourceGroupName -Name $VNetName
-    $subnet = Get-AzureRmVirtualNetworkSubnetConfig -Name default -VirtualNetwork $vnet
-    $nsg = Get-AzureRmNetworkSecurityGroup -ResourceGroupName $res -Name $nsgName
-    $nsRules = Get-AzureRmNetworkSecurityRuleConfig -NetworkSecurityGroup $nsg
-    $nic = Get-AzureRmNetworkInterface -ResourceGroupName $res -Name $VMNicName
+ 
+    Try {
+        $vnet = Get-AzureRmVirtualNetwork -ResourceGroupName $ResourceGroupName -Name $VNetName
+        $subnet = Get-AzureRmVirtualNetworkSubnetConfig -Name default -VirtualNetwork $vnet
+        $nsg = Get-AzureRmNetworkSecurityGroup -ResourceGroupName $res -Name $nsgName
+        $nsRules = Get-AzureRmNetworkSecurityRuleConfig -NetworkSecurityGroup $nsg
+        $nic = Get-AzureRmNetworkInterface -ResourceGroupName $res -Name $VMNicName
+    } Catch {
+    }
     
     Try {
 
@@ -110,7 +116,7 @@ Function New-AzureStackVnet{
         if(!$subnet){
             Log-Write -LogPath $sLogFile -LineValue "Could not get the subnet configuration."
         }
-
+        
         # Create an inbound network security group rule for port 3389
         if(!$nsgRules){
             $nsgRuleRDP = New-AzureRmNetworkSecurityRuleConfig -Name InboundRDP  -Protocol Tcp -Direction Inbound -Priority 1000 -SourceAddressPrefix * -SourcePortRange * -DestinationAddressPrefix * -DestinationPortRange 3389 -Access Allow
@@ -129,7 +135,7 @@ Function New-AzureStackVnet{
 
         # Create a virtual network card and associate with public IP address and NSG
         if(!$nic){
-            $nic = New-AzureRmNetworkInterface -ResourceGroupName $res -Location $Location -Name $VMNicName -Subnet $subnet -NetworkSecurityGroup $nsg -PrivateIpAddress $Network.Address
+            $nic = New-AzureRmNetworkInterface -ResourceGroupName $res -Location $Location -Name $VMNicName -Subnet $subnet -NetworkSecurityGroup $nsg -PrivateIpAddress $Network.Address -ErrorAction Stop
             Log-Write -LogPath $sLogFile -LineValue "Created the network interface."
         } else {
             Log-Write -LogPath $sLogFile -LineValue "The network interface already exists."
@@ -151,7 +157,7 @@ Function New-AzureStackWindowsVM {
     [Parameter(Mandatory=$true)]
     [Microsoft.Azure.Commands.Network.Models.PSNetworkInterface]
     $VMNic,
-    [String]$ResourceGroup = "sma-vm-provisioning",
+    [String]$ResourceGroup = "service-migration-azure",
     [String]$VMSize = "Standard_A1",
     [String]$StorageAccountName = "vhdstorage",
     [String]$Location = "local"
@@ -159,7 +165,8 @@ Function New-AzureStackWindowsVM {
   
   Process{
     Try{
-
+        Log-Write -LogPath $sLogFile -LineValue "Getting nic info from new-aswvm."
+        Log-Write -LogPath $sLogFile -LineValue $VMNic.IpConfigurationsText
         # Get the VM Image Offer
         $offer = Get-AzureRmVMImageOffer -Location $Location -PublisherName MicrosoftWindowsServer
         Log-Write -LogPath $sLogFile -LineValue "Retrieved the Windows Server VM Image Offer."
@@ -199,7 +206,7 @@ Function New-AzureStackWindowsVM {
 
         <#
         Custom Script Extension
-        #>
+        
         
 
         Try {
@@ -216,10 +223,11 @@ Function New-AzureStackWindowsVM {
             Log-Write -LogPath $sLogFile -LineValue "Could not add TrustedHost ScriptExtension to the provisioned VM."
         }
 
+        #>
+
         return $VMNic.PrivateIPAddress
-    }
     
-    Catch{
+    } Catch {
       Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $False
     }
   }

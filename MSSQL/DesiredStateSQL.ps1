@@ -8,24 +8,48 @@
         [Parameter(Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
         [String]
-        $WinSources,
+        $DomainName,
+
+        [Parameter(Mandatory)]
+        [ValidateNotNullOrEmpty()]
+        [String]$InterfaceAlias,
+
+        [Parameter(Mandatory)]
+        [ValidateNotNullOrEmpty()]
+        [String]$DNS,
 
         [Parameter(Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
-        [PSCredential]$Credential
+        [PSCredential]$DomainCredential
     )
 
-    Import-DscResource -ModuleName PSDesiredStateConfiguration
+    Import-DscResource -ModuleName PSDesiredStateConfiguration, xNetworking, xComputerManagement
  
     Node $AllNodes.where{ $_.Role.Contains("SqlServer") }.NodeName {
-        Log ParamLog {
-            Message = "Running SQLInstall. PackagePath = $PackagePath"
+        
+        LocalConfigurationManager {
+            ActionAfterReboot = 'ContinueConfiguration'
+            ConfigurationMode = 'ApplyOnly'
+            RebootNodeIfNeeded = $true
+        }
+
+        xDNSServerAddress DnsServerAddress {
+            Address        = $DNS
+            InterfaceAlias = $InterfaceAlias
+            AddressFamily  = 'IPv4'
+        }
+
+        xComputer JoinDomain {
+            Name = "localhost" #$VMName #do not change computername
+            DomainName = $DomainName 
+            Credential = $DomainCredential  # Credential to join to domain
+            DependsOn = '[xDNSServerAddress]DnsServerAddress'
         }
  
         WindowsFeature NetFramework35Core {
             Name = "NET-Framework-Core"
             Ensure = "Present"
-            Source = $WinSources
+            Source = Join-Path -Path $PackagePath -ChildPath "sxs"
         }
  
         WindowsFeature NetFramework45Core {
@@ -58,6 +82,8 @@
         # Install SqlServer using ini file
         #
         Script InstallSQLServer {
+
+            DependsOn = "[File]SQLServerIniFile"
 
             GetScript = {
 
@@ -98,6 +124,7 @@
         }
 
         Script PostDeploymentConfiguration {
+            DependsOn = "[Script]InstallSQLServer"
 
             GetScript = {
                 <# TODO: 
