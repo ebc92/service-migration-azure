@@ -608,7 +608,7 @@ Function New-DSCCertificate {
         Get-ChildItem Cert:\LocalMachine\My | Where-Object { $_.subject -like "cn=$using:ComputerName" } | Remove-Item
         "$createcert where the cert was deleted"
       }
-    } until($createcert = $true)      
+    } while($createcert = $false)      
   }
 }
 
@@ -680,9 +680,9 @@ Function Install-Prerequisite {
       
       Write-Verbose -Message "Importing PFX certificate"
       Import-PfxCertificate -FilePath "$baseDir\Cert\cert.pfx" -CertStoreLocation Cert:\LocalMachine\My\ -Password $CertPW -Verbose
-      $CertExport = (Get-ChildItem -Path Cert:\LocalMachine\My\$CertThumb)
+      $CertLocalExport = (Get-ChildItem -Path Cert:\LocalMachine\My\$CertThumb)
       
-      Export-Certificate -Cert $CertExport -FilePath $CertExportPath -Type CERT
+      Export-Certificate -Cert $CertLocalExport -FilePath $CertExportPath -Type CERT
       
       Install-Module -Name xExchange, xPendingReboot -Force
       
