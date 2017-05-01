@@ -745,7 +745,7 @@ $cred = Get-Credential
 
 Get-Prerequisite -fileShare $fileshare -ComputerName amstel-mail.amstel.local -DomainCredential $cred -Verbose
 
-Mount-Exchange -FileShare $fileshare -Verbose
+#Mount-Exchange -FileShare $fileshare -Verbose
 
 New-DSCCertificate -ComputerName amstel-mail.amstel.local -Verbose
 
