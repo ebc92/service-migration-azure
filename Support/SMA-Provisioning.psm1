@@ -100,7 +100,8 @@ Function New-AzureStackVnet{
 
         # Create a subnet configuration
         if(!$subnet){
-            $subnet = New-AzureRmVirtualNetworkSubnetConfig -Name default -AddressPrefix $Network.Network
+            $SubnetNetwork = & $IpCalc $Network.HostMin -Netmask 255.255.255.128
+            $subnet = New-AzureRmVirtualNetworkSubnetConfig -Name HostSubnet -AddressPrefix $SubnetNetwork.Network
             Log-Write -LogPath $sLogFile -LineValue "Created the subnet configuration."
         } else {
             Log-Write -LogPath $sLogFile -LineValue "The subnet configuration already exists."
