@@ -675,8 +675,7 @@ Function Install-Prerequisite {
                   
       Write-Verbose -Message "Compiling DSC script"
       #Compiles DSC Script
-      InstallExchange -ConfigurationData $ConfigData -DomainCredential $DomainCredential -ExchangeBinary $ExchangeBinary `
-      -FileShare $fileShare -Verbose
+      InstallExchange -ConfigurationData $ConfigData -DomainCredential $DomainCredential -ExchangeBinary $ExchangeBinary -Verbose
 
       Write-Verbose -Message "Setting up LCM on target computer"
       #Sets up LCM on target comp
@@ -744,12 +743,12 @@ $i = 0
 #Temporary to run commands during test environment
 $cred = Get-Credential
 
-Get-Prerequisite -fileShare $fileshare -ComputerName amstel-mail.amstel.local -DomainCredential $cred -Verbose
+#Get-Prerequisite -fileShare $fileshare -ComputerName amstel-mail.amstel.local -DomainCredential $cred -Verbose
 
-Mount-Exchange -SourceFile $fileshare -Verbose
+Mount-Exchange -FileShare $fileshare -Verbose
 
 New-DSCCertificate -ComputerName amstel-mail.amstel.local -Verbose
 
-Install-Prerequisite -fileShare $fileshare -ComputerName amstel-mail.amstel.local -DomainCredential $cred -Verbose
+Install-Prerequisite -BaseDir $baseDir -ComputerName amstel-mail.amstel.local -DomainCredential $cred -Verbose
 
 Log-Finish -LogPath $sLogFile

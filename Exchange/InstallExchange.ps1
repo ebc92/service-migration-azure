@@ -3,7 +3,6 @@
   param
   (
     [PSCredential]$DomainCredential,
-    [String]$FileShare,
     [String]$ExchangeBinary
   )
 
