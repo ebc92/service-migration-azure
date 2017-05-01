@@ -656,16 +656,15 @@ Function Install-Prerequisite {
       Invoke-Command -Session $InstallSession -ScriptBlock {
         #Exporting Certificate            
         Write-Verbose -Message "Exporting cert to $using:CertExportPath"
+        Write-Verbose -Message "Mounting new PSDrive"
+        New-PSDrive -Name "Z" -PSProvider FileSystem -Root $using:baseDir -Persist -Credential $using:DomainCredential -ErrorAction Continue -Verbose
       
         $CertExport = (Get-ChildItem -Path Cert:\LocalMachine\My\$using:CertThumb)
       
         Export-Certificate -Cert $CertExport -FilePath $using:CertExportPath -Type CERT
-        $CertExport | Export-PfxCertificate -FilePath $using:baseDir\Cert\cert.pfx -Password $using:CertPW
-        Start-BitsTransfer -Source c:\cert\cert.pfx -Destination $using:baseDir\Cert\ -Credential $using:DomainCredential
+        $CertExport | Export-PfxCertificate -FilePath Z:\Cert\cert.pfx -Password $using:CertPW
       
         Install-Module -Name xExchange, xPendingReboot -Force
-        Write-Verbose -Message "Mounting new PSDrive"
-        New-PSDrive -Name "Z" -PSProvider FileSystem -Root "$using:baseDir" -Persist -Credential $using:DomainCredential -ErrorAction Continue -Verbose
         
         #InstallUCMA
         Write-Verbose -Message "Starting Install of UCMA"
