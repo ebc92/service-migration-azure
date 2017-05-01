@@ -18,6 +18,9 @@ $sLogPath = "C:\Logs"
 $sLogName = "SMA-Provisioning.log"
 $sLogFile = Join-Path -Path $sLogPath -ChildPath $sLogName
 
+$LocalEndpoint = $SMAConfig.VPN.Get_Item('endpoint')
+$LocalNetwork = $SMAConfig.VPN.Get_Item('network')
+
 #-----------------------------------------------------------[Functions]------------------------------------------------------------
 
 Function New-AzureStackTenantDeployment {
@@ -29,15 +32,12 @@ Function New-AzureStackTenantDeployment {
         $DomainCredential,
         $Location = "local"
     )
-    $Connect = "C:\Users\AzureStackAdmin\Desktop\AzureStack-Tools-master\Connect\AzureStack.Connect.psm1"
-    $ComputeAdmin = "C:\Users\AzureStackAdmin\Desktop\AzureStack-Tools-master\ComputeAdmin\AzureStack.ComputeAdmin.psm1"
 
-    $Location = "local"
+    #TODO: Verify presence of azurerm connect and compute modules
+
     $DomainName = "amstel.local"
 
     Import-Module AzureStack, AzureRM
-    Import-Module $Connect
-    Import-Module $ComputeAdmin
 
     Log-Start -LogPath $sLogPath -LogName $sLogName -ScriptVersion $sScriptVersion
 
@@ -51,7 +51,7 @@ Function New-AzureStackTenantDeployment {
     Try{ 
         $exists = Get-AzureRmResourceGroup -Name $ResourceGroupName
     } Catch {
-        Log-Write -LogPath $sLogFile -LineValue "Resource Gcould not be retrieved."
+        Log-Write -LogPath $sLogFile -LineValue "Resource Group could not be retrieved."
     }
 
     if(!$exists){
@@ -87,12 +87,10 @@ Function New-AzureStackVnet{
 
     $res = $ResourceGroupName
 
-    # Prerequisites
+    # Creating resource names
     $VMNicName = $VMName + "-NIC"
     $nsgName = $VNetName + "-NSG"
 
-
- 
     Try {
         $vnet = Get-AzureRmVirtualNetwork -ResourceGroupName $ResourceGroupName -Name $VNetName
         $subnet = Get-AzureRmVirtualNetworkSubnetConfig -Name HostSubnet -VirtualNetwork $vnet
@@ -100,6 +98,7 @@ Function New-AzureStackVnet{
         $nsRules = Get-AzureRmNetworkSecurityRuleConfig -NetworkSecurityGroup $nsg
         $nic = Get-AzureRmNetworkInterface -ResourceGroupName $res -Name $VMNicName
     } Catch {
+
     }
     
     Try {
@@ -124,14 +123,27 @@ Function New-AzureStackVnet{
             $vnet = New-AzureRmVirtualNetwork -ResourceGroupName $ResourceGroupName -Location $Location -Name $VNetName -AddressPrefix $Network.Network -Subnet $subnet,$VPNSubnet
 
             $pip = New-AzureRmPublicIpAddress -ResourceGroupName $ResourceGroupName -AllocationMethod Dynamic -Name VPNGatewayIP -Location $Location
-            $VPNIpconfig = New-AzureRmVirtualNetworkGatewayIpConfig -Name AMSTEL-VPN-ipconfig -PublicIpAddress $pip -Subnet $VPNSubnet            
-            New-AzureRmVirtualNetworkGateway -Name "AMSTEL-VPN" `
+            $VPNIpconfig = New-AzureRmVirtualNetworkGatewayIpConfig -Name "AMSTEL-VPN-ipconfig" -PublicIpAddress $pip -Subnet $VPNSubnet            
+            $VirtualGateway = New-AzureRmVirtualNetworkGateway -Name "AMSTEL-VPN" `
             -ResourceGroupName $ResourceGroupName `
             -Location $Location `
             -IpConfigurations $VPNIpconfig `
             -GatewayType Vpn `
             -VpnType RouteBased `
             -GatewaySku Basic
+
+            $LocalGateway = New-AzureRmLocalNetworkGateway -Name "AMSTEL-GATE" `
+            -ResourceGroupName $ResourceGroupName `
+            -Location $Location `
+            -GatewayIpAddress $LocalEndpoint `
+            -AddressPrefix $LocalNetwork
+
+            New-AzureRmVirtualNetworkGatewayConnection -Name "SiteToCloudConnection" `
+            -ResourceGroupName $ResourceGroupName -Location $Location `
+            -VirtualNetworkGateway1 $VirtualGateway `
+            -LocalNetworkGateway2 $LocalGateway `
+            -ConnectionType IPsec `
+            -SharedKey "OnlyLettersAndNumbers1"
 
             Log-Write -LogPath $sLogFile -LineValue "Virtual network and VPN gateway was successfully created."
 
@@ -211,7 +223,6 @@ Function New-AzureStackWindowsVM {
         } Catch {
         
         } 
-        
 
         #If the storage account does not exist it will be created.
         if(!$StorageAccount){
@@ -248,8 +259,6 @@ Function New-AzureStackWindowsVM {
         } Catch {
             Log-Write -LogPath $sLogFile -LineValue "Could not add TrustedHost DomainPolicy to the provisioned VM."
         }
-
-        
 
         return $VMNic.PrivateIPAddress
     
