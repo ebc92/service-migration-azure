@@ -58,7 +58,6 @@ Function New-AzureStackTenantDeployment {
     }
 
     Try {
-    Write-Output "hey"
         $VMNic = New-AzureStackVnet -NetworkIP $IPAddress -ResourceGroupName $ResourceGroupName -VNetName "AMSTEL-VNET" -VMName $VMName -ErrorAction Stop
         
     } Catch {
@@ -181,12 +180,17 @@ Function New-AzureStackWindowsVM {
         # Define a credential object
         $cred = Get-Credential
 
-        $StorageAccount = Get-AzureRmStorageAccount | Where-Object {$_.StorageAccountName -eq $StorageAccountName}
-        Log-Write -LogPath $sLogFile -LineValue "Retrieved the $($StorageAccountName) Storage Account."
+        Try {
+            $StorageAccount = Get-AzureRmStorageAccount | Where-Object {$_.StorageAccountName -eq $StorageAccountName} -ErrorAction Stop
+            Log-Write -LogPath $sLogFile -LineValue "Retrieved the $($StorageAccountName) Storage Account."
+        } Catch {
+        
+        } 
+        
 
         #If the storage account does not exist it will be created.
         if(!$StorageAccount){
-                New-AzureRmStorageAccount -ResourceGroupName $ResourceGroup -Name $StorageAccountName -Type Standard_LRS -Location $Location
+                $StorageAccount = New-AzureRmStorageAccount -ResourceGroupName $ResourceGroup -Name $StorageAccountName -Type Standard_LRS -Location $Location
                 Log-Write -LogPath $sLogFile -LineValue "Created the $($StorageAccountName) Storage Account."
         }
 
@@ -210,14 +214,14 @@ Function New-AzureStackWindowsVM {
             Set-AzureRmVMCustomScriptExtension -ResourceGroupName $ResourceGroup `
             -VMName $VMName `
             -Location $Location `
-            -FileUri "https://raw.githubusercontent.com/ebc92/service-migration-azure/master/Support/Set-DomainPolicy.ps1" `
+            -FileUri "https://raw.githubusercontent.com/ebc92/service-migration-azure/develop/Support/Set-DomainPolicy.ps1" `
             -Run 'Set-DomainPolicy.ps1' `
             -Argument "$($DomainName) $($DomainCredential)" `
             -Name TrustedHostExtension `
             -ErrorAction Stop | Update-AzureVM
-            Log-Write -LogPath $sLogFile -LineValue "Successfully added TrustedHost ScriptExtension to the provisioned VM."
+            Log-Write -LogPath $sLogFile -LineValue "Successfully added DomainPolicy ScriptExtension to the provisioned VM."
         } Catch {
-            Log-Write -LogPath $sLogFile -LineValue "Could not add TrustedHost ScriptExtension to the provisioned VM."
+            Log-Write -LogPath $sLogFile -LineValue "Could not add TrustedHost DomainPolicy to the provisioned VM."
         }
 
         
