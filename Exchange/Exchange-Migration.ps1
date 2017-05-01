@@ -579,10 +579,10 @@ Function New-DSCCertificate {
   )
 
   #Checks if the certificate used already exists
-  $certverifypath = [bool](dir cert:\LocalMachine\My\ | Where-Object { $_.subject -like "cn=localhost" })
+  $certverifypath = [bool](dir cert:\LocalMachine\My\ | Where-Object { $_.subject -like "cn=amstel-mail.amstel.local" })
   if(!($certverifypath)) {
     New-SelfSignedCertificateEx `
-    -Subject "CN=localhost" `
+    -Subject "CN=amstel-mail.amstel.local" `
     -EKU 'Document Encryption' `
     -KeyUsage 'KeyEncipherment, DataEncipherment' `
     -SAN localhost `
@@ -621,7 +621,7 @@ Function Install-Prerequisite {
   
   Process{
     Try{
-      $Domain = "Nikolaitl"
+      $Domain = "Amstel"
       $CertExportPath = "$baseDir\Cert\dsccert.cer"
       $ExchangeBinary = (Get-WmiObject win32_volume | Where-Object -Property Label -eq "EXCHANGESERVER2016-X64-CU5").Name
       $VerifyCertPath = (Test-Path -Path "$baseDir\Cert\")
@@ -744,12 +744,12 @@ $i = 0
 #Temporary to run commands during test environment
 $cred = Get-Credential
 
-Get-Prerequisite -fileShare $fileshare -ComputerName 192.168.58.116 -DomainCredential $cred -Verbose
+Get-Prerequisite -fileShare $fileshare -ComputerName amstel-mail.amstel.local -DomainCredential $cred -Verbose
 
 Mount-Exchange -SourceFile $fileshare -Verbose
 
-New-DSCCertificate -ComputerName localhost -Verbose
+New-DSCCertificate -ComputerName amstel-mail.amstel.local -Verbose
 
-Install-Prerequisite -fileShare $fileshare -ComputerName 192.168.58.116 -DomainCredential $cred -Verbose
+Install-Prerequisite -fileShare $fileshare -ComputerName amstel-mail.amstel.local -DomainCredential $cred -Verbose
 
 Log-Finish -LogPath $sLogFile
