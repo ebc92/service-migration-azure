@@ -45,9 +45,10 @@ $ErrorActionPreference = 'Continue'
 
 #Define all variables during testing, remove for production
 $baseDir = Read-Host -Prompt "Please input the filepath for the file share: "
+$ComputerName = amstel-mail.amstel.local
 $fileshare = "$baseDir\executables"
 $verifyPath = Test-Path -Path $fileshare
-
+$DomainCredential = Get-Credential
 $InstallSession = New-PSSession -ComputerName $ComputerName -Credential $DomainCredential
 #----------------------------------------------------------[Declarations]----------------------------------------------------------
 
@@ -176,7 +177,7 @@ Function Get-Prerequisite {
     [Parameter(Mandatory=$true)]
     [String]$FileShare,
     [Parameter(Mandatory=$true)]
-    [pscredential]$DomainCredential,
+    [psDomainCredentialential]$DomainDomainCredentialential,
     [Parameter(Mandatory=$true)]
     [String]$ComputerName
     )
@@ -185,9 +186,9 @@ Function Get-Prerequisite {
     $er = $ErrorActionPreference
     $ErrorActionPreference = "Continue"
   
-    $MountDrive = New-PSSession -ComputerName $ComputerName -Credential $DomainCredential
+    $MountDrive = New-PSSession -ComputerName $ComputerName -DomainCredentialential $DomainDomainCredentialential
   
-    Invoke-Command -Session $MountDrive -Credential $DomainCredential -ScriptBlock { 
+    Invoke-Command -Session $MountDrive -DomainCredentialential $DomainDomainCredentialential -ScriptBlock { 
     #Makes sure $ExchangeBinary variable is emtpy
     $ExchangeBinary = $null
 
@@ -700,7 +701,7 @@ Function Install-Prerequisite {
       <#     Foreach($element in $InstallFiles) {
           $i++
           Write-Progress -Activity 'Installing prerequisites for Exchange 2016' -Status "Currently installing file $i of $total"`
-          -PercentComplete (($i / $total) * 100)          Write-Verbose -Message "Installing file $i of $total"          Write-Verbose -Message "Installing $element.name"          Log-Write -LogPath $sLogPath -LineValue "Installing file $i of $total"          Log-Write -LogPath $sLogPath -LineValue "Installing $element.name"          Invoke-Command -ComputerName $tarComp -Credential $DomainCredential -ScriptBlock {
+          -PercentComplete (($i / $total) * 100)          Write-Verbose -Message "Installing file $i of $total"          Write-Verbose -Message "Installing $element.name"          Log-Write -LogPath $sLogPath -LineValue "Installing file $i of $total"          Log-Write -LogPath $sLogPath -LineValue "Installing $element.name"          Invoke-Command -ComputerName $tarComp -DomainCredentialential $DomainDomainCredentialential -ScriptBlock {
           Start-Process -FilePath $element.FullName -ArgumentList '/passive /norestart' -Wait
           }
       }#>
@@ -753,14 +754,13 @@ Log-Start -LogPath $sLogPath -LogName $sLogName -ScriptVersion $sScriptVersion
 $i = 0
 
 #Temporary to run commands during test environment
-$cred = Get-Credential
 
-Get-Prerequisite -fileShare $fileshare -ComputerName amstel-mail.amstel.local -DomainCredential $cred -Verbose
+Get-Prerequisite -fileShare $fileshare -ComputerName amstel-mail.amstel.local -DomainCredential $DomainCredential -Verbose
 
 #Mount-Exchange -FileShare $fileshare -Verbose
 
 New-DSCCertificate -ComputerName amstel-mail.amstel.local -Verbose
 
-Install-Prerequisite -BaseDir $baseDir -ComputerName amstel-mail.amstel.local -DomainCredential $cred -Verbose
+Install-Prerequisite -BaseDir $baseDir -ComputerName amstel-mail.amstel.local -DomainCredential $DomainCredential -Verbose
 
 Log-Finish -LogPath $sLogFile
