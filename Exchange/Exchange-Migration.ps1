@@ -625,15 +625,15 @@ Function Install-Prerequisite {
   Process{
     Try{
       $CertPW = Read-Host -Prompt "Please input a password for the certificate: " -AsSecureString
-      Invoke-Command -Session $InstallSession -ScriptBlock {
-        $Domain = "Amstel"
-        $CertExportPath = "C:\Cert\dsccert.cer"
-        $ExchangeBinary = (Get-WmiObject win32_volume | Where-Object -Property Label -eq "EXCHANGESERVER2016-X64-CU5").Name
-        $VerifyCertPath = (Test-Path -Path "C:\Cert\")
-        
+      $VerbosePreference = "Continue"
+      $Domain = "Amstel"
+      $CertExportPath = "C:\Cert\dsccert.cer"
+      $ExchangeBinary = (Get-WmiObject win32_volume | Where-Object -Property Label -eq "EXCHANGESERVER2016-X64-CU5").Name
       
       
+      Invoke-Command -Session $InstallSession -ScriptBlock {      
         #Check to see if certificate directory exists, and creates it if not
+        $VerifyCertPath = (Test-Path -Path "C:\Cert\")
         if (!($VerifyCertPath)){
           Write-Verbose -Message "Creating folder for certificate"    
           New-Item -Path "C:\Cert" -ItemType Directory -ErrorAction Ignore
@@ -649,15 +649,13 @@ Function Install-Prerequisite {
 
       Invoke-Command -Session $InstallSession -ScriptBlock {
         #Exporting Certificate            
-        Write-Verbose -Message "Exporting cert to $CertExportPath"
+        Write-Verbose -Message "Exporting cert to $using:CertExportPath"
       
-        $CertExport = (Get-ChildItem -Path Cert:\LocalMachine\My\$CertThumb)
+        $CertExport = (Get-ChildItem -Path Cert:\LocalMachine\My\$using:CertThumb)
       
-        Export-Certificate -Cert $CertExport -FilePath $CertExportPath -Type CERT
+        Export-Certificate -Cert $CertExport -FilePath $using:CertExportPath -Type CERT
         $CertExport | Export-PfxCertificate -FilePath $baseDir\Cert\cert.pfx -Password $using:CertPW
       
-      
-        $VerbosePreference = "Continue"
         Install-Module -Name xExchange, xPendingReboot -Force
         Write-Verbose -Message "Mounting new PSDrive"
         New-PSDrive -Name "Z" -PSProvider FileSystem -Root "$using:baseDir" -Persist -Credential $using:DomainCredential -ErrorAction Continue -Verbose
@@ -671,7 +669,7 @@ Function Install-Prerequisite {
       $InstallSession | Remove-PSSession
       
       Write-Verbose -Message "Importing PFX certificate"
-      Import-PfxCertificate -FilePath "Z:\Cert\cert.pfx" -CertStoreLocation Cert:\LocalMachine\My\ -Password $using:CertPW -Verbose
+      Import-PfxCertificate -FilePath "Z:\Cert\cert.pfx" -CertStoreLocation Cert:\LocalMachine\My\ -Password $CertPW -Verbose
       
       Install-Module -Name xExchange, xPendingReboot -Force
       
