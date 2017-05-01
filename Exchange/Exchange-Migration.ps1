@@ -602,6 +602,7 @@ Function New-DSCCertificate {
         -AlgorithmName 'RSA' `
         -SignatureAlgorithm 'SHA256' `
         -Verbose
+        "Created cert and moving on"
         $createcert = $true
       }else{
         Get-ChildItem Cert:\LocalMachine\My | Where-Object { $_.subject -like "cn=$using:ComputerName" } | Remove-Item
