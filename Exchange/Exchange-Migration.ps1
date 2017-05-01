@@ -670,17 +670,19 @@ Function Install-Prerequisite {
       $DSC = Resolve-Path -Path $PSScriptRoot\InstallExchange.ps1
       . $DSC
       
+      $CertThumb
+      $ComputerName
       #Configuration data for DSC
       $ConfigData=@{
         AllNodes = @(
           @{
             NodeName = '*'
             CertificateFile = "Z:\Cert\dsccert.cer"
-            Thumbprint = $CertThumb
           }
 
           @{
             NodeName = "$ComputerName"
+            Thumbprint = $CertThumb
             PSDscAllowDomainUser = $true
           }
         )
