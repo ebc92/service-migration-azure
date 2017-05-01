@@ -221,6 +221,7 @@ Function New-DSCCertificate {
     [pscredential]$DomainCredential
   )
   Invoke-Command  -Session $InstallSession -ScriptBlock {
+    [bool]$createcert = $false
     #Function to create certificate gotten from 
     #https://github.com/adbertram/Random-PowerShell-Work/blob/master/Security/New-SelfSignedCertificateEx.ps1
     Function New-SelfSignedCertificateEx
@@ -582,24 +583,27 @@ Function New-DSCCertificate {
     }
     #Checks if the certificate used already exists
     $certverifypath = [bool](dir cert:\LocalMachine\My\ | Where-Object { $_.subject -like "cn=$using:ComputerName" })
-    if(!($certverifypath)) {
-      New-SelfSignedCertificateEx `
-      -Subject "CN=$using:ComputerName" `
-      -EKU 'Document Encryption' `
-      -KeyUsage 'KeyEncipherment, DataEncipherment' `
-      -SAN localhost `
-      -FriendlyName 'DSC certificate' `
-      -Exportable `
-      -StoreLocation "LocalMachine" `
-      -StoreName 'My' `
-      -KeyLength 2048 `
-      -ProviderName 'Microsoft Enhanced Cryptographic Provider v1.0' `
-      -AlgorithmName 'RSA' `
-      -SignatureAlgorithm 'SHA256' `
-      -Verbose
-    }else{
-      #donothing      
-    }
+    Do { 
+      if(!($certverifypath)) {
+        New-SelfSignedCertificateEx `
+        -Subject "CN=$using:ComputerName" `
+        -EKU 'Document Encryption' `
+        -KeyUsage 'KeyEncipherment, DataEncipherment' `
+        -SAN localhost `
+        -FriendlyName 'DSC certificate' `
+        -Exportable `
+        -StoreLocation "LocalMachine" `
+        -StoreName 'My' `
+        -KeyLength 2048 `
+        -ProviderName 'Microsoft Enhanced Cryptographic Provider v1.0' `
+        -AlgorithmName 'RSA' `
+        -SignatureAlgorithm 'SHA256' `
+        -Verbose
+        $createcert = $true
+      }else{
+        Get-ChildItem Cert:\LocalMachine\My | Where-Object { $_.subject -like "cn=$using:ComputerName" } | Remove-Item
+      }
+    } until($createcert = $false)      
   }
 }
 
