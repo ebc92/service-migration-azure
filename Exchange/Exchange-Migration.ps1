@@ -648,12 +648,11 @@ Function Install-Prerequisite {
       
       Invoke-Command -Session $InstallSession -ScriptBlock {
         Install-Module -Name xExchange, xPendingReboot, xWindowsUpdate -Force
-        Write-Output "basedir = $baseDir creds = $DomainCredential"
         New-PSDrive -Name "Z" -PSProvider FileSystem -Root "$using:baseDir" -Persist -Credential $using:DomainCredential -ErrorAction Continue
         Import-PfxCertificate -FilePath "Z:\Cert\cert.pfx" -CertStoreLocation Cert:\LocalMachine\My\ -Password $using:CertPW
         #InstallUCMA
-        Write-Verbose -Message "Staring Install of UCMA"
-        Start-Process -FilePath "Z:\UcmaRuntimeSetup.exe" -ArgumentList '/passive /norestart' -Wait
+        Write-Verbose -Message "Starting Install of UCMA"
+        Start-Process -FilePath "Z:\Executables\UcmaRuntimeSetup.exe" -ArgumentList '/passive /norestart' -Wait
       }
       Remove-PSSession -Session $InstallSession
       
