@@ -576,28 +576,31 @@ function New-SelfSignedCertificateEx
 Function New-DSCCertificate {
   [CmdletBinding()]
   Param(
-    [string]$ComputerName
+    [string]$ComputerName,
+    [pscredential]$DomainCredential
   )
-
-  #Checks if the certificate used already exists
-  $certverifypath = [bool](dir cert:\LocalMachine\My\ | Where-Object { $_.subject -like "cn=amstel-mail.amstel.local" })
-  if(!($certverifypath)) {
-    New-SelfSignedCertificateEx `
-    -Subject "CN=amstel-mail.amstel.local" `
-    -EKU 'Document Encryption' `
-    -KeyUsage 'KeyEncipherment, DataEncipherment' `
-    -SAN localhost `
-    -FriendlyName 'DSC certificate' `
-    -Exportable `
-    -StoreLocation "LocalMachine" `
-    -StoreName 'My' `
-    -KeyLength 2048 `
-    -ProviderName 'Microsoft Enhanced Cryptographic Provider v1.0' `
-    -AlgorithmName 'RSA' `
-    -SignatureAlgorithm 'SHA256' `
-    -Verbose
-  }else{
-    #donothing      
+  $InstallSession = New-PSSession -ComputerName $ComputerName -Credential $DomainCredential
+  Invoke-Command  -Session $InstallSession -ScriptBlock { 
+    #Checks if the certificate used already exists
+    $certverifypath = [bool](dir cert:\LocalMachine\My\ | Where-Object { $_.subject -like "cn=amstel-mail.amstel.local" })
+    if(!($certverifypath)) {
+      New-SelfSignedCertificateEx `
+      -Subject "CN=amstel-mail.amstel.local" `
+      -EKU 'Document Encryption' `
+      -KeyUsage 'KeyEncipherment, DataEncipherment' `
+      -SAN localhost `
+      -FriendlyName 'DSC certificate' `
+      -Exportable `
+      -StoreLocation "LocalMachine" `
+      -StoreName 'My' `
+      -KeyLength 2048 `
+      -ProviderName 'Microsoft Enhanced Cryptographic Provider v1.0' `
+      -AlgorithmName 'RSA' `
+      -SignatureAlgorithm 'SHA256' `
+      -Verbose
+    }else{
+      #donothing      
+    }
   }
 }
 
@@ -622,12 +625,13 @@ Function Install-Prerequisite {
   
   Process{
     Try{
+    Invoke-Command -Session $InstallSession -ScriptBlock {
       $Domain = "Amstel"
       $CertExportPath = "$baseDir\Cert\dsccert.cer"
       $ExchangeBinary = (Get-WmiObject win32_volume | Where-Object -Property Label -eq "EXCHANGESERVER2016-X64-CU5").Name
       $VerifyCertPath = (Test-Path -Path "$baseDir\Cert\")
       $CertPW = Read-Host -Prompt "Please input a password for the certificate: " -AsSecureString
-      $InstallSession = New-PSSession -ComputerName $ComputerName -Credential $DomainCredential
+      
       
       #Check to see if certificate directory exists, and creates it if not
       if (!($VerifyCertPath)){
@@ -645,14 +649,14 @@ Function Install-Prerequisite {
       $CertExport = (Get-ChildItem -Path Cert:\LocalMachine\My\$CertThumb)
       
       Export-Certificate -Cert $CertExport -FilePath $CertExportPath -Type CERT
-      $CertExport | Export-PfxCertificate -FilePath $baseDir\Cert\cert.pfx -Password $CertPW
+      #$CertExport | Export-PfxCertificate -FilePath $baseDir\Cert\cert.pfx -Password $CertPW
       
-      Invoke-Command -Session $InstallSession -ScriptBlock {
+      
         $VerbosePreference = "Continue"
         Install-Module -Name xExchange, xPendingReboot -Force
         Write-Verbose -Message "Mounting new PSDrive"
         New-PSDrive -Name "Z" -PSProvider FileSystem -Root "$using:baseDir" -Persist -Credential $using:DomainCredential -ErrorAction Continue -Verbose
-        Import-PfxCertificate -FilePath "Z:\Cert\cert.pfx" -CertStoreLocation Cert:\LocalMachine\My\ -Password $using:CertPW -Verbose
+        #Import-PfxCertificate -FilePath "Z:\Cert\cert.pfx" -CertStoreLocation Cert:\LocalMachine\My\ -Password $using:CertPW -Verbose
         #InstallUCMA
         Write-Verbose -Message "Starting Install of UCMA"
         Start-Process -FilePath "Z:\Executables\UcmaRuntimeSetup.exe" -ArgumentList '/passive /norestart' -NoNewWindow -Wait
