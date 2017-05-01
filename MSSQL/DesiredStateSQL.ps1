@@ -37,7 +37,7 @@
         # copy the sqlserver iso
         File SQLServerIso {
             Credential = $Credential
-            SourcePath = "$PackagePath\en_sql_server_2016_enterprise_x64_dvd_8701793.iso"
+            SourcePath = "$PackagePath\en_sql_server_2016_enterprise_with_service_pack_1_x64_dvd_9542382.iso"
             DestinationPath = "c:\temp\SQLServer.iso"
             Type = "File"
             Ensure = "Present"
@@ -58,6 +58,8 @@
         # Install SqlServer using ini file
         #
         Script InstallSQLServer {
+
+            DependsOn = "[File]SQLServerIniFile"
 
             GetScript = {
 
@@ -98,6 +100,7 @@
         }
 
         Script PostDeploymentConfiguration {
+            DependsOn = "[Script]InstallSQLServer"
 
             GetScript = {
                 <# TODO: 
@@ -146,7 +149,7 @@
                 <# TODO:
                 Check desired state against current state.
                 For now, run regardless. #>
-                $res = $false
+                return $false
             }
             
         }
