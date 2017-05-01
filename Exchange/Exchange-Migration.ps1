@@ -119,6 +119,7 @@ Function Get-Prerequisite {
         Write-Verbose -Message "NuGet already installed, continuing prerequisite checks"
         Log-Write -LogPath $sLogFile -LineValue "NuGet already installed, continuing prerequisite checks"
       }
+      Write-Verbose -Message "Removing remote session $nuSession"
       Remove-PSSession -Name $nuSession          
       
       if (!($UCMAExist)) {
