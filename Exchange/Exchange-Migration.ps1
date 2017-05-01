@@ -655,7 +655,8 @@ Function Install-Prerequisite {
         Import-PfxCertificate -FilePath "Z:\Cert\cert.pfx" -CertStoreLocation Cert:\LocalMachine\My\ -Password $using:CertPW -Verbose
         #InstallUCMA
         Write-Verbose -Message "Starting Install of UCMA"
-        Start-Process -FilePath "Z:\Executables\UcmaRuntimeSetup.exe" -ArgumentList '/passive /norestart' -Wait
+        Start-Process -FilePath "Z:\Executables\UcmaRuntimeSetup.exe" -ArgumentList '/passive /norestart' -NoNewWindow -Wait
+        Write-Verbose -Message "UCMA Installed, starting DSC"
       }
       Remove-PSSession -Session $InstallSession
       
