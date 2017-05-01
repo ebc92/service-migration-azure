@@ -42,6 +42,7 @@
 
 #Set Error Action to Silently Continue
 $ErrorActionPreference = 'Continue'
+$VerbosePreference = 'Continue'
 
 #Define all variables during testing, remove for production
 $baseDir = Read-Host -Prompt "Please input the filepath for the file share: "
@@ -603,7 +604,7 @@ Function New-DSCCertificate {
       }else{
         Get-ChildItem Cert:\LocalMachine\My | Where-Object { $_.subject -like "cn=$using:ComputerName" } | Remove-Item
       }
-    } until($createcert = $false)      
+    } until($createcert = $true)      
   }
 }
 
