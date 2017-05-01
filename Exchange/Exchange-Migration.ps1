@@ -649,7 +649,7 @@ Function Install-Prerequisite {
       
       Invoke-Command -Session $InstallSession -ScriptBlock {
         $VerbosePreference = "Continue"
-        Install-Module -Name xExchange, xPendingReboot, xWindowsUpdate -Force
+        Install-Module -Name xExchange, xPendingReboot -Force
         Write-Verbose -Message "Mounting new PSDrive"
         New-PSDrive -Name "Z" -PSProvider FileSystem -Root "$using:baseDir" -Persist -Credential $using:DomainCredential -ErrorAction Continue -Verbose
         Import-PfxCertificate -FilePath "Z:\Cert\cert.pfx" -CertStoreLocation Cert:\LocalMachine\My\ -Password $using:CertPW -Verbose
@@ -659,6 +659,8 @@ Function Install-Prerequisite {
         Write-Verbose -Message "UCMA Installed, starting DSC"
       }
       Remove-PSSession -Session $InstallSession
+      
+      Install-Module -Name xExchange, xPendingReboot -Force
       
       $DSC = Resolve-Path -Path $PSScriptRoot\InstallExchange.ps1
       . $DSC
