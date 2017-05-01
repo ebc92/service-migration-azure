@@ -625,23 +625,23 @@ Function Install-Prerequisite {
     Try{
       Invoke-Command -Session $InstallSession -ScriptBlock {
         $Domain = "Amstel"
-        $CertExportPath = "$baseDir\Cert\dsccert.cer"
+        $CertExportPath = "C:\Cert\dsccert.cer"
         $ExchangeBinary = (Get-WmiObject win32_volume | Where-Object -Property Label -eq "EXCHANGESERVER2016-X64-CU5").Name
-        $VerifyCertPath = (Test-Path -Path "$baseDir\Cert\")
+        $VerifyCertPath = (Test-Path -Path "C:\Cert\")
         #$CertPW = Read-Host -Prompt "Please input a password for the certificate: " -AsSecureString
       
       
         #Check to see if certificate directory exists, and creates it if not
         if (!($VerifyCertPath)){
           Write-Verbose -Message "Creating folder for certificate"    
-          New-Item -Path "$baseDir\Cert" -ItemType Directory -ErrorAction Ignore
+          New-Item -Path "C:\Cert" -ItemType Directory -ErrorAction Ignore
         }
       }
       
       $CertThumb = Invoke-Command -Session $InstallSession -ScriptBlock { 
         Write-Verbose -Message "Getting Certificate Thumbprint"
         #Get Certificate thumbprint
-        $CertThumb = (Get-ChildItem -Path Cert:\LocalMachine\My | Where-Object {$_.Subject -eq "CN=$using:ComputerName"}).Thumbprint
+        $CertThumb = (Get-ChildItem -Path Cert:\LocalMachine\My | Where-Object {$_.Subject -eq "CN=localhost"}).Thumbprint
         $CertThumb
       }
 
@@ -666,7 +666,7 @@ Function Install-Prerequisite {
         Write-Verbose -Message "UCMA Installed, starting DSC"
       }
       Write-Verbose -Message "Removing remote session $InstallSession"
-      Remove-PSSession -Session $InstallSession
+      $InstallSession | Remove-PSSession
       
       Install-Module -Name xExchange, xPendingReboot -Force
       
@@ -680,7 +680,7 @@ Function Install-Prerequisite {
         AllNodes = @(
           @{
             NodeName = '*'
-            CertificateFile = "Z:\Cert\dsccert.cer"
+            CertificateFile = "C:\Cert\dsccert.cer"
           }
 
           @{
