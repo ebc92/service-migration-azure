@@ -583,7 +583,7 @@ Function New-DSCCertificate {
     $certverifypath = [bool](dir cert:\LocalMachine\My\ | Where-Object { $_.subject -like "cn=amstel-mail.amstel.local" })
     if(!($certverifypath)) {
       New-SelfSignedCertificateEx `
-      -Subject "CN=$ComputerName" `
+      -Subject "CN=localhost" `
       -EKU 'Document Encryption' `
       -KeyUsage 'KeyEncipherment, DataEncipherment' `
       -SAN localhost `
@@ -628,7 +628,7 @@ Function Install-Prerequisite {
         $CertExportPath = "$baseDir\Cert\dsccert.cer"
         $ExchangeBinary = (Get-WmiObject win32_volume | Where-Object -Property Label -eq "EXCHANGESERVER2016-X64-CU5").Name
         $VerifyCertPath = (Test-Path -Path "$baseDir\Cert\")
-        $CertPW = Read-Host -Prompt "Please input a password for the certificate: " -AsSecureString
+        #$CertPW = Read-Host -Prompt "Please input a password for the certificate: " -AsSecureString
       
       
         #Check to see if certificate directory exists, and creates it if not
