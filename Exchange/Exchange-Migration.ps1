@@ -607,6 +607,7 @@ Function New-DSCCertificate {
       }else{
         Get-ChildItem Cert:\LocalMachine\My | Where-Object { $_.subject -like "cn=$using:ComputerName" } | Remove-Item
         "$createcert where the cert was deleted"
+        $createcert = $false
       }
     } while($createcert = $false)      
   }
