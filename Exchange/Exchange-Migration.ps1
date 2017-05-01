@@ -654,7 +654,7 @@ Function Install-Prerequisite {
         $CertExport = (Get-ChildItem -Path Cert:\LocalMachine\My\$using:CertThumb)
       
         Export-Certificate -Cert $CertExport -FilePath $using:CertExportPath -Type CERT
-        $CertExport | Export-PfxCertificate -FilePath $baseDir\Cert\cert.pfx -Password $using:CertPW
+        $CertExport | Export-PfxCertificate -FilePath $using:baseDir\Cert\cert.pfx -Password $using:CertPW
       
         Install-Module -Name xExchange, xPendingReboot -Force
         Write-Verbose -Message "Mounting new PSDrive"
@@ -669,7 +669,7 @@ Function Install-Prerequisite {
       $InstallSession | Remove-PSSession
       
       Write-Verbose -Message "Importing PFX certificate"
-      Import-PfxCertificate -FilePath "Z:\Cert\cert.pfx" -CertStoreLocation Cert:\LocalMachine\My\ -Password $CertPW -Verbose
+      Import-PfxCertificate -FilePath "$baseDir\Cert\cert.pfx" -CertStoreLocation Cert:\LocalMachine\My\ -Password $CertPW -Verbose
       
       Install-Module -Name xExchange, xPendingReboot -Force
       
