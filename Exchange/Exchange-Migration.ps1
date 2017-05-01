@@ -586,7 +586,7 @@ Function New-DSCCertificate {
     #Checks if the certificate used already exists
     
     Do {
-    $certverifypath = [bool](dir cert:\LocalMachine\My\ | Where-Object { $_.subject -like "cn=$using:ComputerName" })
+      $certverifypath = [bool](dir cert:\LocalMachine\My\ | Where-Object { $_.subject -like "cn=$using:ComputerName" })
       if(!($certverifypath)) {
         New-SelfSignedCertificateEx `
         -Subject "CN=$using:ComputerName" `
@@ -602,7 +602,7 @@ Function New-DSCCertificate {
         -AlgorithmName 'RSA' `
         -SignatureAlgorithm 'SHA256' `
         -Verbose
-        "Created cert and moving on"
+        "Created cert and moving on CN=$using:computername"
         $createcert = $true
       }else{
         Get-ChildItem Cert:\LocalMachine\My | Where-Object { $_.subject -like "cn=$using:ComputerName" } | Remove-Item
@@ -680,6 +680,9 @@ Function Install-Prerequisite {
       
       Write-Verbose -Message "Importing PFX certificate"
       Import-PfxCertificate -FilePath "$baseDir\Cert\cert.pfx" -CertStoreLocation Cert:\LocalMachine\My\ -Password $CertPW -Verbose
+      $CertExport = (Get-ChildItem -Path Cert:\LocalMachine\My\$CertThumb)
+      
+      Export-Certificate -Cert $CertExport -FilePath $CertExportPath -Type CERT
       
       Install-Module -Name xExchange, xPendingReboot -Force
       
