@@ -1,7 +1,7 @@
 ﻿#Getting migration variables from configuration file
 $AzureStack = $SMAConfig.Global.Get_Item('azurestack')
 $Source = $SMAConfig.MSSQL.Get_Item('source')
-$Destination =   $SMAConfig.MSSQL.Get_Item('destination')
+$Destination = $SMAConfig.MSSQL.Get_Item('destination')
 $Instance = $SMAConfig.MSSQL.Get_Item('instance')
 $PackagePath = Join-Path -Path $SMAConfig.Global.Get_Item('fileshare') -ChildPath $SMAConfig.MSSQL.Get_Item('packagepath')
 
@@ -39,12 +39,35 @@ $ScriptBlock = {
 
 Invoke-Command -ComputerName $Source -ScriptBlock $ScriptBlock -Credential $Credential
 
-#
+$cd = @{
+    AllNodes = @(
+        @{
+            NodeName = $Destination
+            Role = "SqlServer"
+            PSDscAllowPlainTextPassword = $true
+        }
+    );
+}
 
-#Start-MSSQLDeployment -ComputerName $ComputerName -PackagePath $PackagePath -InstanceName $InstanceName -Credential $Credential
+Try {
+    Log-Write -LogPath $LogPath -LineValue "Generating MOF-file from DSC script."
+    DesiredStateSQL -ConfigurationData $cd -PackagePath $PackagePath -WinSources "$PackagePath\sxs" -Credential $Credential
+    Log-Write -LogPath $LogPath -LineValue "Starting DSC configuration."
+    Start-DscConfiguration -ComputerName $Destination -Path .\DesiredStateSQL -Verbose -Wait -Force -Credential $Credential -ErrorAction Stop
+    Log-Write -LogPath $LogPath -LineValue "DSC configuration was succcessfully pushed."
 
-#Log-Write -LogPath $sLogFile -LineValue "SQL Server 2016 was successfully deployed on $ComputerName."
+} Catch {
+    Log-Write -LogPath $LogPath -LineValue "An error occured when pushing the DSC configuration."
+    Log-Error -LogPath $LogPath -ErrorDesc $_.Exception -ExitGracefully $False
+}
 
-#Log-Write -LogPath $sLogFile -LineValue "Starting SQL Instance migration from $Source\$InstanceName to $ComputerName\$InstanceName."
+<#
+Try {
+    Start-MSSQLMigration -Source $Source -Destination $Destination -InstanceName $Instance -Credential $Credential -SqlCredential $SqlCredential -Share $PackagePath
 
-#Start-MSSQLMigration -Source $Source -Destination $ComputerName -InstanceName $InstanceName -Share $PackagePath -SqlCredential $SqlCredential -Credentials $Credential
+} Catch {
+    Log-Write -LogPath $sLogFile -LineValue "An error occured when pushing the DSC configuration."
+    Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $False
+}
+
+#>

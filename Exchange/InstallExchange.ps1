@@ -4,12 +4,11 @@
   (
     [PSCredential]$DomainCredential,
     [String]$FileShare,
-    [String]$CertThumb,
     [String]$ExchangeBinary
   )
 
-  Import-DscResource -Module xExchange
-  Import-DscResource -Module xPendingReboot
+  Import-DscResource -ModuleName xExchange
+  Import-DscResource -ModuleName xPendingReboot
 
   Node $AllNodes.NodeName
   {
@@ -18,6 +17,7 @@
       CertificateId      = $Node.Thumbprint
       RebootNodeIfNeeded = $true
       ActionAfterReboot  = 'ContinueConfiguration'
+      ConfigurationMode  = 'ApplyOnly'
     }
 
     #Check if a reboot is needed before installing Server Roles
@@ -31,12 +31,6 @@
       Ensure = 'Present'
       Name = 'AS-HTTP-Activation'
       DependsOn = '[xPendingReboot]BeforeServerRoles'
-    }
-        
-    WindowsFeature DesktopExp
-    {
-      Ensure = 'Present'
-      Name = 'Desktop-Experience'
     }
         
     WindowsFeature NetFW45
@@ -230,31 +224,16 @@
       Ensure = 'Present'
       Name = 'RSAT-ADDS'
     }
-    
-    #Check if a reboot is needed before installing UCMA v4.0
-    xPendingReboot BeforeUCMA
-    {
-      Name      = "BeforeUCMA"
-    }
-      
-    Package UCMA
-    {
-      Name      = 'UCMA 4.0' 
-      Ensure    = 'Present'
-      Path      = "$fileshare"
-      ProductID = 'ED98ABF5-B6BF-47ED-92AB-1CDCAB964447'
-      Arguments = '/passive /norestart'
-      Credential= "$DomainCredential"
-    }
 
-    #Copy the Exchange setup files locally
+    Copy the Exchange setup files locally
     File ExchangeBinaries
     {
-      Ensure          = 'Present'
+      #Ensure          = 'Present'
       Type            = 'Directory'
       Recurse         = $true
       SourcePath      = "$ExchangeBinary"
       DestinationPath = 'C:\Binaries\E16CU5'
+      Credential      = $DomainCredential
     }
 
     #Check if a reboot is needed before installing Exchange
@@ -290,20 +269,7 @@ if ($null -eq $DomainCredential)
   $Creds = Get-Credential -Message "Enter credentials for establishing Remote Powershell sessions to Exchange"
 }
 
-$ConfigData=@{
-  AllNodes = @(
-    @{
-      NodeName = '*'
-      CertificateFile = "C:\tempExchange\Cert\dsccert.cer"
-      Thumbprint = $CertThumb
-    }
 
-    @{
-      NodeName = "localhost"
-      PSDscAllowDomainUser = $true
-    }
-  )
-}
 
 ###Sets up LCM on target computers to decrypt credentials, and to allow reboot during resource execution
 #Set-DscLocalConfigurationManager -Path .\InstallExchange -Verbose

@@ -43,11 +43,8 @@
 #Set Error Action to Silently Continue
 $ErrorActionPreference = 'Continue'
 
-#Dot Source required Function Libraries
-
-
 #Define all variables during testing, remove for production
-$baseDir = 'C:\tempExchange'
+$baseDir = Read-Host -Prompt "Please input the filepath for the file share: "
 $fileshare = "$baseDir\executables"
 $verifyPath = Test-Path -Path $fileshare
 
@@ -61,14 +58,14 @@ $sLogPath = "$baseDir\log\"
 $sLogName = "Migrate-Exchange-$logDate.log"
 $sLogFile = Join-Path -Path $sLogPath -ChildPath $sLogName
 
-    
+#Dot Source required Function Libraries    
 $DotPath = Resolve-Path "$PSScriptRoot\..\Libraries\Log-Functions.ps1"
 . $DotPath
 
 #Checking if executables already exist
-$UCMAExist = Test-Path c:\tempExchange\Executables\UcmaRuntimeSetup.exe
+$UCMAExist = Test-Path "$fileshare\UcmaRuntimeSetup.exe"
 
-$ExchangeExist = Test-Path -Path c:\tempExchange\Executables\ExchangeServer2016-x64-cu5.iso
+$ExchangeExist = Test-Path -Path "$fileshare\ExchangeServer2016-x64-cu5.iso"
 
 #-----------------------------------------------------------[Functions]------------------------------------------------------------
 Function Get-Prerequisite {
@@ -83,9 +80,6 @@ Function Get-Prerequisite {
   )
   
   Begin{
-    #First checks if Log Path and creates it if not
-
-   
     $variableOutput = '        $fileShare ' + "= $fileShare `n"`
     +'        $tarComp ' + "= $ComputerName `n"`
     +'        $DomainCredential ' + "= $DomainCredential"
@@ -155,9 +149,8 @@ Function Get-Prerequisite {
         Write-Verbose -Message "Exchange ISO already exists, no need to download"
         Log-Write -LogPath $sLogFile -LineValue "Exchange ISO already exists, no need to download"
       }
-      
-
-    }     
+    }
+         
     Catch {
       Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $True
       Break
@@ -177,37 +170,46 @@ Function Get-Prerequisite {
 Function Mount-Exchange {
   Param(
     [Parameter(Mandatory=$true)]
-    [String]$SourceFile
+    [String]$FileShare,
+    [Parameter(Mandatory=$true)]
+    [pscredential]$DomainCredential,
+    [Parameter(Mandatory=$true)]
+    [String]$ComputerName
   )
+  
   [bool]$finished=$false
   $er = $ErrorActionPreference
   $ErrorActionPreference = "Continue"
   
-  #Makes sure $ExchangeBinary variable is emtpy
-  $ExchangeBinary = $null
-  
-  $ExchangeBinary = (Get-WmiObject win32_volume | Where-Object -Property Label -eq "EXCHANGESERVER2016-X64-CU5").Name
-  
-  if ($ExhcangeBinary -eq $null)
-  {
-    Do {
-      Try {          
-        Mount-DiskImage -ImagePath $SourceFile\ExchangeServer2016-x64-cu5.iso
-        $finished = $true
-        $ErrorActionPreference = $er
-        Return $ExchangeBinary
-      }
-      Catch {
-        $SourceFile = Read-Host(`
-        "The path $SourceFile does not contain the ISO file, please enter the correct path for the Exchange 2016 ISO Image folder")
-        $finished = $false
-      }
-    }
-    While ($finished -eq $false)
-  }
-  
+  $MountDrive = New-PSSession -ComputerName $ComputerName -Credential $DomainCredential
   
 
+  
+  Invoke-Command -Session $MountDrive -ScriptBlock { 
+    #Makes sure $ExchangeBinary variable is emtpy
+    $ExchangeBinary = $null
+
+    $ExchangeBinary = (Get-WmiObject win32_volume | Where-Object -Property Label -eq "EXCHANGESERVER2016-X64-CU5").Name
+
+    if ($ExchangeBinary -eq $null)
+    {
+      Do {
+        Try {          
+          Mount-DiskImage -ImagePath $using:FileShare\ExchangeServer2016-x64-cu5.iso
+          $finished = $true
+          $ErrorActionPreference = $er
+          Return $ExchangeBinary
+        }
+        Catch {
+          $SourceFile = Read-Host(`
+          "The path $FileShare does not contain the ISO file, please enter the correct path for the Exchange 2016 ISO Image folder")
+          $finished = $false
+        }
+      }
+      While ($finished -eq $false)
+    }  
+  }
+  Remove-PSSession -Name $MountDrive
 }
 
 #Function to create certificate gotten from 
@@ -603,7 +605,7 @@ Function Install-Prerequisite {
   [CmdletBinding()]
   Param(
     [parameter(Mandatory=$true)]
-    [string]$fileShare,
+    [string]$baseDir,
     [parameter(Mandatory=$true)]
     [string]$ComputerName,
     [parameter(Mandatory=$true)]
@@ -619,17 +621,19 @@ Function Install-Prerequisite {
   
   Process{
     Try{
-      [int]$i = 0
-      $InstallFiles = Get-ChildItem -Path $fileShare
-      $total = $InstallFiles.Count
       $Domain = "Nikolaitl"
-      $CertExportPath = "C:\tempExchange\Cert\dsccert.cert"
+      $CertExportPath = "$baseDir\Cert\dsccert.cer"
       $ExchangeBinary = (Get-WmiObject win32_volume | Where-Object -Property Label -eq "EXCHANGESERVER2016-X64-CU5").Name
-    
+      $VerifyCertPath = (Test-Path -Path "$baseDir\Cert\")
+      $CertPW = Read-Host -Prompt "Please input a password for the certificate: " -AsSecureString
+      $InstallSession = New-PSSession -ComputerName $ComputerName -Credential $DomainCredential
       
-      Write-Verbose -Message "Total amount of files to be installed is $total, starting installation"
-      Log-Write -LogPath $sLogPath -LineValue "Total amount of files to be installed is $total, starting installation"
-
+      #Check to see if certificate directory exists, and creates it if not
+      if (!($VerifyCertPath)){
+        Write-Verbose -Message "Creating folder for certificate"    
+        New-Item -Path "$baseDir\Cert" -ItemType Directory -ErrorAction Ignore
+      }
+      
       Write-Verbose -Message "Getting Certificate Thumbprint"
       #Get Certificate thumbprint
       $CertThumb = (Get-ChildItem -Path Cert:\LocalMachine\My | Where-Object {$_.Subject -eq "CN=localhost"}).Thumbprint
@@ -640,19 +644,39 @@ Function Install-Prerequisite {
       $CertExport = (Get-ChildItem -Path Cert:\LocalMachine\My\$CertThumb)
       
       Export-Certificate -Cert $CertExport -FilePath $CertExportPath -Type CERT
+      $CertExport | Export-PfxCertificate -FilePath $baseDir\Cert\cert.pfx -Password $CertPW
       
-      Install-Module -Name xExchange, xPendingReboot, xWindowsUpdate
+      Invoke-Command -Session $InstallSession -ScriptBlock {
+        Install-Module -Name xExchange, xPendingReboot, xWindowsUpdate -Force
+        Import-PfxCertificate -FilePath $using:baseDir\Cert\cert.pfx -CertStoreLocation Cert:\LocalMachine\My\ -Password $using:CertPW
+        #InstallUCMA
+        Write-Verbose -Message "Staring Install of UCMA"
+        Start-Process -FilePath $using:fileShare\UcmaRuntimeSetup.exe -ArgumentList '/passive /norestart' -Wait
+      }
       
       $DSC = Resolve-Path -Path $PSScriptRoot\InstallExchange.ps1
       . $DSC
       
-      #Sett password for exported cert
-      $certpw = ConvertTo-SecureString -String "NotSoSecure" -AsPlainText -Force
+      #Configuration data for DSC
+      $ConfigData=@{
+        AllNodes = @(
+          @{
+            NodeName = '*'
+            CertificateFile = "$baseDir\Cert\dsccert.cer"
+            Thumbprint = $CertThumb
+          }
+
+          @{
+            NodeName = "$ComputerName"
+            PSDscAllowDomainUser = $true
+          }
+        )
+      }
                   
       Write-Verbose -Message "Compiling DSC script"
       #Compiles DSC Script
-      InstallExchange -DomainCredential $DomainCredential -ExchangeBinary $ExchangeBinary `
-      -CertThumb $CertThumb- -FileShare $fileShare -Verbose 
+      InstallExchange -ConfigurationData $ConfigData -DomainCredential $DomainCredential -ExchangeBinary $ExchangeBinary `
+      -FileShare $fileShare -Verbose
 
       Write-Verbose -Message "Setting up LCM on target computer"
       #Sets up LCM on target comp
