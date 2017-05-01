@@ -1,239 +1,246 @@
 ﻿Configuration InstallExchange
 {
-  param
-  (
-    [PSCredential]$DomainCredential,
-    [String]$FileShare,
-    [String]$ExchangeBinary
-  )
+param
+(
+  [PSCredential]$DomainCredential,
+  [String]$FileShare
+)
 
-  Import-DscResource -ModuleName xExchange
-  Import-DscResource -ModuleName xPendingReboot
+Import-DscResource -ModuleName xExchange
+Import-DscResource -ModuleName xPendingReboot
 
-  Node $AllNodes.NodeName
+Node $AllNodes.NodeName
+{
+  LocalConfigurationManager
   {
-    LocalConfigurationManager
-    {
-      CertificateId      = $Node.Thumbprint
-      RebootNodeIfNeeded = $true
-      ActionAfterReboot  = 'ContinueConfiguration'
-      ConfigurationMode  = 'ApplyOnly'
-    }
+    CertificateId      = $Node.Thumbprint
+    RebootNodeIfNeeded = $true
+    ActionAfterReboot  = 'ContinueConfiguration'
+    ConfigurationMode  = 'ApplyOnly'
+  }
 
-    #Check if a reboot is needed before installing Server Roles
-    xPendingReboot BeforeServerRoles
-    {
-      Name      = "BeforeServerRoles"
-    }
+  #Check if a reboot is needed before installing Server Roles
+  xPendingReboot BeforeServerRoles
+  {
+    Name      = "BeforeServerRoles"
+  }
     
-    WindowsFeature ASHTTP
-    {
-      Ensure = 'Present'
-      Name = 'AS-HTTP-Activation'
-      DependsOn = '[xPendingReboot]BeforeServerRoles'
-    }
+  WindowsFeature ASHTTP
+  {
+    Ensure = 'Present'
+    Name = 'AS-HTTP-Activation'
+    DependsOn = '[xPendingReboot]BeforeServerRoles'
+  }
         
-    WindowsFeature NetFW45
-    {
-      Ensure = 'Present'
-      Name = 'NET-Framework-45-Features'
-    }
+  WindowsFeature NetFW45
+  {
+    Ensure = 'Present'
+    Name = 'NET-Framework-45-Features'
+  }
         
-    WindowsFeature RPCProxy
-    {
-      Ensure = 'Present'
-      Name = 'RPC-over-HTTP-proxy'
-    }
+  WindowsFeature RPCProxy
+  {
+    Ensure = 'Present'
+    Name = 'RPC-over-HTTP-proxy'
+  }
         
-    WindowsFeature RSATClus
-    {
-      Ensure = 'Present'
-      Name = 'RSAT-Clustering'
-    }
+  WindowsFeature RSATClus
+  {
+    Ensure = 'Present'
+    Name = 'RSAT-Clustering'
+  }
         
-    WindowsFeature RSATClusCmd
-    {
-      Ensure = 'Present'
-      Name = 'RSAT-Clustering-CmdInterface'
-    }
+  WindowsFeature RSATClusCmd
+  {
+    Ensure = 'Present'
+    Name = 'RSAT-Clustering-CmdInterface'
+  }
         
-    WindowsFeature RSATClusMgmt
-    {
-      Ensure = 'Present'
-      Name = 'RSAT-Clustering-Mgmt'
-    }
+  WindowsFeature RSATClusMgmt
+  {
+    Ensure = 'Present'
+    Name = 'RSAT-Clustering-Mgmt'
+  }
         
-    WindowsFeature RSATClusPS
-    {
-      Ensure = 'Present'
-      Name = 'RSAT-Clustering-PowerShell'
-    }
+  WindowsFeature RSATClusPS
+  {
+    Ensure = 'Present'
+    Name = 'RSAT-Clustering-PowerShell'
+  }
         
-    WindowsFeature WebConsole
-    {
-      Ensure = 'Present'
-      Name = 'Web-Mgmt-Console'
-    }
+  WindowsFeature WebConsole
+  {
+    Ensure = 'Present'
+    Name = 'Web-Mgmt-Console'
+  }
         
-    WindowsFeature WAS
-    {
-      Ensure = 'Present'
-      Name = 'WAS-Process-Model'
-    }
+  WindowsFeature WAS
+  {
+    Ensure = 'Present'
+    Name = 'WAS-Process-Model'
+  }
         
-    WindowsFeature WebAsp
-    {
-      Ensure = 'Present'
-      Name = 'Web-Asp-Net45'
-    }
+  WindowsFeature WebAsp
+  {
+    Ensure = 'Present'
+    Name = 'Web-Asp-Net45'
+  }
         
-    WindowsFeature WBA
-    {
-      Ensure = 'Present'
-      Name = 'Web-Basic-Auth'
-    }
+  WindowsFeature WBA
+  {
+    Ensure = 'Present'
+    Name = 'Web-Basic-Auth'
+  }
         
-    WindowsFeature WCA
-    {
-      Ensure = 'Present'
-      Name = 'Web-Client-Auth'
-    }
+  WindowsFeature WCA
+  {
+    Ensure = 'Present'
+    Name = 'Web-Client-Auth'
+  }
         
-    WindowsFeature WDA
-    {
-      Ensure = 'Present'
-      Name = 'Web-Digest-Auth'
-    }
+  WindowsFeature WDA
+  {
+    Ensure = 'Present'
+    Name = 'Web-Digest-Auth'
+  }
         
-    WindowsFeature WDB
-    {
-      Ensure = 'Present'
-      Name = 'Web-Dir-Browsing'
-    }
+  WindowsFeature WDB
+  {
+    Ensure = 'Present'
+    Name = 'Web-Dir-Browsing'
+  }
         
-    WindowsFeature WDC
-    {
-      Ensure = 'Present'
-      Name = 'Web-Dyn-Compression'
-    }
+  WindowsFeature WDC
+  {
+    Ensure = 'Present'
+    Name = 'Web-Dyn-Compression'
+  }
         
-    WindowsFeature WebHttp
-    {
-      Ensure = 'Present'
-      Name = 'Web-Http-Errors'
-    }
+  WindowsFeature WebHttp
+  {
+    Ensure = 'Present'
+    Name = 'Web-Http-Errors'
+  }
         
-    WindowsFeature WebHttpLog
-    {
-      Ensure = 'Present'
-      Name = 'Web-Http-Logging'
-    }
+  WindowsFeature WebHttpLog
+  {
+    Ensure = 'Present'
+    Name = 'Web-Http-Logging'
+  }
         
-    WindowsFeature WebHttpRed
-    {
-      Ensure = 'Present'
-      Name = 'Web-Http-Redirect'
-    }
+  WindowsFeature WebHttpRed
+  {
+    Ensure = 'Present'
+    Name = 'Web-Http-Redirect'
+  }
         
-    WindowsFeature WebHttpTrac
-    {
-      Ensure = 'Present'
-      Name = 'Web-Http-Tracing'
-    }
+  WindowsFeature WebHttpTrac
+  {
+    Ensure = 'Present'
+    Name = 'Web-Http-Tracing'
+  }
         
-    WindowsFeature WebISAPI
-    {
-      Ensure = 'Present'
-      Name = 'Web-ISAPI-Ext'
-    }
+  WindowsFeature WebISAPI
+  {
+    Ensure = 'Present'
+    Name = 'Web-ISAPI-Ext'
+  }
         
-    WindowsFeature WebISAPIFilt
-    {
-      Ensure = 'Present'
-      Name = 'Web-ISAPI-Filter'
-    }
+  WindowsFeature WebISAPIFilt
+  {
+    Ensure = 'Present'
+    Name = 'Web-ISAPI-Filter'
+  }
         
-    WindowsFeature WebLgcyMgmt
-    {
-      Ensure = 'Present'
-      Name = 'Web-Lgcy-Mgmt-Console'
-    }
+  WindowsFeature WebLgcyMgmt
+  {
+    Ensure = 'Present'
+    Name = 'Web-Lgcy-Mgmt-Console'
+  }
         
-    WindowsFeature WebMetaDB
-    {
-      Ensure = 'Present'
-      Name = 'Web-Metabase'
-    }
+  WindowsFeature WebMetaDB
+  {
+    Ensure = 'Present'
+    Name = 'Web-Metabase'
+  }
         
-    WindowsFeature WebMgmtSvc
-    {
-      Ensure = 'Present'
-      Name = 'Web-Mgmt-Service'
-    }
+  WindowsFeature WebMgmtSvc
+  {
+    Ensure = 'Present'
+    Name = 'Web-Mgmt-Service'
+  }
         
-    WindowsFeature WebNet45
-    {
-      Ensure = 'Present'
-      Name = 'Web-Net-Ext45'
-    }
+  WindowsFeature WebNet45
+  {
+    Ensure = 'Present'
+    Name = 'Web-Net-Ext45'
+  }
         
-    WindowsFeature WebReq
-    {
-      Ensure = 'Present'
-      Name = 'Web-Request-Monitor'
-    }
+  WindowsFeature WebReq
+  {
+    Ensure = 'Present'
+    Name = 'Web-Request-Monitor'
+  }
         
-    WindowsFeature WebSrv
-    {
-      Ensure = 'Present'
-      Name = 'Web-Server'
-    }
+  WindowsFeature WebSrv
+  {
+    Ensure = 'Present'
+    Name = 'Web-Server'
+  }
         
-    WindowsFeature WebStat
-    {
-      Ensure = 'Present'
-      Name = 'Web-Stat-Compression'
-    }
+  WindowsFeature WebStat
+  {
+    Ensure = 'Present'
+    Name = 'Web-Stat-Compression'
+  }
         
-    WindowsFeature WebStatCont
-    {
-      Ensure = 'Present'
-      Name = 'Web-Static-Content'
-    }
+  WindowsFeature WebStatCont
+  {
+    Ensure = 'Present'
+    Name = 'Web-Static-Content'
+  }
         
-    WindowsFeature WebWindAuth
-    {
-      Ensure = 'Present'
-      Name = 'Web-Windows-Auth'
-    }
+  WindowsFeature WebWindAuth
+  {
+    Ensure = 'Present'
+    Name = 'Web-Windows-Auth'
+  }
         
-    WindowsFeature WebWMI
-    {
-      Ensure = 'Present'
-      Name = 'Web-WMI'
-    }
+  WindowsFeature WebWMI
+  {
+    Ensure = 'Present'
+    Name = 'Web-WMI'
+  }
         
-    WindowsFeature WebIF
-    {
-      Ensure = 'Present'
-      Name = 'Windows-Identity-Foundation'
-    }
+  WindowsFeature WebIF
+  {
+    Ensure = 'Present'
+    Name = 'Windows-Identity-Foundation'
+  }
         
-    WindowsFeature RSATADDS
-    {
-      Ensure = 'Present'
-      Name = 'RSAT-ADDS'
-    }
+  WindowsFeature RSATADDS
+  {
+    Ensure = 'Present'
+    Name = 'RSAT-ADDS'
+  }
 
-    Copy the Exchange setup files locally
-    File ExchangeBinaries
-    {
-      #Ensure          = 'Present'
-      Type            = 'Directory'
-      Recurse         = $true
-      SourcePath      = "$ExchangeBinary"
-      DestinationPath = 'C:\Binaries\E16CU5'
-      Credential      = $DomainCredential
+  Script MountExchange {
+    GetScript = {
+    }
+    SetScript = { 
+      $ExchangeBinary = $null
+
+      $ExchangeBinary = (Get-WmiObject win32_volume | Where-Object -Property Label -eq "EXCHANGESERVER2016-X64-CU5").Name
+
+      if ($ExchangeBinary -eq $null)
+      {        
+        Mount-DiskImage -ImagePath $FileShare\ExchangeServer2016-x64-cu5.iso
+        $ExchangeBinary = (Get-WmiObject win32_volume | Where-Object -Property Label -eq "EXCHANGESERVER2016-X64-CU5").Name
+      }
+    }
+      TestScript = {
+        Return $false
+      }
     }
 
     #Check if a reboot is needed before installing Exchange
@@ -241,13 +248,13 @@
     {
       Name      = "BeforeExchangeInstall"
 
-      DependsOn  = '[File]ExchangeBinaries'
+      DependsOn  = '[Script]MountExchange'
     }
 
     #Do the Exchange install
     xExchInstall InstallExchange
     {
-      Path       = "C:\Binaries\E16CU5\Setup.exe"
+      Path       = "$ExchangeBinary\setup.exe"
       Arguments  = "/mode:Install /role:Mailbox /IAcceptExchangeServerLicenseTerms /OrganizationName:Nikolaitl"
       Credential = $DomainCredential
 

@@ -96,7 +96,7 @@ Function Get-Prerequisite {
         $nuget = Get-PackageProvider | Where-Object -Property Name -eq nuget
         Return $nuget 
       }
-      Remove-PSSession -Name $nuSession
+      
      
       #Creating the required folders if they do not exist 
       if (!($verifyPath)) {
@@ -112,12 +112,14 @@ Function Get-Prerequisite {
       if (!($nuget)) {
         Write-Verbose -Message "NuGet not installed, installing now..."
         Log-Write -LogPath $sLogFile -LineValue "Nuget not installed, installing now..."
-        Install-PackageProvider -Name NuGet -Force
+        Invoke-Command -Session $nuSession -ScriptBlock { 
+          Install-PackageProvider -Name NuGet -Force
+        }
       } else {
         Write-Verbose -Message "NuGet already installed, continuing prerequisite checks"
         Log-Write -LogPath $sLogFile -LineValue "NuGet already installed, continuing prerequisite checks"
-      }  
-          
+      }
+      Remove-PSSession -Name $nuSession          
       
       if (!($UCMAExist)) {
         #Downloading UCMA 4.0 Runtime      
@@ -166,7 +168,7 @@ Function Get-Prerequisite {
   }
 }
 
-#Mounts Exchange 2016 image from share
+<#Mounts Exchange 2016 image from share
 Function Mount-Exchange {
   Param(
     [Parameter(Mandatory=$true)]
@@ -183,9 +185,7 @@ Function Mount-Exchange {
   
   $MountDrive = New-PSSession -ComputerName $ComputerName -Credential $DomainCredential
   
-
-  
-  Invoke-Command -Session $MountDrive -ScriptBlock { 
+  Invoke-Command -Session $MountDrive -Credential $DomainCredential -ScriptBlock { 
     #Makes sure $ExchangeBinary variable is emtpy
     $ExchangeBinary = $null
 
@@ -210,7 +210,7 @@ Function Mount-Exchange {
     }  
   }
   Remove-PSSession -Name $MountDrive
-}
+}#>
 
 #Function to create certificate gotten from 
 #https://github.com/adbertram/Random-PowerShell-Work/blob/master/Security/New-SelfSignedCertificateEx.ps1
@@ -675,8 +675,7 @@ Function Install-Prerequisite {
                   
       Write-Verbose -Message "Compiling DSC script"
       #Compiles DSC Script
-      InstallExchange -ConfigurationData $ConfigData -DomainCredential $DomainCredential -ExchangeBinary $ExchangeBinary `
-      -FileShare $fileShare -Verbose
+      InstallExchange -ConfigurationData $ConfigData -DomainCredential $DomainCredential -FileShare $baseDir\executables -Verbose
 
       Write-Verbose -Message "Setting up LCM on target computer"
       #Sets up LCM on target comp
@@ -746,10 +745,10 @@ $cred = Get-Credential
 
 Get-Prerequisite -fileShare $fileshare -ComputerName amstel-mail.amstel.local -DomainCredential $cred -Verbose
 
-Mount-Exchange -SourceFile $fileshare -Verbose
+Mount-Exchange -FileShare $fileshare -Verbose
 
 New-DSCCertificate -ComputerName amstel-mail.amstel.local -Verbose
 
-Install-Prerequisite -fileShare $fileshare -ComputerName amstel-mail.amstel.local -DomainCredential $cred -Verbose
+Install-Prerequisite -BaseDir $baseDir -ComputerName amstel-mail.amstel.local -DomainCredential $cred -Verbose
 
 Log-Finish -LogPath $sLogFile
