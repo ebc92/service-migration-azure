@@ -48,6 +48,7 @@ $baseDir = Read-Host -Prompt "Please input the filepath for the file share: "
 $fileshare = "$baseDir\executables"
 $verifyPath = Test-Path -Path $fileshare
 
+$InstallSession = New-PSSession -ComputerName $ComputerName -Credential $DomainCredential
 #----------------------------------------------------------[Declarations]----------------------------------------------------------
 
 #Script Version
@@ -170,23 +171,23 @@ Function Get-Prerequisite {
 }
 
 <#Mounts Exchange 2016 image from share
-Function Mount-Exchange {
-  Param(
+    Function Mount-Exchange {
+    Param(
     [Parameter(Mandatory=$true)]
     [String]$FileShare,
     [Parameter(Mandatory=$true)]
     [pscredential]$DomainCredential,
     [Parameter(Mandatory=$true)]
     [String]$ComputerName
-  )
+    )
   
-  [bool]$finished=$false
-  $er = $ErrorActionPreference
-  $ErrorActionPreference = "Continue"
+    [bool]$finished=$false
+    $er = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
   
-  $MountDrive = New-PSSession -ComputerName $ComputerName -Credential $DomainCredential
+    $MountDrive = New-PSSession -ComputerName $ComputerName -Credential $DomainCredential
   
-  Invoke-Command -Session $MountDrive -Credential $DomainCredential -ScriptBlock { 
+    Invoke-Command -Session $MountDrive -Credential $DomainCredential -ScriptBlock { 
     #Makes sure $ExchangeBinary variable is emtpy
     $ExchangeBinary = $null
 
@@ -194,23 +195,23 @@ Function Mount-Exchange {
 
     if ($ExchangeBinary -eq $null)
     {
-      Do {
-        Try {          
-          Mount-DiskImage -ImagePath $using:FileShare\ExchangeServer2016-x64-cu5.iso
-          $finished = $true
-          $ErrorActionPreference = $er
-          Return $ExchangeBinary
-        }
-        Catch {
-          $SourceFile = Read-Host(`
-          "The path $FileShare does not contain the ISO file, please enter the correct path for the Exchange 2016 ISO Image folder")
-          $finished = $false
-        }
-      }
-      While ($finished -eq $false)
+    Do {
+    Try {          
+    Mount-DiskImage -ImagePath $using:FileShare\ExchangeServer2016-x64-cu5.iso
+    $finished = $true
+    $ErrorActionPreference = $er
+    Return $ExchangeBinary
+    }
+    Catch {
+    $SourceFile = Read-Host(`
+    "The path $FileShare does not contain the ISO file, please enter the correct path for the Exchange 2016 ISO Image folder")
+    $finished = $false
+    }
+    }
+    While ($finished -eq $false)
     }  
-  }
-  Remove-PSSession -Name $MountDrive
+    }
+    Remove-PSSession -Name $MountDrive
 }#>
 
 #Function to create certificate gotten from 
@@ -579,7 +580,6 @@ Function New-DSCCertificate {
     [string]$ComputerName,
     [pscredential]$DomainCredential
   )
-  $InstallSession = New-PSSession -ComputerName $ComputerName -Credential $DomainCredential
   Invoke-Command  -Session $InstallSession -ScriptBlock { 
     #Checks if the certificate used already exists
     $certverifypath = [bool](dir cert:\LocalMachine\My\ | Where-Object { $_.subject -like "cn=amstel-mail.amstel.local" })
@@ -625,31 +625,31 @@ Function Install-Prerequisite {
   
   Process{
     Try{
-    Invoke-Command -Session $InstallSession -ScriptBlock {
-      $Domain = "Amstel"
-      $CertExportPath = "$baseDir\Cert\dsccert.cer"
-      $ExchangeBinary = (Get-WmiObject win32_volume | Where-Object -Property Label -eq "EXCHANGESERVER2016-X64-CU5").Name
-      $VerifyCertPath = (Test-Path -Path "$baseDir\Cert\")
-      $CertPW = Read-Host -Prompt "Please input a password for the certificate: " -AsSecureString
+      Invoke-Command -Session $InstallSession -ScriptBlock {
+        $Domain = "Amstel"
+        $CertExportPath = "$baseDir\Cert\dsccert.cer"
+        $ExchangeBinary = (Get-WmiObject win32_volume | Where-Object -Property Label -eq "EXCHANGESERVER2016-X64-CU5").Name
+        $VerifyCertPath = (Test-Path -Path "$baseDir\Cert\")
+        $CertPW = Read-Host -Prompt "Please input a password for the certificate: " -AsSecureString
       
       
-      #Check to see if certificate directory exists, and creates it if not
-      if (!($VerifyCertPath)){
-        Write-Verbose -Message "Creating folder for certificate"    
-        New-Item -Path "$baseDir\Cert" -ItemType Directory -ErrorAction Ignore
-      }
+        #Check to see if certificate directory exists, and creates it if not
+        if (!($VerifyCertPath)){
+          Write-Verbose -Message "Creating folder for certificate"    
+          New-Item -Path "$baseDir\Cert" -ItemType Directory -ErrorAction Ignore
+        }
       
-      Write-Verbose -Message "Getting Certificate Thumbprint"
-      #Get Certificate thumbprint
-      $CertThumb = (Get-ChildItem -Path Cert:\LocalMachine\My | Where-Object {$_.Subject -eq "CN=localhost"}).Thumbprint
+        Write-Verbose -Message "Getting Certificate Thumbprint"
+        #Get Certificate thumbprint
+        $CertThumb = (Get-ChildItem -Path Cert:\LocalMachine\My | Where-Object {$_.Subject -eq "CN=localhost"}).Thumbprint
       
-      #Exporting Certificate            
-      Write-Verbose -Message "Exporting cert to $CertExportPath"
+        #Exporting Certificate            
+        Write-Verbose -Message "Exporting cert to $CertExportPath"
       
-      $CertExport = (Get-ChildItem -Path Cert:\LocalMachine\My\$CertThumb)
+        $CertExport = (Get-ChildItem -Path Cert:\LocalMachine\My\$CertThumb)
       
-      Export-Certificate -Cert $CertExport -FilePath $CertExportPath -Type CERT
-      #$CertExport | Export-PfxCertificate -FilePath $baseDir\Cert\cert.pfx -Password $CertPW
+        Export-Certificate -Cert $CertExport -FilePath $CertExportPath -Type CERT
+        #$CertExport | Export-PfxCertificate -FilePath $baseDir\Cert\cert.pfx -Password $CertPW
       
       
         $VerbosePreference = "Continue"
