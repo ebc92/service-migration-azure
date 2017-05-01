@@ -624,12 +624,13 @@ Function Install-Prerequisite {
   
   Process{
     Try{
+      $CertPW = Read-Host -Prompt "Please input a password for the certificate: " -AsSecureString
       Invoke-Command -Session $InstallSession -ScriptBlock {
         $Domain = "Amstel"
         $CertExportPath = "C:\Cert\dsccert.cer"
         $ExchangeBinary = (Get-WmiObject win32_volume | Where-Object -Property Label -eq "EXCHANGESERVER2016-X64-CU5").Name
         $VerifyCertPath = (Test-Path -Path "C:\Cert\")
-        #$CertPW = Read-Host -Prompt "Please input a password for the certificate: " -AsSecureString
+        
       
       
         #Check to see if certificate directory exists, and creates it if not
@@ -653,14 +654,14 @@ Function Install-Prerequisite {
         $CertExport = (Get-ChildItem -Path Cert:\LocalMachine\My\$CertThumb)
       
         Export-Certificate -Cert $CertExport -FilePath $CertExportPath -Type CERT
-        #$CertExport | Export-PfxCertificate -FilePath $baseDir\Cert\cert.pfx -Password $CertPW
+        $CertExport | Export-PfxCertificate -FilePath $baseDir\Cert\cert.pfx -Password $using:CertPW
       
       
         $VerbosePreference = "Continue"
         Install-Module -Name xExchange, xPendingReboot -Force
         Write-Verbose -Message "Mounting new PSDrive"
         New-PSDrive -Name "Z" -PSProvider FileSystem -Root "$using:baseDir" -Persist -Credential $using:DomainCredential -ErrorAction Continue -Verbose
-        #Import-PfxCertificate -FilePath "Z:\Cert\cert.pfx" -CertStoreLocation Cert:\LocalMachine\My\ -Password $using:CertPW -Verbose
+        
         #InstallUCMA
         Write-Verbose -Message "Starting Install of UCMA"
         Start-Process -FilePath "Z:\Executables\UcmaRuntimeSetup.exe" -ArgumentList '/passive /norestart' -NoNewWindow -Wait
@@ -668,6 +669,9 @@ Function Install-Prerequisite {
       }
       Write-Verbose -Message "Removing remote session $InstallSession"
       $InstallSession | Remove-PSSession
+      
+      Write-Verbose -Message "Importing PFX certificate"
+      Import-PfxCertificate -FilePath "Z:\Cert\cert.pfx" -CertStoreLocation Cert:\LocalMachine\My\ -Password $using:CertPW -Verbose
       
       Install-Module -Name xExchange, xPendingReboot -Force
       
@@ -685,7 +689,7 @@ Function Install-Prerequisite {
           }
 
           @{
-            NodeName = "$ComputerName"
+            NodeName = $ComputerName
             Thumbprint = $CertThumb
             PSDscAllowDomainUser = $true
           }
