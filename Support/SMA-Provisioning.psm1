@@ -48,7 +48,11 @@ Function New-AzureStackTenantDeployment {
         Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $False
     }
 
-    $exists = Get-AzureRmResourceGroup -Name $ResourceGroupName
+    Try{ 
+        $exists = Get-AzureRmResourceGroup -Name $ResourceGroupName
+    } Catch {
+        Log-Write -LogPath $sLogFile -LineValue "Resource Gcould not be retrieved."
+    }
 
     if(!$exists){
         New-AzureRmResourceGroup -Name $ResourceGroupName -Location $Location
@@ -86,10 +90,12 @@ Function New-AzureStackVnet{
     # Prerequisites
     $VMNicName = $VMName + "-NIC"
     $nsgName = $VNetName + "-NSG"
+
+
  
     Try {
         $vnet = Get-AzureRmVirtualNetwork -ResourceGroupName $ResourceGroupName -Name $VNetName
-        $subnet = Get-AzureRmVirtualNetworkSubnetConfig -Name default -VirtualNetwork $vnet
+        $subnet = Get-AzureRmVirtualNetworkSubnetConfig -Name HostSubnet -VirtualNetwork $vnet
         $nsg = Get-AzureRmNetworkSecurityGroup -ResourceGroupName $res -Name $nsgName
         $nsRules = Get-AzureRmNetworkSecurityRuleConfig -NetworkSecurityGroup $nsg
         $nic = Get-AzureRmNetworkInterface -ResourceGroupName $res -Name $VMNicName
@@ -102,15 +108,33 @@ Function New-AzureStackVnet{
         if(!$subnet){
             $SubnetNetwork = & $IpCalc $Network.HostMin -Netmask 255.255.255.128
             $subnet = New-AzureRmVirtualNetworkSubnetConfig -Name HostSubnet -AddressPrefix $SubnetNetwork.Network
-            Log-Write -LogPath $sLogFile -LineValue "Created the subnet configuration."
+            Log-Write -LogPath $sLogFile -LineValue "Created the host subnet configuration."
+
+            $VpnNetwork = & $IpCalc $Network.HostMax -Netmask 255.255.255.128
+            $VPNSubnet = New-AzureRmVirtualNetworkSubnetConfig -Name GatewaySubnet -AddressPrefix $VpnNetwork.Network
+            Log-Write -LogPath $sLogFile -LineValue "Created the VPN subnet configuration."
         } else {
             Log-Write -LogPath $sLogFile -LineValue "The subnet configuration already exists."
         }
 
         # Create a vNet
         if(!$vnet){
-            $vnet = New-AzureRmVirtualNetwork -ResourceGroupName $res -Location $Location -Name $VNetName -AddressPrefix $Network.Network -Subnet $subnet
-            Log-Write -LogPath $sLogFile -LineValue "Created the virtual network."
+            Log-Write -LogPath $sLogFile -LineValue "Creating the virtual network and its VPN gateway."
+
+            $vnet = New-AzureRmVirtualNetwork -ResourceGroupName $ResourceGroupName -Location $Location -Name $VNetName -AddressPrefix $Network.Network -Subnet $subnet,$VPNSubnet
+
+            $pip = New-AzureRmPublicIpAddress -ResourceGroupName $ResourceGroupName -AllocationMethod Dynamic -Name VPNGatewayIP -Location $Location
+            $VPNIpconfig = New-AzureRmVirtualNetworkGatewayIpConfig -Name AMSTEL-VPN-ipconfig -PublicIpAddress $pip -Subnet $VPNSubnet            
+            New-AzureRmVirtualNetworkGateway -Name "AMSTEL-VPN" `
+            -ResourceGroupName $ResourceGroupName `
+            -Location $Location `
+            -IpConfigurations $VPNIpconfig `
+            -GatewayType Vpn `
+            -VpnType RouteBased `
+            -GatewaySku Basic
+
+            Log-Write -LogPath $sLogFile -LineValue "Virtual network and VPN gateway was successfully created."
+
         } else {
             Log-Write -LogPath $sLogFile -LineValue "The virtual network already exists."
         }
