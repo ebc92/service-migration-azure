@@ -584,8 +584,9 @@ Function New-DSCCertificate {
       $ErrorActionPreference = [System.Management.Automation.ActionPreference]::Continue;
     }
     #Checks if the certificate used already exists
+    
+    Do {
     $certverifypath = [bool](dir cert:\LocalMachine\My\ | Where-Object { $_.subject -like "cn=$using:ComputerName" })
-    Do { 
       if(!($certverifypath)) {
         New-SelfSignedCertificateEx `
         -Subject "CN=$using:ComputerName" `
@@ -605,7 +606,7 @@ Function New-DSCCertificate {
       }else{
         Get-ChildItem Cert:\LocalMachine\My | Where-Object { $_.subject -like "cn=$using:ComputerName" } | Remove-Item
         "$createcert where the cert was deleted"
-      }s
+      }
     } until($createcert = $true)      
   }
 }
