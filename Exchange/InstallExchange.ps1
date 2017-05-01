@@ -228,7 +228,7 @@
     Copy the Exchange setup files locally
     File ExchangeBinaries
     {
-      Ensure          = 'Present'
+      #Ensure          = 'Present'
       Type            = 'Directory'
       Recurse         = $true
       SourcePath      = "$ExchangeBinary"
