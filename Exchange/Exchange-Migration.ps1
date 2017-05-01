@@ -648,11 +648,13 @@ Function Install-Prerequisite {
       
       Invoke-Command -Session $InstallSession -ScriptBlock {
         Install-Module -Name xExchange, xPendingReboot, xWindowsUpdate -Force
-        Import-PfxCertificate -FilePath $using:baseDir\Cert\cert.pfx -CertStoreLocation Cert:\LocalMachine\My\ -Password $using:CertPW
+        New-PSDrive -Name "Z" -PSProvider FileSystem -Root "$using:baseDir" -Persist -Credential $using:DomainCredential -ErrorAction Continue
+        Import-PfxCertificate -FilePath "Z:\Cert\cert.pfx" -CertStoreLocation Cert:\LocalMachine\My\ -Password $using:CertPW
         #InstallUCMA
         Write-Verbose -Message "Staring Install of UCMA"
-        Start-Process -FilePath $using:fileShare\UcmaRuntimeSetup.exe -ArgumentList '/passive /norestart' -Wait
+        Start-Process -FilePath "Z:\UcmaRuntimeSetup.exe" -ArgumentList '/passive /norestart' -Wait
       }
+      Remove-PSSession -Session $InstallSession
       
       $DSC = Resolve-Path -Path $PSScriptRoot\InstallExchange.ps1
       . $DSC
@@ -662,7 +664,7 @@ Function Install-Prerequisite {
         AllNodes = @(
           @{
             NodeName = '*'
-            CertificateFile = "$baseDir\Cert\dsccert.cer"
+            CertificateFile = "Z:\Cert\dsccert.cer"
             Thumbprint = $CertThumb
           }
 
