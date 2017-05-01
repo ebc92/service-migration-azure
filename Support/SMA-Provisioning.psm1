@@ -22,11 +22,12 @@ $sLogFile = Join-Path -Path $sLogPath -ChildPath $sLogName
 
 Function New-AzureStackTenantDeployment {
     Param(
-        [String]$ResourceGroupName = "sma-vm-provisioning",
+        [String]$ResourceGroupName = "service-migration-azure",
         [Parameter(Mandatory=$true)]
         [String]$VMName,
         [String]$IPAddress,
-        $DomainCredential
+        $DomainCredential,
+        $Location = "local"
     )
     $Connect = "C:\Users\AzureStackAdmin\Desktop\AzureStack-Tools-master\Connect\AzureStack.Connect.psm1"
     $ComputeAdmin = "C:\Users\AzureStackAdmin\Desktop\AzureStack-Tools-master\ComputeAdmin\AzureStack.ComputeAdmin.psm1"
@@ -58,7 +59,7 @@ Function New-AzureStackTenantDeployment {
 
     Try {
     Write-Output "hey"
-        $VMNic = New-AzureStackVnet -NetworkIP $IPAddress -ResourceGroupName $ResourceGroupName -VNetName "AMSTEL-vnet" -VMName $VMName -ErrorAction Stop
+        $VMNic = New-AzureStackVnet -NetworkIP $IPAddress -ResourceGroupName $ResourceGroupName -VNetName "AMSTEL-VNET" -VMName $VMName -ErrorAction Stop
         
     } Catch {
         Log-Write -LogPath $sLogFile -LineValue "The VM deployment failed because no NIC was returned."
@@ -209,11 +210,11 @@ Function New-AzureStackWindowsVM {
             Set-AzureRmVMCustomScriptExtension -ResourceGroupName $ResourceGroup `
             -VMName $VMName `
             -Location $Location `
-            -FileUri "https://raw.githubusercontent.com/ebc92/service-migration-azure/master/Support/Set-TrustedHost.ps1" `
-            -Run 'Set-TrustedHost.ps1' `
+            -FileUri "https://raw.githubusercontent.com/ebc92/service-migration-azure/master/Support/Set-DomainPolicy.ps1" `
+            -Run 'Set-DomainPolicy.ps1' `
             -Argument "$($DomainName) $($DomainCredential)" `
             -Name TrustedHostExtension `
-            -ErrorAction Stop
+            -ErrorAction Stop | Update-AzureVM
             Log-Write -LogPath $sLogFile -LineValue "Successfully added TrustedHost ScriptExtension to the provisioned VM."
         } Catch {
             Log-Write -LogPath $sLogFile -LineValue "Could not add TrustedHost ScriptExtension to the provisioned VM."

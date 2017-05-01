@@ -3,6 +3,7 @@ $AzureStack = $SMAConfig.Global.Get_Item('azurestack')
 $Source = $SMAConfig.MSSQL.Get_Item('source')
 $Destination = $SMAConfig.MSSQL.Get_Item('destination')
 $Instance = $SMAConfig.MSSQL.Get_Item('instance')
+$ComputerName = $SMAConfig.MSSQL.Get_Item('hostname')
 $PackagePath = Join-Path -Path $SMAConfig.Global.Get_Item('fileshare') -ChildPath $SMAConfig.MSSQL.Get_Item('packagepath')
 
 $LogPath = $SMAConfig.Global.Get_Item('logpath')
@@ -39,6 +40,8 @@ $ScriptBlock = {
 
 Invoke-Command -ComputerName $Source -ScriptBlock $ScriptBlock -Credential $Credential
 
+New-AzureStackTenantDeployment -VMName $ComputerName -IPAddress "192.168.59.114/24" -Credential $Credential
+
 $cd = @{
     AllNodes = @(
         @{
@@ -60,6 +63,8 @@ Try {
     Log-Write -LogPath $LogPath -LineValue "An error occured when pushing the DSC configuration."
     Log-Error -LogPath $LogPath -ErrorDesc $_.Exception -ExitGracefully $False
 }
+
+
 
 <#
 Try {
