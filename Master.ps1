@@ -74,10 +74,11 @@ $module | % {
 #-----------------------------------------------------------[Active Directory]---------------------------------------------------------
 
 #& (Join-Path -Path $PSScriptRoot -ChildPath "\ADDC\ADDC-Migration.ps1")
+New-AzureStackTenantDeployment -VMName "TEST" -IPAddress "192.168.59.23/24" -DomainCredential $DomainCredential
 
 #-----------------------------------------------------------[SQL Server]---------------------------------------------------------------
 
-& (Join-Path -Path $PSScriptRoot -ChildPath "\MSSQL\MSSQL-Migration.ps1")
+#& (Join-Path -Path $PSScriptRoot -ChildPath "\MSSQL\MSSQL-Migration.ps1")
 
 #-----------------------------------------------------------[File and sharing]---------------------------------------------------------
 
