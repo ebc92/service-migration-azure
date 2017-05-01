@@ -223,6 +223,7 @@ Function New-DSCCertificate {
   )
   Invoke-Command  -Session $InstallSession -ScriptBlock {
     [bool]$createcert = $false
+    "$createcert as it is at start of running cert creation"
     #Function to create certificate gotten from 
     #https://github.com/adbertram/Random-PowerShell-Work/blob/master/Security/New-SelfSignedCertificateEx.ps1
     Function New-SelfSignedCertificateEx
@@ -603,7 +604,8 @@ Function New-DSCCertificate {
         $createcert = $true
       }else{
         Get-ChildItem Cert:\LocalMachine\My | Where-Object { $_.subject -like "cn=$using:ComputerName" } | Remove-Item
-      }
+        "$createcert where the cert was deleted"
+      }s
     } until($createcert = $true)      
   }
 }
