@@ -93,8 +93,7 @@ Function Get-Prerequisite {
   Process{
     Try{
       #Checking package provider list for NuGet
-      $nuSession = New-PSSession -ComputerName $ComputerName -Credential $DomainCredential
-      $nuget = Invoke-Command -Session $nuSession -ScriptBlock { 
+      $nuget = Invoke-Command -Session $InstallSession -ScriptBlock { 
         $nuget = Get-PackageProvider | Where-Object -Property Name -eq nuget
         Return $nuget 
       }
@@ -114,15 +113,13 @@ Function Get-Prerequisite {
       if (!($nuget)) {
         Write-Verbose -Message "NuGet not installed, installing now..."
         Log-Write -LogPath $sLogFile -LineValue "Nuget not installed, installing now..."
-        Invoke-Command -Session $nuSession -ScriptBlock { 
+        Invoke-Command -Session $InstallSession -ScriptBlock { 
           Install-PackageProvider -Name NuGet -Force
         }
       } else {
         Write-Verbose -Message "NuGet already installed, continuing prerequisite checks"
         Log-Write -LogPath $sLogFile -LineValue "NuGet already installed, continuing prerequisite checks"
-      }
-      Write-Verbose -Message "Removing remote session $nuSession"
-      Remove-PSSession -Name $nuSession          
+      }    
       
       if (!($UCMAExist)) {
         #Downloading UCMA 4.0 Runtime      
@@ -639,11 +636,16 @@ Function Install-Prerequisite {
           Write-Verbose -Message "Creating folder for certificate"    
           New-Item -Path "$baseDir\Cert" -ItemType Directory -ErrorAction Ignore
         }
+      }
       
+      $CertThumb = Invoke-Command -Session $InstallSession -ScriptBlock { 
         Write-Verbose -Message "Getting Certificate Thumbprint"
         #Get Certificate thumbprint
         $CertThumb = (Get-ChildItem -Path Cert:\LocalMachine\My | Where-Object {$_.Subject -eq "CN=localhost"}).Thumbprint
-      
+        $CertThumb
+      }
+
+      Invoke-Command -Session $InstallSession -ScriptBlock {
         #Exporting Certificate            
         Write-Verbose -Message "Exporting cert to $CertExportPath"
       
@@ -663,6 +665,7 @@ Function Install-Prerequisite {
         Start-Process -FilePath "Z:\Executables\UcmaRuntimeSetup.exe" -ArgumentList '/passive /norestart' -NoNewWindow -Wait
         Write-Verbose -Message "UCMA Installed, starting DSC"
       }
+      Write-Verbose -Message "Removing remote session $InstallSession"
       Remove-PSSession -Session $InstallSession
       
       Install-Module -Name xExchange, xPendingReboot -Force
