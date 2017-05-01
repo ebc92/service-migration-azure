@@ -580,10 +580,10 @@ Function New-DSCCertificate {
   )
   Invoke-Command  -Session $InstallSession -ScriptBlock { 
     #Checks if the certificate used already exists
-    $certverifypath = [bool](dir cert:\LocalMachine\My\ | Where-Object { $_.subject -like "cn=amstel-mail.amstel.local" })
+    $certverifypath = [bool](dir cert:\LocalMachine\My\ | Where-Object { $_.subject -like "cn=$using:ComputerName" })
     if(!($certverifypath)) {
       New-SelfSignedCertificateEx `
-      -Subject "CN=localhost" `
+      -Subject "CN=$using:ComputerName" `
       -EKU 'Document Encryption' `
       -KeyUsage 'KeyEncipherment, DataEncipherment' `
       -SAN localhost `
@@ -641,7 +641,7 @@ Function Install-Prerequisite {
       $CertThumb = Invoke-Command -Session $InstallSession -ScriptBlock { 
         Write-Verbose -Message "Getting Certificate Thumbprint"
         #Get Certificate thumbprint
-        $CertThumb = (Get-ChildItem -Path Cert:\LocalMachine\My | Where-Object {$_.Subject -eq "CN=localhost"}).Thumbprint
+        $CertThumb = (Get-ChildItem -Path Cert:\LocalMachine\My | Where-Object {$_.Subject -eq "CN=$using:ComputerName"}).Thumbprint
         $CertThumb
       }
 
