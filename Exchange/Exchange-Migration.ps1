@@ -585,31 +585,44 @@ Function New-DSCCertificate {
     }
     #Checks if the certificate used already exists
     
-    Do {
-      $certverifypath = [bool](dir cert:\LocalMachine\My\ | Where-Object { $_.subject -like "cn=$using:ComputerName" })
-      if(!($certverifypath)) {
-        New-SelfSignedCertificateEx `
-        -Subject "CN=$using:ComputerName" `
-        -EKU 'Document Encryption' `
-        -KeyUsage 'KeyEncipherment, DataEncipherment' `
-        -SAN localhost `
-        -FriendlyName 'DSC certificate' `
-        -Exportable `
-        -StoreLocation "LocalMachine" `
-        -StoreName 'My' `
-        -KeyLength 2048 `
-        -ProviderName 'Microsoft Enhanced Cryptographic Provider v1.0' `
-        -AlgorithmName 'RSA' `
-        -SignatureAlgorithm 'SHA256' `
-        -Verbose
-        "Created cert and moving on CN=$using:computername"
-        $createcert = $true
-      }else{
-        Get-ChildItem Cert:\LocalMachine\My | Where-Object { $_.subject -like "cn=$using:ComputerName" } | Remove-Item
-        "$createcert where the cert was deleted"
-        $createcert = $false
-      }
-    } while($createcert = $false)      
+    $certverifypath = [bool](dir cert:\LocalMachine\My\ | Where-Object { $_.subject -like "cn=$using:ComputerName" })
+    if(!($certverifypath)) {
+      New-SelfSignedCertificateEx `
+      -Subject "CN=$using:ComputerName" `
+      -EKU 'Document Encryption' `
+      -KeyUsage 'KeyEncipherment, DataEncipherment' `
+      -SAN localhost `
+      -FriendlyName 'DSC certificate' `
+      -Exportable `
+      -StoreLocation "LocalMachine" `
+      -StoreName 'My' `
+      -KeyLength 2048 `
+      -ProviderName 'Microsoft Enhanced Cryptographic Provider v1.0' `
+      -AlgorithmName 'RSA' `
+      -SignatureAlgorithm 'SHA256' `
+      -Verbose
+      "Created cert and moving on CN=$using:computername"
+      $createcert = $true
+    }else{
+      Get-ChildItem Cert:\LocalMachine\My | Where-Object { $_.subject -like "cn=$using:ComputerName" } | Remove-Item
+      "$createcert where the cert was deleted"        
+      New-SelfSignedCertificateEx `
+      -Subject "CN=$using:ComputerName" `
+      -EKU 'Document Encryption' `
+      -KeyUsage 'KeyEncipherment, DataEncipherment' `
+      -SAN localhost `
+      -FriendlyName 'DSC certificate' `
+      -Exportable `
+      -StoreLocation "LocalMachine" `
+      -StoreName 'My' `
+      -KeyLength 2048 `
+      -ProviderName 'Microsoft Enhanced Cryptographic Provider v1.0' `
+      -AlgorithmName 'RSA' `
+      -SignatureAlgorithm 'SHA256' `
+      -Verbose
+      "Created cert and moving on CN=$using:computername"
+      $createcert = $false
+    }     
   }
 }
 
