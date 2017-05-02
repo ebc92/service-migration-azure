@@ -1,4 +1,16 @@
-﻿Configuration InstallExchange
+﻿###########################################################################
+####################################\O/####################################
+##   ______          _                            _____   _____  _____   ##
+##  |  ____|        | |                          |  __ \ / ____|/ ____|  ##
+##  | |__  __  _____| |__   __ _ _ __   __ _  ___| |  | | (___ | |       ##
+##  |  __| \ \/ / __| '_ \ / _` | '_ \ / _` |/ _ \ |  | |\___ \| |       ##
+##  | |____ >  < (__| | | | (_| | | | | (_| |  __/ |__| |____) | |____   ##
+##  |______/_/\_\___|_| |_|\__,_|_| |_|\__, |\___|_____/|_____/ \_____|  ##
+##                                      __/ |                            ##
+##                                     |___/                             ##
+###########################################################################
+###########################################################################
+Configuration InstallExchange
 {
 param
 (
@@ -24,14 +36,7 @@ Node $AllNodes.NodeName
   {
     Name      = "BeforeServerRoles"
   }
-    
-  WindowsFeature ASHTTP
-  {
-    Ensure = 'Present'
-    Name = 'AS-HTTP-Activation'
-    DependsOn = '[xPendingReboot]BeforeServerRoles'
-  }
-        
+  
   WindowsFeature NetFW45
   {
     Ensure = 'Present'
@@ -42,6 +47,7 @@ Node $AllNodes.NodeName
   {
     Ensure = 'Present'
     Name = 'RPC-over-HTTP-proxy'
+    DependsOn = '[xPendingReboot]BeforeServerRoles'
   }
         
   WindowsFeature RSATClus
