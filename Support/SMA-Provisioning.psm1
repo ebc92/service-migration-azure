@@ -97,6 +97,7 @@ Function New-AzureStackVnet{
         $nsg = Get-AzureRmNetworkSecurityGroup -ResourceGroupName $res -Name $nsgName
         $nsRules = Get-AzureRmNetworkSecurityRuleConfig -NetworkSecurityGroup $nsg
         $nic = Get-AzureRmNetworkInterface -ResourceGroupName $res -Name $VMNicName
+        $vpn = Get-AzureRmVitualNetworkGateway -ResourceGroupName $res
     } Catch {
 
     }
@@ -117,13 +118,25 @@ Function New-AzureStackVnet{
         }
 
         # Create a vNet
-        if(!$vnet){
+        if(!$vnet -or !$vpn){
             Log-Write -LogPath $sLogFile -LineValue "Creating the virtual network and its VPN gateway."
+            Log-Write -LogPath $sLogFile -LineValue "Local Endpoint is: $LocalEndpoint, network is $Network, localnetwork is $LocalNetwork"
+            
 
             $vnet = New-AzureRmVirtualNetwork -ResourceGroupName $ResourceGroupName -Location $Location -Name $VNetName -AddressPrefix $Network.Network -Subnet $subnet,$VPNSubnet
 
+            $VPNSubnet = Get-AzureRmVirtualNetworkSubnetConfig -Name GatewaySubnet -VirtualNetwork $vnet
+
             $pip = New-AzureRmPublicIpAddress -ResourceGroupName $ResourceGroupName -AllocationMethod Dynamic -Name VPNGatewayIP -Location $Location
-            $VPNIpconfig = New-AzureRmVirtualNetworkGatewayIpConfig -Name "AMSTEL-VPN-ipconfig" -PublicIpAddress $pip -Subnet $VPNSubnet            
+
+            Log-Write -LogPath $sLogFile -LineValue "Creating the gateway ipconfiguration with ip $pip and subnet $VPNSubnet.Name"
+            
+            
+
+            $VPNIpconfig = New-AzureRmVirtualNetworkGatewayIpConfig -Name "AMSTEL-VPN-ipconfig" -PublicIpAddress $pip -Subnet $VPNSubnet 
+            
+            Log-Write -LogPath $sLogFile -LineValue "Creating the VPN gateway." 
+                 
             $VirtualGateway = New-AzureRmVirtualNetworkGateway -Name "AMSTEL-VPN" `
             -ResourceGroupName $ResourceGroupName `
             -Location $Location `
@@ -132,13 +145,14 @@ Function New-AzureStackVnet{
             -VpnType RouteBased `
             -GatewaySku Basic
 
+            Log-Write -LogPath $sLogFile -LineValue "Creating local network gateway."
             $LocalGateway = New-AzureRmLocalNetworkGateway -Name "AMSTEL-GATE" `
             -ResourceGroupName $ResourceGroupName `
             -Location $Location `
             -GatewayIpAddress $LocalEndpoint `
             -AddressPrefix $LocalNetwork
 
-            New-AzureRmVirtualNetworkGatewayConnection -Name "SiteToCloudConnection" `
+            New-AzureRmVirtualNetworkGatewayConnection -Name "IPsec-Connection" `
             -ResourceGroupName $ResourceGroupName -Location $Location `
             -VirtualNetworkGateway1 $VirtualGateway `
             -LocalNetworkGateway2 $LocalGateway `
