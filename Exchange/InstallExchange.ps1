@@ -228,7 +228,15 @@ Node $AllNodes.NodeName
   {
     Ensure = 'Present'
     Name = 'RSAT-ADDS'
+  }    #Check if a reboot is needed before installing Exchange
+  
+  xPendingReboot BeforeExchangeInstall
+  {
+    Name      = "BeforeExchangeInstall"
+
+    DependsOn  = '[WindowsFeature]RSATADDS'
   }
+  
 
   Script MountExchange {
     GetScript = {
@@ -244,31 +252,24 @@ Node $AllNodes.NodeName
         $ExchangeBinary = (Get-WmiObject win32_volume | Where-Object -Property Label -eq "EXCHANGESERVER2016-X64-CU5").Name
       }
     }
-      TestScript = {
-        Return $false
-      }
+    TestScript = {
+      Return $false
     }
+  }
 
-    #Check if a reboot is needed before installing Exchange
-    xPendingReboot BeforeExchangeInstall
-    {
-      Name      = "BeforeExchangeInstall"
 
-      DependsOn  = '[Script]MountExchange'
-    }
+  #Do the Exchange install
+  xExchInstall InstallExchange
+  {
+    Path       = "$ExchangeBinary\setup.exe"
+    Arguments  = "/mode:Install /role:Mailbox /IAcceptExchangeServerLicenseTerms /OrganizationName:Nikolaitl"
+    Credential = $DomainCredential
 
-    #Do the Exchange install
-    xExchInstall InstallExchange
-    {
-      Path       = "$ExchangeBinary\setup.exe"
-      Arguments  = "/mode:Install /role:Mailbox /IAcceptExchangeServerLicenseTerms /OrganizationName:Nikolaitl"
-      Credential = $DomainCredential
+    DependsOn  = '[xPendingReboot]BeforeExchangeInstall'
+  }
 
-      DependsOn  = '[xPendingReboot]BeforeExchangeInstall'
-    }
-
-    #See if a reboot is required after installing Exchange
-    xPendingReboot AfterExchangeInstall
+  #See if a reboot is required after installing Exchange
+  xPendingReboot AfterExchangeInstall
     {
       Name      = "AfterExchangeInstall"
 

@@ -723,7 +723,7 @@ Function Install-Prerequisite {
                   
       Write-Verbose -Message "Compiling DSC script"
       #Compiles DSC Script
-      InstallExchange -ConfigurationData $ConfigData -DomainCredential $DomainCredential -FileShare $baseDir\executables -Verbose
+      InstallExchange -ConfigurationData $ConfigData -DomainCredential $DomainCredential -FileShare Z:\executables -Verbose
 
       Write-Verbose -Message "Setting up LCM on target computer"
       #Sets up LCM on target comp
@@ -751,7 +751,6 @@ Function Install-Prerequisite {
   End{
     If($?){
       Log-Write -LogPath $sLogFile -LineValue "Installed prerequisites successfully."
-      Log-Write -LogPath $sLogFile -LineValue ""
       Write-Verbose -Message "Installed prerequisites successfully."
     }
   }
