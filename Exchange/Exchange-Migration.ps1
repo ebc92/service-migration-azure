@@ -42,6 +42,7 @@
 
 #Set Error Action to Silently Continue
 $ErrorActionPreference = 'Continue'
+$VerbosePreference = 'Continue'
 
 #Define all variables during testing, remove for production
 $baseDir = Read-Host -Prompt "Please input the filepath for the file share: "
@@ -221,6 +222,8 @@ Function New-DSCCertificate {
     [pscredential]$DomainCredential
   )
   Invoke-Command  -Session $InstallSession -ScriptBlock {
+    [bool]$createcert = $false
+    "$createcert as it is at start of running cert creation"
     #Function to create certificate gotten from 
     #https://github.com/adbertram/Random-PowerShell-Work/blob/master/Security/New-SelfSignedCertificateEx.ps1
     Function New-SelfSignedCertificateEx
@@ -581,6 +584,7 @@ Function New-DSCCertificate {
       $ErrorActionPreference = [System.Management.Automation.ActionPreference]::Continue;
     }
     #Checks if the certificate used already exists
+    
     $certverifypath = [bool](dir cert:\LocalMachine\My\ | Where-Object { $_.subject -like "cn=$using:ComputerName" })
     if(!($certverifypath)) {
       New-SelfSignedCertificateEx `
@@ -597,9 +601,28 @@ Function New-DSCCertificate {
       -AlgorithmName 'RSA' `
       -SignatureAlgorithm 'SHA256' `
       -Verbose
+      "Created cert and moving on CN=$using:computername"
+      $createcert = $true
     }else{
-      #donothing      
-    }
+      Get-ChildItem Cert:\LocalMachine\My | Where-Object { $_.subject -like "cn=$using:ComputerName" } | Remove-Item
+      "$createcert where the cert was deleted"        
+      New-SelfSignedCertificateEx `
+      -Subject "CN=$using:ComputerName" `
+      -EKU 'Document Encryption' `
+      -KeyUsage 'KeyEncipherment, DataEncipherment' `
+      -SAN localhost `
+      -FriendlyName 'DSC certificate' `
+      -Exportable `
+      -StoreLocation "LocalMachine" `
+      -StoreName 'My' `
+      -KeyLength 2048 `
+      -ProviderName 'Microsoft Enhanced Cryptographic Provider v1.0' `
+      -AlgorithmName 'RSA' `
+      -SignatureAlgorithm 'SHA256' `
+      -Verbose
+      "Created cert and moving on CN=$using:computername"
+      $createcert = $false
+    }     
   }
 }
 
@@ -647,18 +670,19 @@ Function Install-Prerequisite {
         $CertThumb
       }
 
+      $CertThumb
       Invoke-Command -Session $InstallSession -ScriptBlock {
         #Exporting Certificate            
         Write-Verbose -Message "Exporting cert to $using:CertExportPath"
+        Write-Verbose -Message "Mounting new PSDrive"
+        New-PSDrive -Name "Z" -PSProvider FileSystem -Root $using:baseDir -Persist -Credential $using:DomainCredential -ErrorAction Continue -Verbose
       
         $CertExport = (Get-ChildItem -Path Cert:\LocalMachine\My\$using:CertThumb)
       
         Export-Certificate -Cert $CertExport -FilePath $using:CertExportPath -Type CERT
-        $CertExport | Export-PfxCertificate -FilePath $baseDir\Cert\cert.pfx -Password $using:CertPW
+        $CertExport | Export-PfxCertificate -FilePath Z:\Cert\cert.pfx -Password $using:CertPW
       
         Install-Module -Name xExchange, xPendingReboot -Force
-        Write-Verbose -Message "Mounting new PSDrive"
-        New-PSDrive -Name "Z" -PSProvider FileSystem -Root "$using:baseDir" -Persist -Credential $using:DomainCredential -ErrorAction Continue -Verbose
         
         #InstallUCMA
         Write-Verbose -Message "Starting Install of UCMA"
@@ -669,7 +693,10 @@ Function Install-Prerequisite {
       $InstallSession | Remove-PSSession
       
       Write-Verbose -Message "Importing PFX certificate"
-      Import-PfxCertificate -FilePath "Z:\Cert\cert.pfx" -CertStoreLocation Cert:\LocalMachine\My\ -Password $CertPW -Verbose
+      Import-PfxCertificate -FilePath "$baseDir\Cert\cert.pfx" -CertStoreLocation Cert:\LocalMachine\My\ -Password $CertPW -Verbose
+      #$CertLocalExport = (Get-ChildItem -Path "Cert:\LocalMachine\My\$CertThumb")
+      
+      Export-Certificate -Cert Cert:\LocalMachine\My\$CertThumb -FilePath $CertExportPath -Type CERT -Verbose
       
       Install-Module -Name xExchange, xPendingReboot -Force
       
