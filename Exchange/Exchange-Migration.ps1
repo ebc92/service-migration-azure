@@ -681,7 +681,7 @@ Function Install-Prerequisite {
       
       Write-Verbose -Message "Importing PFX certificate"
       Import-PfxCertificate -FilePath "$baseDir\Cert\cert.pfx" -CertStoreLocation Cert:\LocalMachine\My\ -Password $CertPW -Verbose
-      $CertLocalExport = (Get-ChildItem -Path Cert:\LocalMachine\My\$CertThumb)
+      $CertLocalExport = (Get-ChildItem -Path "Cert:\LocalMachine\My\$CertThumb")
       
       Export-Certificate -Cert $CertLocalExport -FilePath $CertExportPath -Type CERT
       
