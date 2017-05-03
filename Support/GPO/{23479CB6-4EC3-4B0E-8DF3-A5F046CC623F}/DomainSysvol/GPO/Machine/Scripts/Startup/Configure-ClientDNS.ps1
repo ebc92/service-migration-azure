@@ -1,1 +1,0 @@
-Set-DnsClientServerAddress -InterfaceIndex (Get-NetAdapter)[0].ifIndex -ServerAddresses 192.168.58.114
