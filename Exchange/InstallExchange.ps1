@@ -17,8 +17,7 @@ Configuration InstallExchange
     [PSCredential]$DomainCredential
   )
 
-  Import-DscResource -ModuleName xExchange
-  Import-DscResource -ModuleName xPendingReboot
+  Import-DscResource -ModuleName xExchange, xPendingReboot, PSDesiredStateConfiguration
 
   Node $AllNodes.NodeName
   {
@@ -227,14 +226,13 @@ Configuration InstallExchange
     xPendingReboot BeforeRSATADDS
     {
       Name      = "BeforeRSATADDS"
-
       DependsOn  = '[WindowsFeature]WebIF'
     }
   
         
     WindowsFeature RSATADDS
     {
-      DependsOn = 'BeforeRSATADDS'
+      DependsOn = '[xPendingReboot]BeforeRSATADDS'
       Ensure = 'Present'
       Name = 'RSAT-ADDS'
     }    

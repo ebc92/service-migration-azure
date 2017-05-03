@@ -733,7 +733,7 @@ Function Install-Prerequisite {
         )
       }
       
-      Start-Transcript -Path $sLogFile -Append
+      Start-Transcript -Path ( Join-Path -Path $sLogPath -ChildPath dsclog.txt )
                   
       Write-Verbose -Message "Compiling DSC script"
       #Compiles DSC Script
