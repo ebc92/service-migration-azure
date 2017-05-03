@@ -732,6 +732,8 @@ Function Install-Prerequisite {
           }
         )
       }
+      
+      Start-Transcript -Path $sLogPath -Append
                   
       Write-Verbose -Message "Compiling DSC script"
       #Compiles DSC Script
@@ -744,6 +746,8 @@ Function Install-Prerequisite {
       Write-Verbose -Message "Pushing DSC script to target computer"
       #Pushes DSC script to target
       Start-DscConfiguration -Path $PSScriptRoot\InstallExchange -Verbose -Wait
+      
+      Stop-Transcript
       
       <#     Foreach($element in $InstallFiles) {
           $i++
