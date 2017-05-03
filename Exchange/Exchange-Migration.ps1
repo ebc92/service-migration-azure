@@ -702,7 +702,7 @@ Function Install-Prerequisite {
       Import-PfxCertificate -FilePath "$baseDir\Cert\cert.pfx" -CertStoreLocation Cert:\LocalMachine\My\ -Password $CertPW -Verbose
       #$CertLocalExport = (Get-ChildItem -Path "Cert:\LocalMachine\My\$CertThumb")
       
-      #Export-Certificate -Cert Cert:\LocalMachine\My\$CertThumb -FilePath $CertExportPath -Type CERT -Verbose
+      Export-Certificate -Cert $CertThumb -FilePath $CertExportPath -Type CERT -Verbose
       
       Install-Module -Name xExchange, xPendingReboot -Force
       
@@ -729,7 +729,7 @@ Function Install-Prerequisite {
                   
       Write-Verbose -Message "Compiling DSC script"
       #Compiles DSC Script
-      InstallExchange -ConfigurationData $ConfigData -DomainCredential $DomainCredential -FileShare Z:\executables -Verbose
+      InstallExchange -ConfigurationData $ConfigData -DomainCredential $DomainCredential -Verbose
 
       Write-Verbose -Message "Setting up LCM on target computer"
       #Sets up LCM on target comp
