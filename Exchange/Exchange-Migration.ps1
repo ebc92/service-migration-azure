@@ -702,6 +702,9 @@ Function Install-Prerequisite {
       Import-PfxCertificate -FilePath "$baseDir\Cert\cert.pfx" -CertStoreLocation Cert:\LocalMachine\My\ -Password $CertPW -Verbose
       #$CertLocalExport = (Get-ChildItem -Path "Cert:\LocalMachine\My\$CertThumb")
       
+      $ComputerName
+      $CertThumb = (Get-ChildItem -Path Cert:\LocalMachine\My | Where-Object {$_.Subject -eq "CN=$ComputerName"})
+      $CertThumb
       Export-Certificate -Cert $CertThumb -FilePath $CertExportPath -Type CERT -Verbose
       
       Install-Module -Name xExchange, xPendingReboot -Force
