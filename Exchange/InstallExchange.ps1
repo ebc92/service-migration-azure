@@ -14,8 +14,7 @@ Configuration InstallExchange
 {
 param
 (
-  [PSCredential]$DomainCredential,
-  [String]$FileShare
+  [PSCredential]$DomainCredential
 )
 
 Import-DscResource -ModuleName xExchange
@@ -248,7 +247,7 @@ Node $AllNodes.NodeName
 
       if ($ExchangeBinary -eq $null)
       {        
-        Mount-DiskImage -ImagePath $FileShare\ExchangeServer2016-x64-cu5.iso
+        Mount-DiskImage -ImagePath "C:\TempExchange\ExchangeServer2016-x64-cu5.iso"
         $ExchangeBinary = (Get-WmiObject win32_volume | Where-Object -Property Label -eq "EXCHANGESERVER2016-X64-CU5").Name
       }
     }
@@ -261,7 +260,7 @@ Node $AllNodes.NodeName
   #Do the Exchange install
   xExchInstall InstallExchange
   {
-    Path       = "$ExchangeBinary\setup.exe"
+    Path       = "C:\TempExchange\setup.exe"
     Arguments  = "/mode:Install /role:Mailbox /IAcceptExchangeServerLicenseTerms /OrganizationName:Nikolaitl"
     Credential = $DomainCredential
 

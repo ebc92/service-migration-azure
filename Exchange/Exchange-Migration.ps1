@@ -681,6 +681,12 @@ Function Install-Prerequisite {
       
         Export-Certificate -Cert $CertExport -FilePath $using:CertExportPath -Type CERT
         $CertExport | Export-PfxCertificate -FilePath Z:\Cert\cert.pfx -Password $using:CertPW
+        
+        #Move Exchange install files
+        New-Item -ItemType Directory -Path "C:\TempExchange" -ErrorAction Ignore
+        Write-Verbose -Message "Moving Exchange ISO from share, to local storage"
+        Start-BitsTransfer -Source "Z:\Executables\EXCHANGESERVER2016-X64-CU5.iso" -Destination "C:\TempExchange\" -Credential $using:DomainCredential
+        Write-Verbose -Message "Exchange ISO successfully moved to C:\TempExchange\"
       
         Install-Module -Name xExchange, xPendingReboot -Force
         
