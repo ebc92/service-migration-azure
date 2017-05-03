@@ -677,7 +677,8 @@ Function Install-Prerequisite {
         Write-Verbose -Message "Mounting new PSDrive"
         New-PSDrive -Name "Z" -PSProvider FileSystem -Root $using:baseDir -Persist -Credential $using:DomainCredential -ErrorAction Continue -Verbose
       
-        $CertExport = (Get-ChildItem -Path Cert:\LocalMachine\My\$using:CertThumb)
+        $CertTargetPath = Join-Path -Path Cert:\LocalMachine\My -ChildPath $using:CertThumb
+        $CertExport = (Get-ChildItem -Path $CertTargetPath)
       
         Export-Certificate -Cert $CertExport -FilePath $using:CertExportPath -Type CERT
         $CertExport | Export-PfxCertificate -FilePath Z:\Cert\cert.pfx -Password $using:CertPW
@@ -703,9 +704,11 @@ Function Install-Prerequisite {
       #$CertLocalExport = (Get-ChildItem -Path "Cert:\LocalMachine\My\$CertThumb")
       
       $ComputerName
-      $CertThumb = (Get-ChildItem -Path Cert:\LocalMachine\My | Where-Object {$_.Subject -eq "CN=$ComputerName"})
       $CertThumb
-      Export-Certificate -Cert $CertThumb -FilePath $CertExportPath -Type CERT -Verbose
+      
+      $CertPath = Join-Path -Path Cert:\LocalMachine\My -ChildPath $CertThumb
+      $CertPath
+      Export-Certificate -Cert $CertPath -FilePath $CertExportPath -Type CERT -Verbose
       
       Install-Module -Name xExchange, xPendingReboot -Force
       
