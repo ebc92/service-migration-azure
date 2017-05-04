@@ -199,7 +199,7 @@ Function Mount-Exchange {
     {
       Do {
         Try {          
-          Mount-DiskImage -ImagePath (Join-Path -Path $using:FileShare -ChildPath ExchangeServer2016-x64-cu5.iso)
+          Mount-DiskImage -ImagePath (Join-Path -Path Z:\executables -ChildPath ExchangeServer2016-x64-cu5.iso)
           $finished = $true
           $ErrorActionPreference = $er
           Return $ExchangeBinary
