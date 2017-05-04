@@ -75,13 +75,9 @@ $module | % {
 # Create the Azure Stack PSSession
 $AzureStackSession = New-PSSession -ComputerName $SMAConfig.Global.Get_Item('azurestacknat') -Credential $AzureLocalCredential -Port 13389
 
-# Set Powershell prerequisites for using the Azure Resource Manager
-Invoke-Command -Session $AzureStackSession -FilePath (Join-Path -Path $PSScriptRoot -ChildPath "\Support\Remote-ARM\Set-ArmPrerequisites.ps1")
-
 # Authenticate the session with Azure AD
 $Authenticator = Join-Path -Path $PSScriptRoot -ChildPath "\Support\Remote-ARM\Set-ArmCredential.ps1"
 & $Authenticator -ARMSession $AzureStackSession -ArmCredential $AzureTenantCredential
-
 
 #-----------------------------------------------------------[Active Directory]---------------------------------------------------------
 

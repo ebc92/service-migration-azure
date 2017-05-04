@@ -13,7 +13,8 @@ $ScriptBlock = {
     $Context = Get-AzureRMContext
     if($Context.Environment -ne "AzureStackAdmin"){
         Login-AzureRmAccount -EnvironmentName AzureStackAdmin `
-        -Credential $Credential
+        -Credential $Credential `
+        -ErrorAction SilentlyContinue
     }
 }
 invoke-command -Session $ARMSession -ScriptBlock $ScriptBlock -ArgumentList $ARMCredential
