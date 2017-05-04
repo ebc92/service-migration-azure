@@ -191,7 +191,7 @@ Function New-AzureStackVnet{
         if(!$nic){
             Log-Write -LogPath $sLogFile -LineValue "Here comes the sun"
             $subnet = Get-AzureRmVirtualNetworkSubnetConfig -Name HostSubnet -VirtualNetwork $vnet
-            $nic = New-AzureRmNetworkInterface -ResourceGroupName $res -Location $Location -Name $VMNicName -Subnet $subnet -NetworkSecurityGroup $nsg -PrivateIpAddress "192.158.59.23" -ErrorAction Stop
+            $nic = New-AzureRmNetworkInterface -ResourceGroupName $res -Location $Location -Name $VMNicName -Subnet $subnet -NetworkSecurityGroup $nsg -PrivateIpAddress $Network.Address -ErrorAction Stop
             Log-Write -LogPath $sLogFile -LineValue "Created the network interface."
         } else {
             Log-Write -LogPath $sLogFile -LineValue "The network interface already exists."

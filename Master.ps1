@@ -82,7 +82,7 @@ $Authenticator = Join-Path -Path $PSScriptRoot -ChildPath "\Support\Remote-ARM\S
 #-----------------------------------------------------------[Active Directory]---------------------------------------------------------
 
 #& (Join-Path -Path $PSScriptRoot -ChildPath "\ADDC\ADDC-Migration.ps1")
-Invoke-Command -Session $AzureStackSession -ScriptBlock {New-AzureStackTenantDeployment -VMName "TEST" -IPAddress "192.168.59.23/24" -DomainCredential $DomainCredential}
+Invoke-Command -Session $AzureStackSession -ScriptBlock {New-AzureStackTenantDeployment -VMName "TEST" -IPAddress "192.168.59.13/24" -DomainCredential $DomainCredential}
 
 #-----------------------------------------------------------[SQL Server]---------------------------------------------------------------
 
