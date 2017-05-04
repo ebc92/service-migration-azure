@@ -71,6 +71,7 @@ Function New-AzureStackTenantDeployment {
     }
 
     Log-Write -LogPath $sLogFile -LineValue "Starting VM provisioning..."
+    $VMNic | Out-String >> .\debug.txt
     $ProvisionedIP = New-AzureStackWindowsVM -VMName $VMName -VMNic $VMNic -ErrorAction Stop
     return $ProvisionedIP
 }
@@ -223,7 +224,6 @@ Function New-AzureStackWindowsVM {
     [String]$VMName,
     [String]$ComputerName = $VMName,
     [Parameter(Mandatory=$true)]
-    [Microsoft.Azure.Commands.Network.Models.PSNetworkInterface]
     $VMNic,
     [String]$ResourceGroup = "service-migration-azure",
     [String]$VMSize = "Standard_A1",
