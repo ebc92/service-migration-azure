@@ -208,13 +208,13 @@ Function Mount-Exchange {
     }else{
       #donothing
     }
-    
-    "$ExchangeBinary after getting diskimage finished"
-    $ExchLetter = ( Join-Path -Path $FileShare -ChildPath ExchangeBinary.txt )
-    New-Item -ItemType File -Path $ExchLetter -ErrorAction Ignore
-    $ExchangeBinary > $ExchLetter 
     Return $ExchangeBinary  
   }
+  
+  "$ExchangeBinary after getting diskimage finished"
+  $ExchLetter = ( Join-Path -Path $FileShare -ChildPath ExchangeBinary.txt )
+  New-Item -ItemType File -Path $ExchLetter -ErrorAction Ignore
+  $ExchangeBinary > $ExchLetter
 }
 
 
