@@ -205,7 +205,8 @@ Function Mount-Exchange {
         }
       }
       While ($finished -eq $false)
-    }  
+    }
+    Return $ExchangeBinary  
   }
   $ExchangeBinary
 }
