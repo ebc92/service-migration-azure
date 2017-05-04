@@ -190,7 +190,7 @@ Function Mount-Exchange {
   $ExchangeBinary = Invoke-Command -Session $InstallSession -ScriptBlock { 
     #Mounting fileshare to local so that it can be accessed in remote sessions
     Write-Verbose -Message "Mounting new PSDrive"
-    New-PSDrive -Name "Z" -PSProvider FileSystem -Root $using:baseDir -Persist -Credential $using:DomainCredential -ErrorAction Continue -Verbose
+    New-PSDrive -Name "Z" -PSProvider FileSystem -Root $using:baseDir -Persist -Credential $using:DomainCredential -ErrorAction SilentlyContinue -Verbose
     $SourceFile = "Z:\executables"
     [bool]$finished=$false    
 
@@ -198,7 +198,7 @@ Function Mount-Exchange {
     Do { 
       #Makes sure $ExchangeBinary variable is emtpy       
       $ExchangeBinary = $null
-      $ExchangeBinary = (Get-WmiObject win32_volume | Where-Object -Property Label -eq "EXCHANGESERVER2016-X64-CU5").Name
+      $ExchangeBinary = (Get-WmiObject win32_volume | Where-Object -Property Label -eq "EXCHANGESERVER2016-X64-CU5").Name + ':'
       if ($ExchangeBinary -eq $null)
       {    
         Mount-DiskImage -ImagePath (Join-Path -Path $SourceFile -ChildPath ExchangeServer2016-x64-cu5.iso)
@@ -695,12 +695,10 @@ Function Install-Prerequisite {
         Start-BitsTransfer -Source "Z:\Executables\EXCHANGESERVER2016-X64-CU5.iso" -Destination "C:\TempExchange\" -Credential $using:DomainCredential
         Write-Verbose -Message "Exchange ISO successfully moved to C:\TempExchange\"
       
-        #Check if xExchange is installed
-        $DSCResource = Get-DscResource -Name xExchange
-        if($DSCResource -eq $null) {
-          #Install modules
-          Install-Module -Name xExchange, xPendingReboot -Force -Verbose
-        }
+
+        #Install modules
+        Install-Module -Name xExchange, xPendingReboot -Force -Verbose
+
         
         #Test-path to see if UCMA is installed
         $ucmatest = Test-Path -Path "C:\Program Files\Microsoft UCMA 4.0"
@@ -710,6 +708,8 @@ Function Install-Prerequisite {
           Write-Verbose -Message "Starting Install of UCMA"
           Start-Process -FilePath "Z:\Executables\UcmaRuntimeSetup.exe" -ArgumentList '/passive /norestart' -NoNewWindow -Wait -Verbose
           Write-Verbose -Message "UCMA Installed, starting DSC"
+        } else {
+          Write-Verbose -Message "UCMA Already installed, moving on to DSC"
         }
       }
       Write-Verbose -Message "Removing remote session $InstallSession"
@@ -725,12 +725,10 @@ Function Install-Prerequisite {
       $CertPath = Join-Path -Path Cert:\LocalMachine\My -ChildPath $CertThumb
       $CertPath
       Export-Certificate -Cert $CertPath -FilePath $CertExportPath -Type CERT -Verbose
+
+      #Install modules
+      Install-Module -Name xExchange, xPendingReboot -Force -Verbose
       
-      $DSCResource = Get-DscResource -Name xExchange
-      if($DSCResource -eq $null) {
-        #Install modules
-        Install-Module -Name xExchange, xPendingReboot -Force -Verbose
-      }
       $DSC = Resolve-Path -Path $PSScriptRoot\InstallExchange.ps1
       . $DSC
       
