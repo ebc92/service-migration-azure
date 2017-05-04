@@ -5,7 +5,7 @@ http://dbatools.io
 #>
 
 Remove-Module ADDC-Migration, MSSQL-Migration -ErrorAction SilentlyContinue
-$url = 'https://github.com/ebc92/service-migration-azure/archive/master.zip'
+$url = 'https://github.com/ebc92/service-migration-azure/archive/develop.zip'
 $path = Join-Path -Path 'C:\' -ChildPath 'service-migration-azure'
 $temp = ([System.IO.Path]::GetTempPath()).TrimEnd("\")
 $zipfile = "$temp\service-migration-azure.zip"
@@ -40,8 +40,8 @@ $destinationFolder = $shell.NameSpace($temp)
 $destinationFolder.CopyHere($zipPackage.Items(), 0x14)
 
 Write-Output "Cleaning up"
-Move-Item -Path "$temp\service-migration-azure-master\*" $path
-Remove-Item -Path "$temp\service-migration-azure-master" -Recurse
+Move-Item -Path "$temp\service-migration-azure-develop\*" $path
+Remove-Item -Path "$temp\service-migration-azure-develop" -Recurse
 Remove-Item -Path $zipfile
 
 Import-Module "$path\ADDC\ADDC-Migration.psm1" -Force
