@@ -18,8 +18,8 @@ $sLogPath = "C:\Logs"
 $sLogName = "SMA-Provisioning.log"
 $sLogFile = Join-Path -Path $sLogPath -ChildPath $sLogName
 
-$LocalEndpoint = $SMAConfig.VPN.Get_Item('endpoint')
-$LocalNetwork = $SMAConfig.VPN.Get_Item('network')
+#$LocalEndpoint = $SMAConfig.VPN.Get_Item('endpoint')
+#$LocalNetwork = $SMAConfig.VPN.Get_Item('network')
 
 #-----------------------------------------------------------[Functions]------------------------------------------------------------
 
@@ -37,7 +37,7 @@ Function New-AzureStackTenantDeployment {
 
     $DomainName = "amstel.local"
 
-    Import-Module AzureStack, AzureRM
+    #Import-Module AzureStack, AzureRM
 
     Log-Start -LogPath $sLogPath -LogName $sLogName -ScriptVersion $sScriptVersion
 

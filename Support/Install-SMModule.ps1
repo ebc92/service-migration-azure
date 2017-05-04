@@ -6,9 +6,9 @@ http://dbatools.io
 
 Remove-Module ADDC-Migration, MSSQL-Migration -ErrorAction SilentlyContinue
 $url = 'https://github.com/ebc92/service-migration-azure/archive/develop.zip'
-$path = Join-Path -Path 'C:\' -ChildPath 'service-migration-azure'
+$path = Join-Path -Path 'C:\' -ChildPath 'service-migration-azure-develop'
 $temp = ([System.IO.Path]::GetTempPath()).TrimEnd("\")
-$zipfile = "$temp\service-migration-azure.zip"
+$zipfile = "$temp\service-migration-azure-develop.zip"
 
 if (!(Test-Path -Path $path)){
 	Write-Output "Creating directory: $path"
