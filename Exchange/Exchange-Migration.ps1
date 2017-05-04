@@ -46,7 +46,7 @@ $VerbosePreference = 'Continue'
 
 #Define all variables during testing, remove for production
 $baseDir = Read-Host -Prompt "Please input the filepath for the file share: "
-$ComputerName = "amstel-mail.amstel.local"
+$ComputerName = "amstel-mail"
 $fileshare = "$baseDir\executables"
 $verifyPath = Test-Path -Path $fileshare
 $DomainCredential = Get-Credential
