@@ -588,7 +588,7 @@ Function New-DSCCertificate {
     }
     #Checks if the certificate used already exists
     
-    $certverifypath = [bool](dir cert:\LocalMachine\My\ | Where-Object { $_.subject -like "cn=$using:ComputerName" })
+    $certverifypath = [bool](dir cert:\LocalMachine\My\ | Where-Object { $_.subject -like "cn=$using:ComputerName-dsccert" })
     if(!($certverifypath)) {
       New-SelfSignedCertificateEx `
       -Subject "CN=$using:ComputerName-dsccert" `
