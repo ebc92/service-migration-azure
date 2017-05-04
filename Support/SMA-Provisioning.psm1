@@ -189,9 +189,9 @@ Function New-AzureStackVnet{
 
         # Create a virtual network card and associate with public IP address and NSG
         if(!$nic){
-            Write-Output "Here comes the sun"
-            Write-Output $res, $Location, $VMNicName, $subnet, $nsg, $Network.Address
-            $nic = New-AzureRmNetworkInterface -ResourceGroupName $res -Location $Location -Name $VMNicName -Subnet $subnet -NetworkSecurityGroup $nsg -PrivateIpAddress $Network.Address -ErrorAction Stop
+            Log-Write -LogPath $sLogFile -LineValue "Here comes the sun"
+            Log-Write -LogPath $sLogFile -LineValue $res, $Location, $VMNicName, $subnet, $nsg, $Network.Address
+            $nic = New-AzureRmNetworkInterface -ResourceGroupName $res -Location $Location -Name $VMNicName -Subnet $subnet -NetworkSecurityGroup $nsg -PrivateIpAddress "192.158.59.23" -ErrorAction Stop
             Log-Write -LogPath $sLogFile -LineValue "Created the network interface."
         } else {
             Log-Write -LogPath $sLogFile -LineValue "The network interface already exists."
