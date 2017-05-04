@@ -70,6 +70,7 @@ Function New-AzureStackTenantDeployment {
         Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $False
     }
 
+    Log-Write -LogPath $sLogFile -LineValue "Starting VM provisioning..."
     $ProvisionedIP = New-AzureStackWindowsVM -VMName $VMName -VMNic $VMNic -ErrorAction Stop
     return $ProvisionedIP
 }
