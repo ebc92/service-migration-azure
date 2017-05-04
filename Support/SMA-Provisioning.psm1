@@ -203,6 +203,7 @@ Function New-AzureStackVnet{
             Log-Write -LogPath $sLogFile -LineValue "Creating interface.."
             $nic = New-AzureRmNetworkInterface -ResourceGroupName $res -Location $Location -Name $VMNicName -NetworkSecurityGroup $nsg -Subnet $subnet -PrivateIpAddress $Network.Address -DnsServer "8.8.8.8","4.4.4.4" -ErrorAction Stop
             $nic | Out-String >> .\debug.txt
+            $nic | Get-Member | Out-String >> .\debug.txt
             Log-Write -LogPath $sLogFile -LineValue "Created the network interface."
         } else {
             Log-Write -LogPath $sLogFile -LineValue "The network interface already exists."
