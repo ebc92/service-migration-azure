@@ -177,43 +177,44 @@ Function Mount-Exchange {
     [Parameter(Mandatory=$true)]
     [String]$FileShare,
     [Parameter(Mandatory=$true)]
-    [String]$ComputerName
+    [String]$ComputerName,
+    [Parameter(Mandatory=$true)]
+    [String]$baseDir
   )
   
-  [bool]$finished=$false
+  
   $er = $ErrorActionPreference
   $ErrorActionPreference = "Continue"
-    
+  "$FileShare in local session supposed to be used for mounting image"
+      
   $ExchangeBinary = Invoke-Command -Session $InstallSession -ScriptBlock { 
-    #Makes sure $ExchangeBinary variable is emtpy
-    
+    #Mounting fileshare to local so that it can be accessed in remote sessions
+    Write-Verbose -Message "Mounting new PSDrive"
+    New-PSDrive -Name "Z" -PSProvider FileSystem -Root $using:baseDir -Persist -Credential $using:DomainCredential -ErrorAction SilentlyContinue -Verbose
+    $SourceFile = "Z:\executables"
+
+    #Do while to make sure correct file is mounted
+
+    #Makes sure $ExchangeBinary variable is emtpy       
     $ExchangeBinary = $null
-
     $ExchangeBinary = (Get-WmiObject win32_volume | Where-Object -Property Label -eq "EXCHANGESERVER2016-X64-CU5").Name
-
     if ($ExchangeBinary -eq $null)
-    {
-      Do {
-        Try {          
-          Mount-DiskImage -ImagePath $using:FileShare\ExchangeServer2016-x64-cu5.iso
-          $finished = $true
-          $ErrorActionPreference = $er
-          Return $ExchangeBinary
-        }
-        Catch {
-          $SourceFile = Read-Host(`
-          "The path $FileShare does not contain the ISO file, please enter the correct path for the Exchange 2016 ISO Image folder")
-          $finished = $false
-        }
-      }
-      While ($finished -eq $false)
+    {    
+      Mount-DiskImage -ImagePath (Join-Path -Path $SourceFile -ChildPath ExchangeServer2016-x64-cu5.iso)
+      $ExchangeBinary = (Get-WmiObject win32_volume | Where-Object -Property Label -eq "EXCHANGESERVER2016-X64-CU5").Name
+      $finished = $true
+      $ErrorActionPreference = $er
+      Return $ExchangeBinary
+    }else{
+      #donothing
     }
-    Return $ExchangeBinary  
+    "$ExchangeBinary after getting diskimage finished"
+    $ExchLetter = ( Join-Path -Path $SourceFile -ChildPath ExchangeBinary.txt )
+    New-Item -ItemType File -Path $ExchLetter -ErrorAction Ignore
+    $ExchangeBinary > $ExchLetter
   }
-  "$ExchangeBinary after getting diskimage finished"
-  $ExchLetter = ( Join-Path -Path $FileShare -ChildPath ExchangeBinary.txt )
-  New-Item -ItemType File -Path $ExchLetter -ErrorAction Ignore
-  $ExchangeBinary > $ExchLetter  
+  
+
 }
 
 
@@ -610,7 +611,7 @@ Function New-DSCCertificate {
       Get-ChildItem Cert:\LocalMachine\My | Where-Object { $_.subject -like "cn=$using:ComputerName-dsccert" } | Remove-Item
       "$createcert where the cert was deleted"        
       New-SelfSignedCertificateEx `
-      -Subject "CN=$using:ComputerName" `
+      -Subject "CN=$using:ComputerName-dsccert" `
       -EKU 'Document Encryption' `
       -KeyUsage 'KeyEncipherment, DataEncipherment' `
       -SAN localhost `
@@ -679,9 +680,7 @@ Function Install-Prerequisite {
         $VerbosePreference = 'Continue'
         #Exporting Certificate            
         Write-Verbose -Message "Exporting cert to $using:CertExportPath"
-        Write-Verbose -Message "Mounting new PSDrive"
-        New-PSDrive -Name "Z" -PSProvider FileSystem -Root $using:baseDir -Persist -Credential $using:DomainCredential -ErrorAction Continue -Verbose
-      
+              
         $CertTargetPath = Join-Path -Path Cert:\LocalMachine\My -ChildPath $using:CertThumb
         $CertExport = (Get-ChildItem -Path $CertTargetPath)
       
@@ -694,12 +693,10 @@ Function Install-Prerequisite {
         Start-BitsTransfer -Source "Z:\Executables\EXCHANGESERVER2016-X64-CU5.iso" -Destination "C:\TempExchange\" -Credential $using:DomainCredential
         Write-Verbose -Message "Exchange ISO successfully moved to C:\TempExchange\"
       
-        #Check if xExchange is installed
-        $DSCResource = Get-DscResource -Name xExchange
-        if($DSCResource -eq $null) {
-          #Install modules
-          Install-Module -Name xExchange, xPendingReboot -Force -Verbose
-        }
+
+        #Install modules
+        Install-Module -Name xExchange, xPendingReboot -Force -Verbose
+
         
         #Test-path to see if UCMA is installed
         $ucmatest = Test-Path -Path "C:\Program Files\Microsoft UCMA 4.0"
@@ -709,6 +706,8 @@ Function Install-Prerequisite {
           Write-Verbose -Message "Starting Install of UCMA"
           Start-Process -FilePath "Z:\Executables\UcmaRuntimeSetup.exe" -ArgumentList '/passive /norestart' -NoNewWindow -Wait -Verbose
           Write-Verbose -Message "UCMA Installed, starting DSC"
+        } else {
+          Write-Verbose -Message "UCMA Already installed, moving on to DSC"
         }
       }
       Write-Verbose -Message "Removing remote session $InstallSession"
@@ -724,12 +723,10 @@ Function Install-Prerequisite {
       $CertPath = Join-Path -Path Cert:\LocalMachine\My -ChildPath $CertThumb
       $CertPath
       Export-Certificate -Cert $CertPath -FilePath $CertExportPath -Type CERT -Verbose
+
+      #Install modules
+      Install-Module -Name xExchange, xPendingReboot -Force -Verbose
       
-      $DSCResource = Get-DscResource -Name xExchange
-      if($DSCResource -eq $null) {
-        #Install modules
-        Install-Module -Name xExchange, xPendingReboot -Force -Verbose
-      }
       $DSC = Resolve-Path -Path $PSScriptRoot\InstallExchange.ps1
       . $DSC
       
@@ -827,7 +824,7 @@ $i = 0
 
 Get-Prerequisite -fileShare $fileshare -ComputerName amstel-mail -DomainCredential $DomainCredential -Verbose
 
-Mount-Exchange -FileShare $fileshare -ComputerName amstel-mail -Verbose
+Mount-Exchange -FileShare $fileshare -baseDir $baseDir -ComputerName amstel-mail -Verbose
 
 New-DSCCertificate -ComputerName amstel-mail -Verbose
 
