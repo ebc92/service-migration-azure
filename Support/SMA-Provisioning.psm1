@@ -20,7 +20,8 @@ $sLogFile = Join-Path -Path $sLogPath -ChildPath $sLogName
 
 #$LocalEndpoint = $SMAConfig.VPN.Get_Item('endpoint')
 #$LocalNetwork = $SMAConfig.VPN.Get_Item('network')
-
+$LocalEndpoint = "158.38.53.113"
+$LocalNetwork = "192.168.58.0/24"
 #-----------------------------------------------------------[Functions]------------------------------------------------------------
 
 Function New-AzureStackTenantDeployment {
