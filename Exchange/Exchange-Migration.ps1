@@ -191,6 +191,7 @@ Function Mount-Exchange {
     #Mounting fileshare to local so that it can be accessed in remote sessions
     Write-Verbose -Message "Mounting new PSDrive"
     New-PSDrive -Name "Z" -PSProvider FileSystem -Root $using:baseDir -Persist -Credential $using:DomainCredential -ErrorAction Continue -Verbose
+    $SourceFile = "Z:\executables"
     
     #Makes sure $ExchangeBinary variable is emtpy
     $ExchangeBinary = $null
@@ -199,14 +200,14 @@ Function Mount-Exchange {
     {
       Do {
         Try {          
-          Mount-DiskImage -ImagePath (Join-Path -Path Z:\executables -ChildPath ExchangeServer2016-x64-cu5.iso)
+          Mount-DiskImage -ImagePath (Join-Path -Path $SourceFile -ChildPath ExchangeServer2016-x64-cu5.iso)
           $finished = $true
           $ErrorActionPreference = $er
           Return $ExchangeBinary
         }
         Catch {
           $SourceFile = Read-Host(`
-          "The path $FileShare does not contain the ISO file, please enter the correct path for the Exchange 2016 ISO Image folder")
+          "The path $using:FileShare does not contain the ISO file, please enter the correct path for the Exchange 2016 ISO Image folder")
           $finished = $false
         }
       }
