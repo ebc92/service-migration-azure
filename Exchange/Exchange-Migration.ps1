@@ -810,12 +810,12 @@ $i = 0
 
 #Temporary to run commands during test environment
 
-Get-Prerequisite -fileShare $fileshare -ComputerName amstel-mail.amstel.local -DomainCredential $DomainCredential -Verbose
+Get-Prerequisite -fileShare $fileshare -ComputerName amstel-mail -DomainCredential $DomainCredential -Verbose
 
-Mount-Exchange -FileShare $fileshare -ComputerName $ComputerName -Verbose
+Mount-Exchange -FileShare $fileshare -ComputerName amstel-mail -Verbose
 
-New-DSCCertificate -ComputerName amstel-mail.amstel.local -Verbose
+New-DSCCertificate -ComputerName amstel-mail -Verbose
 
-Install-Prerequisite -BaseDir $baseDir -ComputerName amstel-mail.amstel.local -DomainCredential $DomainCredential -Verbose
+Install-Prerequisite -BaseDir $baseDir -ComputerName amstel-mail -DomainCredential $DomainCredential -Verbose
 
 Log-Finish -LogPath $sLogFile
