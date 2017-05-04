@@ -607,7 +607,7 @@ Function New-DSCCertificate {
       "Created cert and moving on CN=$using:computername-dsccert"
       $createcert = $true
     }else{
-      <#Get-ChildItem Cert:\LocalMachine\My | Where-Object { $_.subject -like "cn=$using:ComputerName" } | Remove-Item
+      Get-ChildItem Cert:\LocalMachine\My | Where-Object { $_.subject -like "cn=$using:ComputerName-dsccert" } | Remove-Item
           "$createcert where the cert was deleted"        
           New-SelfSignedCertificateEx `
           -Subject "CN=$using:ComputerName" `
@@ -623,7 +623,7 @@ Function New-DSCCertificate {
           -AlgorithmName 'RSA' `
           -SignatureAlgorithm 'SHA256' `
           -Verbose
-      "Created cert and moving on CN=$using:computername"#>
+      "Created cert and moving on CN=$using:computername-dsccert"
       Write-Verbose -Message "Certificate already exists, moving on"
       $createcert = $false
     }     
