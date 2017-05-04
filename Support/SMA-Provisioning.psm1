@@ -190,12 +190,12 @@ Function New-AzureStackVnet{
         # Create a virtual network card and associate with public IP address and NSG
         if(!$nic){
             Log-Write -LogPath $sLogFile -LineValue "Here comes the sun"
-            $res | Out-String | Log-Write -LogPath $sLogFile -LineValue $_
-            $Location | Out-String | Log-Write -LogPath $sLogFile -LineValue $_
-            $VMNicName | Out-String | Log-Write -LogPath $sLogFile -LineValue $_
-            $subnet | Out-String | Log-Write -LogPath $sLogFile -LineValue $_
-            $nsg | Out-String | Log-Write -LogPath $sLogFile -LineValue $_
-            $Network.Address | Out-String | Log-Write -LogPath $sLogFile -LineValue $_
+            $res | Out-String >> .\debug.txt
+            $Location | Out-String >> .\debug.txt
+            $VMNicName | Out-String >> .\debug.txt
+            $subnet | Out-String >> .\debug.txt
+            $nsg | Out-String >> .\debug.txt
+            $Network.Address | Out-String >> .\debug.txt
             $nic = New-AzureRmNetworkInterface -ResourceGroupName $res -Location $Location -Name $VMNicName -Subnet $subnet -NetworkSecurityGroup $nsg -PrivateIpAddress "192.158.59.23" -ErrorAction Stop
             Log-Write -LogPath $sLogFile -LineValue "Created the network interface."
         } else {
