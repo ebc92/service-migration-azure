@@ -211,6 +211,7 @@ Function Mount-Exchange {
     Return $ExchangeBinary  
   }
   "$ExchangeBinary after getting diskimage finished"
+  Return $ExchangeBinary
 }
 
 
