@@ -118,7 +118,7 @@ Function New-AzureStackVnet{
             Log-Write -LogPath $sLogFile -LineValue "The subnet configuration already exists."
         }
 
-        # Create a vNet
+        # Create a vNet TODO: SEPARATE VNET AND VPN CREATION
         if(!$vnet -or !$vpn){
             Log-Write -LogPath $sLogFile -LineValue "Creating the virtual network and its VPN gateway."
             Log-Write -LogPath $sLogFile -LineValue "Local Endpoint is: $LocalEndpoint, network is $Network, localnetwork is $LocalNetwork"
@@ -189,6 +189,8 @@ Function New-AzureStackVnet{
 
         # Create a virtual network card and associate with public IP address and NSG
         if(!$nic){
+            Write-Output "Here comes the sun"
+            Write-Output $res, $Location, $VMNicName, $subnet, $nsg, $Network.Address
             $nic = New-AzureRmNetworkInterface -ResourceGroupName $res -Location $Location -Name $VMNicName -Subnet $subnet -NetworkSecurityGroup $nsg -PrivateIpAddress $Network.Address -ErrorAction Stop
             Log-Write -LogPath $sLogFile -LineValue "Created the network interface."
         } else {
