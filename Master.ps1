@@ -75,6 +75,9 @@ $module | % {
 # Create the Azure Stack PSSession
 $AzureStackSession = New-PSSession -ComputerName $SMAConfig.Global.Get_Item('azurestacknat') -Credential $AzureLocalCredential -Port 13389
 
+#Pass the config to the azure stack session
+Invoke-Command -Session $AzureStackSession -ScriptBlock {param($SMAConfig)$global:SMAConfig} -ArgumentList $SMAConfig
+
 # Authenticate the session with Azure AD
 $Authenticator = Join-Path -Path $PSScriptRoot -ChildPath "\Support\Remote-ARM\Set-ArmCredential.ps1"
 & $Authenticator -ARMSession $AzureStackSession -ArmCredential $AzureTenantCredential
