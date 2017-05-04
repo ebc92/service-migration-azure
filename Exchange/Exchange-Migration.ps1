@@ -182,43 +182,43 @@ Function Mount-Exchange {
     [String]$baseDir
   )
   
-  [bool]$finished=$false
+  
   $er = $ErrorActionPreference
   $ErrorActionPreference = "Continue"
   "$FileShare in local session supposed to be used for mounting image"
-    
+      
   $ExchangeBinary = Invoke-Command -Session $InstallSession -ScriptBlock { 
     #Mounting fileshare to local so that it can be accessed in remote sessions
     Write-Verbose -Message "Mounting new PSDrive"
     New-PSDrive -Name "Z" -PSProvider FileSystem -Root $using:baseDir -Persist -Credential $using:DomainCredential -ErrorAction Continue -Verbose
     $SourceFile = "Z:\executables"
-    
-    #Makes sure $ExchangeBinary variable is emtpy
-    $ExchangeBinary = $null
-    $ExchangeBinary = (Get-WmiObject win32_volume | Where-Object -Property Label -eq "EXCHANGESERVER2016-X64-CU5").Name
-    if ($ExchangeBinary -eq $null)
-    {
-      Do {
-        Try {          
-          Mount-DiskImage -ImagePath (Join-Path -Path $SourceFile -ChildPath ExchangeServer2016-x64-cu5.iso)
-          $finished = $true
-          $ErrorActionPreference = $er
-          Return $ExchangeBinary
-        }
-        Catch {
-          $SourceFile = Read-Host(`
-          "The path $using:FileShare does not contain the ISO file, please enter the correct path for the Exchange 2016 ISO Image folder")
-          $finished = $false
-        }
+    [bool]$finished=$false    
+
+    #Do while to make sure correct file is mounted
+    Do { 
+      #Makes sure $ExchangeBinary variable is emtpy       
+      $ExchangeBinary = $null
+      $ExchangeBinary = (Get-WmiObject win32_volume | Where-Object -Property Label -eq "EXCHANGESERVER2016-X64-CU5").Name
+      if ($ExchangeBinary -eq $null)
+      {    
+        Mount-DiskImage -ImagePath (Join-Path -Path $SourceFile -ChildPath ExchangeServer2016-x64-cu5.iso)
+        $finished = $true
+        $ErrorActionPreference = $er
+        Return $ExchangeBinary
+      }else{
+        $SourceFile = Read-Host(`
+        "The path $using:FileShare does not contain the ISO file, please enter the correct path for the Exchange 2016 ISO Image folder")
+        $finished = $false
       }
-      While ($finished -eq $false)
     }
-    Return $ExchangeBinary  
+    While ($finished -eq $false)
   }
-  "$ExchangeBinary after getting diskimage finished"
-  $ExchLetter = ( Join-Path -Path $FileShare -ChildPath ExchangeBinary.txt )
-  New-Item -ItemType File -Path $ExchLetter -ErrorAction Ignore
-  $ExchangeBinary > $ExchLetter  
+  Return $ExchangeBinary  
+}
+"$ExchangeBinary after getting diskimage finished"
+$ExchLetter = ( Join-Path -Path $FileShare -ChildPath ExchangeBinary.txt )
+New-Item -ItemType File -Path $ExchLetter -ErrorAction Ignore
+$ExchangeBinary > $ExchLetter  
 }
 
 
