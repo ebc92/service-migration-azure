@@ -744,7 +744,7 @@ Function Install-Prerequisite {
 
       Write-Verbose -Message "Pushing DSC script to target computer"
       #Pushes DSC script to target
-      Start-DscConfiguration -Path $PSScriptRoot\InstallExchange -Verbose -Wait
+      Start-DscConfiguration -Path $PSScriptRoot\InstallExchange -Force -Verbose -Wait
       
       Stop-Transcript
       
@@ -806,7 +806,7 @@ $i = 0
 
 Get-Prerequisite -fileShare $fileshare -ComputerName amstel-mail.amstel.local -DomainCredential $DomainCredential -Verbose
 
-Mount-Exchange -FileShare $fileshare -Verbose
+Mount-Exchange -FileShare $fileshare -ComputerName $ComputerName -Verbose
 
 New-DSCCertificate -ComputerName amstel-mail.amstel.local -Verbose
 
