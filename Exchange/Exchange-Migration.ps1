@@ -177,7 +177,9 @@ Function Mount-Exchange {
     [Parameter(Mandatory=$true)]
     [String]$FileShare,
     [Parameter(Mandatory=$true)]
-    [String]$ComputerName
+    [String]$ComputerName,
+    [Parameter(Mandatory=$true)]
+    [String]$baseDir
   )
   
   [bool]$finished=$false
@@ -186,12 +188,13 @@ Function Mount-Exchange {
   "$FileShare in local session supposed to be used for mounting image"
     
   $ExchangeBinary = Invoke-Command -Session $InstallSession -ScriptBlock { 
-    #Makes sure $ExchangeBinary variable is emtpy
+    #Mounting fileshare to local so that it can be accessed in remote sessions
+    Write-Verbose -Message "Mounting new PSDrive"
+    New-PSDrive -Name "Z" -PSProvider FileSystem -Root $using:baseDir -Persist -Credential $using:DomainCredential -ErrorAction Continue -Verbose
     
+    #Makes sure $ExchangeBinary variable is emtpy
     $ExchangeBinary = $null
-
     $ExchangeBinary = (Get-WmiObject win32_volume | Where-Object -Property Label -eq "EXCHANGESERVER2016-X64-CU5").Name
-
     if ($ExchangeBinary -eq $null)
     {
       Do {
@@ -680,9 +683,7 @@ Function Install-Prerequisite {
         $VerbosePreference = 'Continue'
         #Exporting Certificate            
         Write-Verbose -Message "Exporting cert to $using:CertExportPath"
-        Write-Verbose -Message "Mounting new PSDrive"
-        New-PSDrive -Name "Z" -PSProvider FileSystem -Root $using:baseDir -Persist -Credential $using:DomainCredential -ErrorAction Continue -Verbose
-      
+              
         $CertTargetPath = Join-Path -Path Cert:\LocalMachine\My -ChildPath $using:CertThumb
         $CertExport = (Get-ChildItem -Path $CertTargetPath)
       
@@ -828,7 +829,7 @@ $i = 0
 
 Get-Prerequisite -fileShare $fileshare -ComputerName amstel-mail -DomainCredential $DomainCredential -Verbose
 
-Mount-Exchange -FileShare $fileshare -ComputerName amstel-mail -Verbose
+Mount-Exchange -FileShare $fileshare -baseDir $baseDir -ComputerName amstel-mail -Verbose
 
 New-DSCCertificate -ComputerName amstel-mail -Verbose
 
