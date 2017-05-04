@@ -14,10 +14,12 @@ Configuration InstallExchange
 {
   param
   (
-    [PSCredential]$DomainCredential
+    [PSCredential]$DomainCredential,
+    [String]$ExchangeBinary
   )
 
   Import-DscResource -ModuleName xExchange, xPendingReboot, PSDesiredStateConfiguration
+  $ExchangeBinary
 
   Node $AllNodes.NodeName
   {
@@ -251,15 +253,16 @@ Configuration InstallExchange
       GetScript = {
       }
       SetScript = { 
-        $ExchangeBinary = $null
+        #$ExchangeBinary = $null
 
         $ExchangeBinary = (Get-WmiObject win32_volume | Where-Object -Property Label -eq "EXCHANGESERVER2016-X64-CU5").Name
 
         if ($ExchangeBinary -eq $null)
         {        
-          Mount-DiskImage -ImagePath "C:\TempExchange\ExchangeServer2016-x64-cu5.iso"
+          Mount-DiskImage -ImagePath "C:\TempExchange\ExchangeServer2016-x64-cu5.iso" -CimSession
           $ExchangeBinary = (Get-WmiObject win32_volume | Where-Object -Property Label -eq "EXCHANGESERVER2016-X64-CU5").Name
         }
+        Return $ExchangeBinary
       }
       TestScript = {
         Return $false
@@ -270,7 +273,7 @@ Configuration InstallExchange
     #Do the Exchange install
     xExchInstall InstallExchange
     {
-      Path       = "C:\TempExchange\setup.exe"
+      Path       = "$ExchangeBinary\setup.exe"
       Arguments  = "/mode:Install /role:Mailbox /IAcceptExchangeServerLicenseTerms /OrganizationName:Nikolaitl"
       Credential = $DomainCredential
 

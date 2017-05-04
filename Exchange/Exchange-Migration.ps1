@@ -65,6 +65,8 @@ $sLogFile = Join-Path -Path $sLogPath -ChildPath $sLogName
 $DotPath = Resolve-Path "$PSScriptRoot\..\Libraries\Log-Functions.ps1"
 . $DotPath
 
+$ExchangeBinary = $null
+
 #Checking if executables already exist
 $UCMAExist = Test-Path "$fileshare\UcmaRuntimeSetup.exe"
 
@@ -169,49 +171,50 @@ Function Get-Prerequisite {
   }
 }
 
-<#Mounts Exchange 2016 image from share
-    Function Mount-Exchange {
-    Param(
+#Mounts Exchange 2016 image from share
+Function Mount-Exchange {
+  Param(
     [Parameter(Mandatory=$true)]
     [String]$FileShare,
     [Parameter(Mandatory=$true)]
-    [psDomainCredentialential]$DomainDomainCredentialential,
-    [Parameter(Mandatory=$true)]
     [String]$ComputerName
-    )
+  )
   
-    [bool]$finished=$false
-    $er = $ErrorActionPreference
-    $ErrorActionPreference = "Continue"
-  
-    $MountDrive = New-PSSession -ComputerName $ComputerName -DomainCredentialential $DomainDomainCredentialential
-  
-    Invoke-Command -Session $MountDrive -DomainCredentialential $DomainDomainCredentialential -ScriptBlock { 
+  [bool]$finished=$false
+  $er = $ErrorActionPreference
+  $ErrorActionPreference = "Continue"
+    
+  $ExchangeBinary = Invoke-Command -Session $InstallSession -ScriptBlock { 
     #Makes sure $ExchangeBinary variable is emtpy
+    
     $ExchangeBinary = $null
 
     $ExchangeBinary = (Get-WmiObject win32_volume | Where-Object -Property Label -eq "EXCHANGESERVER2016-X64-CU5").Name
 
     if ($ExchangeBinary -eq $null)
     {
-    Do {
-    Try {          
-    Mount-DiskImage -ImagePath $using:FileShare\ExchangeServer2016-x64-cu5.iso
-    $finished = $true
-    $ErrorActionPreference = $er
-    Return $ExchangeBinary
+      Do {
+        Try {          
+          Mount-DiskImage -ImagePath $using:FileShare\ExchangeServer2016-x64-cu5.iso
+          $finished = $true
+          $ErrorActionPreference = $er
+          Return $ExchangeBinary
+        }
+        Catch {
+          $SourceFile = Read-Host(`
+          "The path $FileShare does not contain the ISO file, please enter the correct path for the Exchange 2016 ISO Image folder")
+          $finished = $false
+        }
+      }
+      While ($finished -eq $false)
     }
-    Catch {
-    $SourceFile = Read-Host(`
-    "The path $FileShare does not contain the ISO file, please enter the correct path for the Exchange 2016 ISO Image folder")
-    $finished = $false
-    }
-    }
-    While ($finished -eq $false)
-    }  
-    }
-    Remove-PSSession -Name $MountDrive
-}#>
+    Return $ExchangeBinary  
+  }
+  "$ExchangeBinary after getting diskimage finished"
+  $ExchLetter = ( Join-Path -Path $FileShare -ChildPath ExchangeBinary.txt )
+  New-Item -ItemType File -Path $ExchLetter -ErrorAction Ignore
+  $ExchangeBinary > $ExchLetter  
+}
 
 
 
@@ -733,11 +736,13 @@ Function Install-Prerequisite {
         )
       }
       
-      Start-Transcript -Path ( Join-Path -Path $sLogPath -ChildPath dsclog.txt )
+      Start-Transcript -Path ( Join-Path -Path $sLogPath -ChildPath dsclog-$logDate.txt )
+      $ExchangeBinary = Get-Content -Path ( Join-Path $baseDir -ChildPath Executables\ExchangeBinary.txt )
+      "$ExchangeBinary before compiling DSC script"
                   
       Write-Verbose -Message "Compiling DSC script"
       #Compiles DSC Script
-      InstallExchange -ConfigurationData $ConfigData -DomainCredential $DomainCredential -Verbose
+      InstallExchange -ConfigurationData $ConfigData -DomainCredential $DomainCredential -ExchangeBinary $ExchangeBinary -Verbose
 
       Write-Verbose -Message "Setting up LCM on target computer"
       #Sets up LCM on target comp
@@ -745,7 +750,7 @@ Function Install-Prerequisite {
 
       Write-Verbose -Message "Pushing DSC script to target computer"
       #Pushes DSC script to target
-      Start-DscConfiguration -Path $PSScriptRoot\InstallExchange -Verbose -Wait
+      Start-DscConfiguration -Path $PSScriptRoot\InstallExchange -Force -Verbose -Wait
       
       Stop-Transcript
       
@@ -807,7 +812,7 @@ $i = 0
 
 Get-Prerequisite -fileShare $fileshare -ComputerName amstel-mail.amstel.local -DomainCredential $DomainCredential -Verbose
 
-#Mount-Exchange -FileShare $fileshare -Verbose
+Mount-Exchange -FileShare $fileshare -ComputerName $ComputerName -Verbose
 
 New-DSCCertificate -ComputerName amstel-mail.amstel.local -Verbose
 
