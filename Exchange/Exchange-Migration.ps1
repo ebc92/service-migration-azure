@@ -816,6 +816,6 @@ Mount-Exchange -FileShare $fileshare -ComputerName $ComputerName -Verbose
 
 New-DSCCertificate -ComputerName amstel-mail.amstel.local -Verbose
 
-Install-Prerequisite -BaseDir $baseDir -ComputerName amstel-mail.amstel.local -DomainCredential $DomainCredential -ExchangeBinary $ExchangeBinary -Verbose
+Install-Prerequisite -BaseDir $baseDir -ComputerName amstel-mail.amstel.local -DomainCredential $DomainCredential -Verbose
 
 Log-Finish -LogPath $sLogFile
