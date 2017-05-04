@@ -198,10 +198,11 @@ Function Mount-Exchange {
     Do { 
       #Makes sure $ExchangeBinary variable is emtpy       
       $ExchangeBinary = $null
-      $ExchangeBinary = (Get-WmiObject win32_volume | Where-Object -Property Label -eq "EXCHANGESERVER2016-X64-CU5").Name + ':'
+      $ExchangeBinary = (Get-WmiObject win32_volume | Where-Object -Property Label -eq "EXCHANGESERVER2016-X64-CU5").Name
       if ($ExchangeBinary -eq $null)
       {    
         Mount-DiskImage -ImagePath (Join-Path -Path $SourceFile -ChildPath ExchangeServer2016-x64-cu5.iso)
+        $ExchangeBinary = (Get-WmiObject win32_volume | Where-Object -Property Label -eq "EXCHANGESERVER2016-X64-CU5").Name + ':'
         $finished = $true
         $ErrorActionPreference = $er
         Return $ExchangeBinary
