@@ -591,7 +591,7 @@ Function New-DSCCertificate {
     $certverifypath = [bool](dir cert:\LocalMachine\My\ | Where-Object { $_.subject -like "cn=$using:ComputerName" })
     if(!($certverifypath)) {
       New-SelfSignedCertificateEx `
-      -Subject "CN=$using:ComputerName" `
+      -Subject "CN=$using:ComputerName-dsccert" `
       -EKU 'Document Encryption' `
       -KeyUsage 'KeyEncipherment, DataEncipherment' `
       -SAN localhost `
@@ -604,26 +604,27 @@ Function New-DSCCertificate {
       -AlgorithmName 'RSA' `
       -SignatureAlgorithm 'SHA256' `
       -Verbose
-      "Created cert and moving on CN=$using:computername"
+      "Created cert and moving on CN=$using:computername-dsccert"
       $createcert = $true
     }else{
-      Get-ChildItem Cert:\LocalMachine\My | Where-Object { $_.subject -like "cn=$using:ComputerName" } | Remove-Item
-      "$createcert where the cert was deleted"        
-      New-SelfSignedCertificateEx `
-      -Subject "CN=$using:ComputerName" `
-      -EKU 'Document Encryption' `
-      -KeyUsage 'KeyEncipherment, DataEncipherment' `
-      -SAN localhost `
-      -FriendlyName 'DSC certificate' `
-      -Exportable `
-      -StoreLocation "LocalMachine" `
-      -StoreName 'My' `
-      -KeyLength 2048 `
-      -ProviderName 'Microsoft Enhanced Cryptographic Provider v1.0' `
-      -AlgorithmName 'RSA' `
-      -SignatureAlgorithm 'SHA256' `
-      -Verbose
-      "Created cert and moving on CN=$using:computername"
+      <#Get-ChildItem Cert:\LocalMachine\My | Where-Object { $_.subject -like "cn=$using:ComputerName" } | Remove-Item
+          "$createcert where the cert was deleted"        
+          New-SelfSignedCertificateEx `
+          -Subject "CN=$using:ComputerName" `
+          -EKU 'Document Encryption' `
+          -KeyUsage 'KeyEncipherment, DataEncipherment' `
+          -SAN localhost `
+          -FriendlyName 'DSC certificate' `
+          -Exportable `
+          -StoreLocation "LocalMachine" `
+          -StoreName 'My' `
+          -KeyLength 2048 `
+          -ProviderName 'Microsoft Enhanced Cryptographic Provider v1.0' `
+          -AlgorithmName 'RSA' `
+          -SignatureAlgorithm 'SHA256' `
+          -Verbose
+      "Created cert and moving on CN=$using:computername"#>
+      Write-Verbose -Message "Certificate already exists, moving on"
       $createcert = $false
     }     
   }
@@ -669,7 +670,7 @@ Function Install-Prerequisite {
       $CertThumb = Invoke-Command -Session $InstallSession -ScriptBlock { 
         Write-Verbose -Message "Getting Certificate Thumbprint"
         #Get Certificate thumbprint
-        $CertThumb = (Get-ChildItem -Path Cert:\LocalMachine\My | Where-Object {$_.Subject -eq "CN=$using:ComputerName"}).Thumbprint
+        $CertThumb = (Get-ChildItem -Path Cert:\LocalMachine\My | Where-Object {$_.Subject -eq "CN=$using:ComputerName-dsccert"}).Thumbprint
         $CertThumb
       }
 
@@ -746,7 +747,7 @@ Function Install-Prerequisite {
 
       Write-Verbose -Message "Setting up LCM on target computer"
       #Sets up LCM on target comp
-      Set-DscLocalConfigurationManager -Path $PSScriptRoot\InstallExchange -Verbose
+      Set-DscLocalConfigurationManager -Path $PSScriptRoot\InstallExchange -Force -Verbose
 
       Write-Verbose -Message "Pushing DSC script to target computer"
       #Pushes DSC script to target
