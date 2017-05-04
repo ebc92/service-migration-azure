@@ -14,7 +14,8 @@ Configuration InstallExchange
 {
   param
   (
-    [PSCredential]$DomainCredential
+    [PSCredential]$DomainCredential,
+    [String]$ExchangeBinary
   )
 
   Import-DscResource -ModuleName xExchange, xPendingReboot, PSDesiredStateConfiguration
@@ -252,13 +253,13 @@ Configuration InstallExchange
       GetScript = {
       }
       SetScript = { 
-        $ExchangeBinary = $null
+        #$ExchangeBinary = $null
 
         $ExchangeBinary = (Get-WmiObject win32_volume | Where-Object -Property Label -eq "EXCHANGESERVER2016-X64-CU5").Name
 
         if ($ExchangeBinary -eq $null)
         {        
-          Mount-DiskImage -ImagePath "C:\TempExchange\ExchangeServer2016-x64-cu5.iso"
+          Mount-DiskImage -ImagePath "C:\TempExchange\ExchangeServer2016-x64-cu5.iso" -CimSession
           $ExchangeBinary = (Get-WmiObject win32_volume | Where-Object -Property Label -eq "EXCHANGESERVER2016-X64-CU5").Name
         }
         Return $ExchangeBinary

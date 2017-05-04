@@ -169,49 +169,45 @@ Function Get-Prerequisite {
   }
 }
 
-<#Mounts Exchange 2016 image from share
-    Function Mount-Exchange {
-    Param(
+Mounts Exchange 2016 image from share
+Function Mount-Exchange {
+  Param(
     [Parameter(Mandatory=$true)]
     [String]$FileShare,
     [Parameter(Mandatory=$true)]
-    [psDomainCredentialential]$DomainDomainCredentialential,
-    [Parameter(Mandatory=$true)]
     [String]$ComputerName
-    )
+  )
   
-    [bool]$finished=$false
-    $er = $ErrorActionPreference
-    $ErrorActionPreference = "Continue"
-  
-    $MountDrive = New-PSSession -ComputerName $ComputerName -DomainCredentialential $DomainDomainCredentialential
-  
-    Invoke-Command -Session $MountDrive -DomainCredentialential $DomainDomainCredentialential -ScriptBlock { 
+  [bool]$finished=$false
+  $er = $ErrorActionPreference
+  $ErrorActionPreference = "Continue"
+    
+  Invoke-Command -Session $InstallSession -ScriptBlock { 
     #Makes sure $ExchangeBinary variable is emtpy
+    
     $ExchangeBinary = $null
 
     $ExchangeBinary = (Get-WmiObject win32_volume | Where-Object -Property Label -eq "EXCHANGESERVER2016-X64-CU5").Name
 
     if ($ExchangeBinary -eq $null)
     {
-    Do {
-    Try {          
-    Mount-DiskImage -ImagePath $using:FileShare\ExchangeServer2016-x64-cu5.iso
-    $finished = $true
-    $ErrorActionPreference = $er
-    Return $ExchangeBinary
-    }
-    Catch {
-    $SourceFile = Read-Host(`
-    "The path $FileShare does not contain the ISO file, please enter the correct path for the Exchange 2016 ISO Image folder")
-    $finished = $false
-    }
-    }
-    While ($finished -eq $false)
+      Do {
+        Try {          
+          Mount-DiskImage -ImagePath $using:FileShare\ExchangeServer2016-x64-cu5.iso
+          $finished = $true
+          $ErrorActionPreference = $er
+          Return $ExchangeBinary
+        }
+        Catch {
+          $SourceFile = Read-Host(`
+          "The path $FileShare does not contain the ISO file, please enter the correct path for the Exchange 2016 ISO Image folder")
+          $finished = $false
+        }
+      }
+      While ($finished -eq $false)
     }  
-    }
-    Remove-PSSession -Name $MountDrive
-}#>
+  }
+}
 
 
 
@@ -737,7 +733,7 @@ Function Install-Prerequisite {
                   
       Write-Verbose -Message "Compiling DSC script"
       #Compiles DSC Script
-      InstallExchange -ConfigurationData $ConfigData -DomainCredential $DomainCredential -Verbose
+      InstallExchange -ConfigurationData $ConfigData -DomainCredential $DomainCredential -ExchangeBinary $ExchangeBinary -Verbose
 
       Write-Verbose -Message "Setting up LCM on target computer"
       #Sets up LCM on target comp
@@ -807,7 +803,7 @@ $i = 0
 
 Get-Prerequisite -fileShare $fileshare -ComputerName amstel-mail.amstel.local -DomainCredential $DomainCredential -Verbose
 
-#Mount-Exchange -FileShare $fileshare -Verbose
+Mount-Exchange -FileShare $fileshare -Verbose
 
 New-DSCCertificate -ComputerName amstel-mail.amstel.local -Verbose
 
