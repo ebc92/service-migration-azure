@@ -588,10 +588,10 @@ Function New-DSCCertificate {
     }
     #Checks if the certificate used already exists
     
-    $certverifypath = [bool](dir cert:\LocalMachine\My\ | Where-Object { $_.subject -like "cn=$using:ComputerName" })
+    $certverifypath = [bool](dir cert:\LocalMachine\My\ | Where-Object { $_.subject -like "cn=$using:ComputerName-dsccert" })
     if(!($certverifypath)) {
       New-SelfSignedCertificateEx `
-      -Subject "CN=$using:ComputerName" `
+      -Subject "CN=$using:ComputerName-dsccert" `
       -EKU 'Document Encryption' `
       -KeyUsage 'KeyEncipherment, DataEncipherment' `
       -SAN localhost `
@@ -604,10 +604,10 @@ Function New-DSCCertificate {
       -AlgorithmName 'RSA' `
       -SignatureAlgorithm 'SHA256' `
       -Verbose
-      "Created cert and moving on CN=$using:computername"
+      "Created cert and moving on CN=$using:computername-dsccert"
       $createcert = $true
     }else{
-      Get-ChildItem Cert:\LocalMachine\My | Where-Object { $_.subject -like "cn=$using:ComputerName" } | Remove-Item
+      Get-ChildItem Cert:\LocalMachine\My | Where-Object { $_.subject -like "cn=$using:ComputerName-dsccert" } | Remove-Item
       "$createcert where the cert was deleted"        
       New-SelfSignedCertificateEx `
       -Subject "CN=$using:ComputerName" `
@@ -623,7 +623,8 @@ Function New-DSCCertificate {
       -AlgorithmName 'RSA' `
       -SignatureAlgorithm 'SHA256' `
       -Verbose
-      "Created cert and moving on CN=$using:computername"
+      "Created cert and moving on CN=$using:computername-dsccert"
+      Write-Verbose -Message "Certificate already exists, moving on"
       $createcert = $false
     }     
   }
@@ -669,12 +670,13 @@ Function Install-Prerequisite {
       $CertThumb = Invoke-Command -Session $InstallSession -ScriptBlock { 
         Write-Verbose -Message "Getting Certificate Thumbprint"
         #Get Certificate thumbprint
-        $CertThumb = (Get-ChildItem -Path Cert:\LocalMachine\My | Where-Object {$_.Subject -eq "CN=$using:ComputerName"}).Thumbprint
+        $CertThumb = (Get-ChildItem -Path Cert:\LocalMachine\My | Where-Object {$_.Subject -eq "CN=$using:ComputerName-dsccert"}).Thumbprint
         $CertThumb
       }
 
       $CertThumb
       Invoke-Command -Session $InstallSession -ScriptBlock {
+        $VerbosePreference = 'Continue'
         #Exporting Certificate            
         Write-Verbose -Message "Exporting cert to $using:CertExportPath"
         Write-Verbose -Message "Mounting new PSDrive"
@@ -692,12 +694,22 @@ Function Install-Prerequisite {
         Start-BitsTransfer -Source "Z:\Executables\EXCHANGESERVER2016-X64-CU5.iso" -Destination "C:\TempExchange\" -Credential $using:DomainCredential
         Write-Verbose -Message "Exchange ISO successfully moved to C:\TempExchange\"
       
-        Install-Module -Name xExchange, xPendingReboot -Force
+        #Check if xExchange is installed
+        $DSCResource = Get-DscResource -Name xExchange
+        if($DSCResource -eq $null) {
+          #Install modules
+          Install-Module -Name xExchange, xPendingReboot -Force -Verbose
+        }
         
-        #InstallUCMA
-        Write-Verbose -Message "Starting Install of UCMA"
-        Start-Process -FilePath "Z:\Executables\UcmaRuntimeSetup.exe" -ArgumentList '/passive /norestart' -NoNewWindow -Wait
-        Write-Verbose -Message "UCMA Installed, starting DSC"
+        #Test-path to see if UCMA is installed
+        $ucmatest = Test-Path -Path "C:\Program Files\Microsoft UCMA 4.0"
+        
+        if(!($ucmatest)) {
+          #InstallUCMA
+          Write-Verbose -Message "Starting Install of UCMA"
+          Start-Process -FilePath "Z:\Executables\UcmaRuntimeSetup.exe" -ArgumentList '/passive /norestart' -NoNewWindow -Wait -Verbose
+          Write-Verbose -Message "UCMA Installed, starting DSC"
+        }
       }
       Write-Verbose -Message "Removing remote session $InstallSession"
       $InstallSession | Remove-PSSession
@@ -713,8 +725,11 @@ Function Install-Prerequisite {
       $CertPath
       Export-Certificate -Cert $CertPath -FilePath $CertExportPath -Type CERT -Verbose
       
-      Install-Module -Name xExchange, xPendingReboot -Force
-      
+      $DSCResource = Get-DscResource -Name xExchange
+      if($DSCResource -eq $null) {
+        #Install modules
+        Install-Module -Name xExchange, xPendingReboot -Force -Verbose
+      }
       $DSC = Resolve-Path -Path $PSScriptRoot\InstallExchange.ps1
       . $DSC
       
@@ -746,7 +761,7 @@ Function Install-Prerequisite {
 
       Write-Verbose -Message "Setting up LCM on target computer"
       #Sets up LCM on target comp
-      Set-DscLocalConfigurationManager -Path $PSScriptRoot\InstallExchange -Verbose
+      Set-DscLocalConfigurationManager -Path $PSScriptRoot\InstallExchange -Force -Verbose
 
       Write-Verbose -Message "Pushing DSC script to target computer"
       #Pushes DSC script to target

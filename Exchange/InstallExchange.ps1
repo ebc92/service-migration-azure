@@ -237,15 +237,29 @@ Configuration InstallExchange
       DependsOn = '[xPendingReboot]BeforeRSATADDS'
       Ensure = 'Present'
       Name = 'RSAT-ADDS'
-    }    
+    }
+    
+    #Check if there is a reboot before installing NET-WCF-HTTP-Activation45
+    xPendingReboot BeforeNETWCF45
+    {
+      Name      = "BeforeNETWCF45"
+      DependsOn  = '[WindowsFeature]RSATADDS'
+    }
+    
+    WindowsFeature NETWCF45
+    {
+      DependsOn = '[xPendingReboot]BeforeNETWCF45'
+      Ensure = 'Present'
+      Name = 'NET-WCF-HTTP-Activation45'
+    }
+    
   
-    #Check if a reboot is needed before installing Exchange
-  
+    #Check if a reboot is needed before installing Exchange  
     xPendingReboot BeforeExchangeInstall
     {
       Name      = "BeforeExchangeInstall"
 
-      DependsOn  = '[WindowsFeature]RSATADDS'
+      DependsOn  = '[WindowsFeature]NETWCF45'
     }
   
 
