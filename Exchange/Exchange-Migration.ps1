@@ -211,7 +211,9 @@ Function Mount-Exchange {
     Return $ExchangeBinary  
   }
   "$ExchangeBinary after getting diskimage finished"
-  Return $ExchangeBinary
+  $ExchLetter = ( Join-Path -Path $FileShare -ChildPath ExchangeBinary.txt )
+  New-Item -ItemType File -Path $ExchLetter -ErrorAction Ignore
+  $ExchangeBinary > $ExchLetter  
 }
 
 
@@ -636,9 +638,7 @@ Function Install-Prerequisite {
     [parameter(Mandatory=$true)]
     [string]$ComputerName,
     [parameter(Mandatory=$true)]
-    [PSCredential]$DomainCredential,
-    [parameter(Mandatory=$true)]
-    [string]$ExchangeBinary
+    [PSCredential]$DomainCredential
   )
   
   Begin{
@@ -737,6 +737,7 @@ Function Install-Prerequisite {
       }
       
       Start-Transcript -Path ( Join-Path -Path $sLogPath -ChildPath dsclog-$logDate.txt )
+      $ExchangeBinary = Get-Content -Path ( Join-Path $baseDir -ChildPath Executables\ExchangeBinary.txt )
       "$ExchangeBinary before compiling DSC script"
                   
       Write-Verbose -Message "Compiling DSC script"
