@@ -209,16 +209,14 @@ Function Mount-Exchange {
         $SourceFile = Read-Host(`
         "The path $using:FileShare does not contain the ISO file, please enter the correct path for the Exchange 2016 ISO Image folder")
         $finished = $false
-      }
-    }
-    While ($finished -eq $false)
+      }      
+    } While ($finished -eq $false)
+    Return $ExchangeBinary  
   }
-  Return $ExchangeBinary  
-}
-"$ExchangeBinary after getting diskimage finished"
-$ExchLetter = ( Join-Path -Path $FileShare -ChildPath ExchangeBinary.txt )
-New-Item -ItemType File -Path $ExchLetter -ErrorAction Ignore
-$ExchangeBinary > $ExchLetter  
+  "$ExchangeBinary after getting diskimage finished"
+  $ExchLetter = ( Join-Path -Path $FileShare -ChildPath ExchangeBinary.txt )
+  New-Item -ItemType File -Path $ExchLetter -ErrorAction Ignore
+  $ExchangeBinary > $ExchLetter  
 }
 
 
