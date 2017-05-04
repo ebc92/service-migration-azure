@@ -192,32 +192,29 @@ Function Mount-Exchange {
     Write-Verbose -Message "Mounting new PSDrive"
     New-PSDrive -Name "Z" -PSProvider FileSystem -Root $using:baseDir -Persist -Credential $using:DomainCredential -ErrorAction SilentlyContinue -Verbose
     $SourceFile = "Z:\executables"
-    [bool]$finished=$false    
 
     #Do while to make sure correct file is mounted
-    Do { 
-      #Makes sure $ExchangeBinary variable is emtpy       
-      $ExchangeBinary = $null
+
+    #Makes sure $ExchangeBinary variable is emtpy       
+    $ExchangeBinary = $null
+    $ExchangeBinary = (Get-WmiObject win32_volume | Where-Object -Property Label -eq "EXCHANGESERVER2016-X64-CU5").Name
+    if ($ExchangeBinary -eq $null)
+    {    
+      Mount-DiskImage -ImagePath (Join-Path -Path $SourceFile -ChildPath ExchangeServer2016-x64-cu5.iso)
       $ExchangeBinary = (Get-WmiObject win32_volume | Where-Object -Property Label -eq "EXCHANGESERVER2016-X64-CU5").Name
-      if ($ExchangeBinary -eq $null)
-      {    
-        Mount-DiskImage -ImagePath (Join-Path -Path $SourceFile -ChildPath ExchangeServer2016-x64-cu5.iso)
-        $ExchangeBinary = (Get-WmiObject win32_volume | Where-Object -Property Label -eq "EXCHANGESERVER2016-X64-CU5").Name + ':'
-        $finished = $true
-        $ErrorActionPreference = $er
-        Return $ExchangeBinary
-      }else{
-        $SourceFile = Read-Host(`
-        "The path $using:FileShare does not contain the ISO file, please enter the correct path for the Exchange 2016 ISO Image folder")
-        $finished = $false
-      }      
-    } While ($finished -eq $false)
+      $finished = $true
+      $ErrorActionPreference = $er
+      Return $ExchangeBinary
+    }else{
+      #donothing
+    }
+    
+    "$ExchangeBinary after getting diskimage finished"
+    $ExchLetter = ( Join-Path -Path $FileShare -ChildPath ExchangeBinary.txt )
+    New-Item -ItemType File -Path $ExchLetter -ErrorAction Ignore
+    $ExchangeBinary > $ExchLetter 
     Return $ExchangeBinary  
   }
-  "$ExchangeBinary after getting diskimage finished"
-  $ExchLetter = ( Join-Path -Path $FileShare -ChildPath ExchangeBinary.txt )
-  New-Item -ItemType File -Path $ExchLetter -ErrorAction Ignore
-  $ExchangeBinary > $ExchLetter  
 }
 
 
