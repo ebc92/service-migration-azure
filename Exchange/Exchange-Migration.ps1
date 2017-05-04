@@ -65,6 +65,8 @@ $sLogFile = Join-Path -Path $sLogPath -ChildPath $sLogName
 $DotPath = Resolve-Path "$PSScriptRoot\..\Libraries\Log-Functions.ps1"
 . $DotPath
 
+$ExchangeBinary = $null
+
 #Checking if executables already exist
 $UCMAExist = Test-Path "$fileshare\UcmaRuntimeSetup.exe"
 
