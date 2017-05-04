@@ -608,21 +608,21 @@ Function New-DSCCertificate {
       $createcert = $true
     }else{
       Get-ChildItem Cert:\LocalMachine\My | Where-Object { $_.subject -like "cn=$using:ComputerName-dsccert" } | Remove-Item
-          "$createcert where the cert was deleted"        
-          New-SelfSignedCertificateEx `
-          -Subject "CN=$using:ComputerName" `
-          -EKU 'Document Encryption' `
-          -KeyUsage 'KeyEncipherment, DataEncipherment' `
-          -SAN localhost `
-          -FriendlyName 'DSC certificate' `
-          -Exportable `
-          -StoreLocation "LocalMachine" `
-          -StoreName 'My' `
-          -KeyLength 2048 `
-          -ProviderName 'Microsoft Enhanced Cryptographic Provider v1.0' `
-          -AlgorithmName 'RSA' `
-          -SignatureAlgorithm 'SHA256' `
-          -Verbose
+      "$createcert where the cert was deleted"        
+      New-SelfSignedCertificateEx `
+      -Subject "CN=$using:ComputerName" `
+      -EKU 'Document Encryption' `
+      -KeyUsage 'KeyEncipherment, DataEncipherment' `
+      -SAN localhost `
+      -FriendlyName 'DSC certificate' `
+      -Exportable `
+      -StoreLocation "LocalMachine" `
+      -StoreName 'My' `
+      -KeyLength 2048 `
+      -ProviderName 'Microsoft Enhanced Cryptographic Provider v1.0' `
+      -AlgorithmName 'RSA' `
+      -SignatureAlgorithm 'SHA256' `
+      -Verbose
       "Created cert and moving on CN=$using:computername-dsccert"
       Write-Verbose -Message "Certificate already exists, moving on"
       $createcert = $false
@@ -694,12 +694,22 @@ Function Install-Prerequisite {
         Start-BitsTransfer -Source "Z:\Executables\EXCHANGESERVER2016-X64-CU5.iso" -Destination "C:\TempExchange\" -Credential $using:DomainCredential
         Write-Verbose -Message "Exchange ISO successfully moved to C:\TempExchange\"
       
-        Install-Module -Name xExchange, xPendingReboot -Force
+        #Check if xExchange is installed
+        $DSCResource = Get-DscResource -Name xExchange
+        if($DSCResource -eq $null) {
+          #Install modules
+          Install-Module -Name xExchange, xPendingReboot -Force -Verbose
+        }
         
-        #InstallUCMA
-        Write-Verbose -Message "Starting Install of UCMA"
-        Start-Process -FilePath "Z:\Executables\UcmaRuntimeSetup.exe" -ArgumentList '/passive /norestart' -NoNewWindow -Wait -Verbose
-        Write-Verbose -Message "UCMA Installed, starting DSC"
+        #Test-path to see if UCMA is installed
+        $ucmatest = Test-Path -Path "C:\Program Files\Microsoft UCMA 4.0"
+        
+        if(!($ucmatest)) {
+          #InstallUCMA
+          Write-Verbose -Message "Starting Install of UCMA"
+          Start-Process -FilePath "Z:\Executables\UcmaRuntimeSetup.exe" -ArgumentList '/passive /norestart' -NoNewWindow -Wait -Verbose
+          Write-Verbose -Message "UCMA Installed, starting DSC"
+        }
       }
       Write-Verbose -Message "Removing remote session $InstallSession"
       $InstallSession | Remove-PSSession
@@ -715,8 +725,11 @@ Function Install-Prerequisite {
       $CertPath
       Export-Certificate -Cert $CertPath -FilePath $CertExportPath -Type CERT -Verbose
       
-      Install-Module -Name xExchange, xPendingReboot -Force
-      
+      $DSCResource = Get-DscResource -Name xExchange
+      if($DSCResource -eq $null) {
+        #Install modules
+        Install-Module -Name xExchange, xPendingReboot -Force -Verbose
+      }
       $DSC = Resolve-Path -Path $PSScriptRoot\InstallExchange.ps1
       . $DSC
       
