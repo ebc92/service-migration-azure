@@ -183,6 +183,7 @@ Function Mount-Exchange {
   [bool]$finished=$false
   $er = $ErrorActionPreference
   $ErrorActionPreference = "Continue"
+  "$FileShare in local session supposed to be used for mounting image"
     
   $ExchangeBinary = Invoke-Command -Session $InstallSession -ScriptBlock { 
     #Makes sure $ExchangeBinary variable is emtpy
