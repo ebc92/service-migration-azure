@@ -676,6 +676,7 @@ Function Install-Prerequisite {
 
       $CertThumb
       Invoke-Command -Session $InstallSession -ScriptBlock {
+        $VerbosePreference = 'Continue'
         #Exporting Certificate            
         Write-Verbose -Message "Exporting cert to $using:CertExportPath"
         Write-Verbose -Message "Mounting new PSDrive"
@@ -697,7 +698,7 @@ Function Install-Prerequisite {
         
         #InstallUCMA
         Write-Verbose -Message "Starting Install of UCMA"
-        Start-Process -FilePath "Z:\Executables\UcmaRuntimeSetup.exe" -ArgumentList '/passive /norestart' -NoNewWindow -Wait
+        Start-Process -FilePath "Z:\Executables\UcmaRuntimeSetup.exe" -ArgumentList '/passive /norestart' -NoNewWindow -Wait -Verbose
         Write-Verbose -Message "UCMA Installed, starting DSC"
       }
       Write-Verbose -Message "Removing remote session $InstallSession"
