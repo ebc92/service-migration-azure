@@ -611,7 +611,7 @@ Function New-DSCCertificate {
       Get-ChildItem Cert:\LocalMachine\My | Where-Object { $_.subject -like "cn=$using:ComputerName-dsccert" } | Remove-Item
       "$createcert where the cert was deleted"        
       New-SelfSignedCertificateEx `
-      -Subject "CN=$using:ComputerName" `
+      -Subject "CN=$using:ComputerName-dsccert" `
       -EKU 'Document Encryption' `
       -KeyUsage 'KeyEncipherment, DataEncipherment' `
       -SAN localhost `
