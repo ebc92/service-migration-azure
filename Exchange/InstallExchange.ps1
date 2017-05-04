@@ -261,6 +261,7 @@ Configuration InstallExchange
           Mount-DiskImage -ImagePath "C:\TempExchange\ExchangeServer2016-x64-cu5.iso"
           $ExchangeBinary = (Get-WmiObject win32_volume | Where-Object -Property Label -eq "EXCHANGESERVER2016-X64-CU5").Name
         }
+        Return $ExchangeBinary
       }
       TestScript = {
         Return $false
