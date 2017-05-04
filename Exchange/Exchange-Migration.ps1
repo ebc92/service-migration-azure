@@ -182,7 +182,7 @@ Function Mount-Exchange {
   $er = $ErrorActionPreference
   $ErrorActionPreference = "Continue"
     
-  Invoke-Command -Session $InstallSession -ScriptBlock { 
+  $ExchangeBinary = Invoke-Command -Session $InstallSession -ScriptBlock { 
     #Makes sure $ExchangeBinary variable is emtpy
     
     $ExchangeBinary = $null
@@ -207,6 +207,7 @@ Function Mount-Exchange {
       While ($finished -eq $false)
     }  
   }
+  $ExchangeBinary
 }
 
 
@@ -730,6 +731,7 @@ Function Install-Prerequisite {
       }
       
       Start-Transcript -Path ( Join-Path -Path $sLogPath -ChildPath dsclog-$logDate.txt )
+      "$ExchangeBinary before compiling DSC script"
                   
       Write-Verbose -Message "Compiling DSC script"
       #Compiles DSC Script
