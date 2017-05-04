@@ -50,7 +50,7 @@ Function New-AzureStackTenantDeployment {
     }
 
     Try{ 
-        $exists = Get-AzureRmResourceGroup -Name $ResourceGroupName
+        $exists = Get-AzureRmResourceGroup -Name $ResourceGroupName -ErrorAction SilentlyContinue
     } Catch {
         Log-Write -LogPath $sLogFile -LineValue "Resource Group could not be retrieved."
     }
@@ -190,7 +190,12 @@ Function New-AzureStackVnet{
         # Create a virtual network card and associate with public IP address and NSG
         if(!$nic){
             Log-Write -LogPath $sLogFile -LineValue "Here comes the sun"
-            Log-Write -LogPath $sLogFile -LineValue $res, $Location, $VMNicName, $subnet, $nsg, $Network.Address
+            $res | Out-String | Log-Write -LogPath $sLogFile -LineValue $_
+            $Location | Out-String | Log-Write -LogPath $sLogFile -LineValue $_
+            $VMNicName | Out-String | Log-Write -LogPath $sLogFile -LineValue $_
+            $subnet | Out-String | Log-Write -LogPath $sLogFile -LineValue $_
+            $nsg | Out-String | Log-Write -LogPath $sLogFile -LineValue $_
+            $Network.Address | Out-String | Log-Write -LogPath $sLogFile -LineValue $_
             $nic = New-AzureRmNetworkInterface -ResourceGroupName $res -Location $Location -Name $VMNicName -Subnet $subnet -NetworkSecurityGroup $nsg -PrivateIpAddress "192.158.59.23" -ErrorAction Stop
             Log-Write -LogPath $sLogFile -LineValue "Created the network interface."
         } else {
