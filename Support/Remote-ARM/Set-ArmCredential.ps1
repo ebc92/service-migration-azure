@@ -1,6 +1,6 @@
 ﻿Param(
     $ARMSession,
-    $ARMCredentials
+    $ARMCredential
 )
 
 #Install modules, set profile, add AzureRmEnvironment
@@ -16,8 +16,8 @@ $ScriptBlock = {
         -Credential $Credential
     }
 }
-invoke-command -Session $ARMSession -ScriptBlock $ScriptBlock -ArgumentList $ARMCredentials
+invoke-command -Session $ARMSession -ScriptBlock $ScriptBlock -ArgumentList $ARMCredential
 
 #Import SMA-Provisioning
-$SMAProvisioning = Resolve-Path (Join-Path -Path $PSScriptRoot -ChildPath "\..\SMA-Provisioning.psm1")
-invoke-command -Session $ARMSession -FilePath $SMAProvisioning
+$SMAInstaller = Resolve-Path (Join-Path -Path $PSScriptRoot -ChildPath "\..\Install-SMModule.ps1")
+invoke-command -Session $ARMSession -FilePath $SMAInstaller

@@ -48,6 +48,7 @@ $sLogPath = "C:\Logs"
 $sLogName = "service-migration-azure.log"
 $global:SMAConfig = Get-IniContent -FilePath (Join-Path -Path $PSScriptRoot -ChildPath "Configuration.ini")
 $global:sLogFile = $SMAConfig.Global.Get_Item('logpath')
+$global:AzureStackSession
 
 #-----------------------------------------------------------[Execution]------------------------------------------------------------
 
@@ -70,11 +71,22 @@ $module | % {
         Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $False
     }
 }
+#-----------------------------------------------------------[Azure Stack]---------------------------------------------------------
+# Create the Azure Stack PSSession
+$AzureStackSession = New-PSSession -ComputerName $SMAConfig.Global.Get_Item('azurestacknat') -Credential $AzureLocalCredential
+
+# Set Powershell prerequisites for using the Azure Resource Manager
+Invoke-Command -Session $AzureStackSession -FilePath (Join-Path -Path $PSScriptRoot -ChildPath "\Support\Remote-ARM\Set-ArmPrerequisites.ps1")
+
+# Authenticate the session with Azure AD
+$Authenticator = Join-Path -Path $PSScriptRoot -ChildPath "\Support\Remote-ARM\Set-ArmCredential.ps1"
+& $Authenticator -ARMSession $AzureStackSession -ArmCredential $AzureTenantCredential
+
 
 #-----------------------------------------------------------[Active Directory]---------------------------------------------------------
 
 #& (Join-Path -Path $PSScriptRoot -ChildPath "\ADDC\ADDC-Migration.ps1")
-New-AzureStackTenantDeployment -VMName "TEST" -IPAddress "192.168.59.23/24" -DomainCredential $DomainCredential
+Invoke-Command -Session $AzureStackSession -ScriptBlock {New-AzureStackTenantDeployment -VMName "TEST" -IPAddress "192.168.59.23/24" -DomainCredential $DomainCredential}
 
 #-----------------------------------------------------------[SQL Server]---------------------------------------------------------------
 
