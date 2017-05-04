@@ -169,7 +169,7 @@ Function Get-Prerequisite {
   }
 }
 
-Mounts Exchange 2016 image from share
+#Mounts Exchange 2016 image from share
 Function Mount-Exchange {
   Param(
     [Parameter(Mandatory=$true)]
@@ -208,7 +208,7 @@ Function Mount-Exchange {
     }
     Return $ExchangeBinary  
   }
-  $ExchangeBinary
+  "$ExchangeBinary after getting diskimage finished"
 }
 
 
@@ -633,7 +633,9 @@ Function Install-Prerequisite {
     [parameter(Mandatory=$true)]
     [string]$ComputerName,
     [parameter(Mandatory=$true)]
-    [PSCredential]$DomainCredential
+    [PSCredential]$DomainCredential,
+    [parameter(Mandatory=$true)]
+    [string]$ExchangeBinary
   )
   
   Begin{
@@ -810,6 +812,6 @@ Mount-Exchange -FileShare $fileshare -ComputerName $ComputerName -Verbose
 
 New-DSCCertificate -ComputerName amstel-mail.amstel.local -Verbose
 
-Install-Prerequisite -BaseDir $baseDir -ComputerName amstel-mail.amstel.local -DomainCredential $DomainCredential -Verbose
+Install-Prerequisite -BaseDir $baseDir -ComputerName amstel-mail.amstel.local -DomainCredential $DomainCredential -ExchangeBinary $ExchangeBinary -Verbose
 
 Log-Finish -LogPath $sLogFile
