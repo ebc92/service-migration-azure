@@ -788,32 +788,58 @@ Function Install-Prerequisite {
     }
   }
 }
-<#Function Migrate-Transport {
-    [CmdletBinding()]
-    Param(
-    )
+Function Migrate-Data {
+  [CmdletBinding()]
+  Param(
+    [Parameter(Mandatory=$true)]
+    [String]$ComputerName,
+    [Parameter(Mandatory=$true)]
+    [String]$SourceComputer,
+    [Parameter(Mandatory=$true)]
+    [String]$fqdn,
+    [Parameter(Mandatory=$true)]
+    [String]$Password,
+    [Parameter(Mandatory=$true)]
+    [pscredential]$DomainCredential
+  )
   
-    Begin{
+  Begin{
     Log-Write -LogPath $sLogFile -LineValue '<Write what happens>...'
-    }
+  }
   
-    Process{
+  Process{
     Try{
+      $ConfigSession = New-PSSession -ConfigurationName Microsoft.Exchange -ConnectionUri http://$fqdn/powershell `
+      -Credential $DomainCredential -Authentication Kerberos
+            
+      $ExchCert = Invoke-Command -Session $ConfigSession -ScriptBlock {
+        Get-ExchangeCertificate
+      }
+      $ExchCert = ($ExchCert | Where-Object {$_.Subject -eq "CN=$SourceComputer"}).Thumbprint
+      
+      $Password = ConvertTo-SecureString $Password -AsPlainText -Force
+      
+      Invoke-Command -Session $ConfigSession -ScriptBlock {
+        Param($ExchCert)
+        Export-ExchangeCertificate -Thumbprint $ExchCert -FileName C:\Cert\exchcert.pfx -Password $Password
+      } -ArgumentList $ExchCert
+      
+      
      
     }      
     Catch {
-    Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $True
-    Break
+      Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $True
+      Break
     }
-    }
+  }
   
-    End{
+  End{
     If($?){
-    Log-Write -LogPath $sLogFile -LineValue "Completed Successfully."
-    Log-Write -LogPath $sLogFile -LineValue " "
+      Log-Write -LogPath $sLogFile -LineValue "Completed Successfully."
+      Log-Write -LogPath $sLogFile -LineValue " "
     }
-    }
-} #>
+  }
+}
 
 #-----------------------------------------------------------[Execution]------------------------------------------------------------
 
