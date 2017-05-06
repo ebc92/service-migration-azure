@@ -809,6 +809,20 @@ Function Migrate-Data {
   
   Process{
     Try{
+      $FixRemoteSess = New-PSSession -ComputerName $SourceComputer -Credential $DomainCredential
+      Invoke-Command -Session $FixRemoteSess {
+        $exchdir = Get-ItemProperty HKLM:\SOFTWARE\Microsoft\ExchangeServer\V15\Setup
+        $PSWebPath = (Join-Path $exchdir.MsiInstallPath -ChildPath ClientAccess\PowerShell\)
+        [xml]$FixPSRemote = (Get-content $PSWebPath\web.config)
+        $UpdatePSConf = $FixPsRemote.configuration.appSettings.add | Where-Object {$_.Key -eq "PSLanguageMode"}
+        $UpdatePSConf.value = 'FullLanguage'
+        $xmlsavepath = (Join-Path -Path $PSWebPath -ChildPath web.config)
+        $FixPSRemote.Save($xmlsavepath)
+      }
+      Remove-PSSession $FixRemoteSess
+    
+    
+    
       $ConfigSession = New-PSSession -ConfigurationName Microsoft.Exchange -ConnectionUri http://$fqdn/powershell `
       -Credential $DomainCredential -Authentication Kerberos
             
