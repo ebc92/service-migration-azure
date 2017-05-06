@@ -811,13 +811,42 @@ Function Migrate-Data {
     Try{
       $FixRemoteSess = New-PSSession -ComputerName $SourceComputer -Credential $DomainCredential
       Invoke-Command -Session $FixRemoteSess {
-        $exchdir = Get-ItemProperty HKLM:\SOFTWARE\Microsoft\ExchangeServer\V15\Setup
-        $PSWebPath = (Join-Path $exchdir.MsiInstallPath -ChildPath ClientAccess\PowerShell\)
-        [xml]$FixPSRemote = (Get-content $PSWebPath\web.config)
+        #Gets Exchange Install Path, will always remain the same.
+        $exchdir = (Get-ItemProperty HKLM:\SOFTWARE\Microsoft\ExchangeServer\V15\Setup).MsiInstallPath
+        $PSWebPath = (Join-Path $exchdir -ChildPath ClientAccess\PowerShell\)
+        $NewPSWebAppDir = (Join-Path -Path $exchdir -ChildPath ClientAccess\PSFullRemote)
+        
+        #Creates a new directory and copies the web.config for the new application pool we are creating
+        New-Item -ItemType Directory -Path $NewPSWebAppDir -ErrorAction Ignore
+        Copy-Item -Path (Join-Path -Path $PSWebPath -ChildPath web.config) -Destination $NewPSWebAppDir        
+        
+        #Edits the web.config XML file so that one can run EMS in FullLanguage mode.
+        [xml]$FixPSRemote = (Get-content $NewPSWebAppDir\web.config)
         $UpdatePSConf = $FixPsRemote.configuration.appSettings.add | Where-Object {$_.Key -eq "PSLanguageMode"}
         $UpdatePSConf.value = 'FullLanguage'
-        $xmlsavepath = (Join-Path -Path $PSWebPath -ChildPath web.config)
+        $xmlsavepath = (Join-Path -Path $NewPSWebAppDir -ChildPath web.config)
         $FixPSRemote.Save($xmlsavepath)
+        
+        #Creates a new application pool
+        $psapppool = New-WebAppPool -Name PSFullRemote
+        
+        #Sets the account which IIS runs the app pool under ( LocalSystem )
+        Set-ItemProperty IIS:\AppPools\PSFullremote -Name ProcessModel -Value @{identityType=0}
+        
+        #Starts the new app pool
+        Start-WebAppPool -Name PSFullRemote
+        
+        #Creates a new application ( PowerShell ) to run in the app pool, using Default Web Site because of time constraints
+        $psapplication = New-WebApplication -Name PSFullRemote -Site 'Default Web Site' `
+        -PhysicalPath "$NewPSWebAppDir" -ApplicationPool $psapppool.Name
+        
+        #Sets SSL settings
+        Set-WebConfigurationProperty -Filter //security/access -Name SslFlags -Value SslNegotiateCert `
+        -PSPath IIS:\ -Location 'Default Web Site/PSFullRemote'
+        
+        #Create endpoint which you use -URI parameter to connect to
+        Register-PSSessionConfiguration -Name PSFullRemote -Force
+        Set-PSSessionConfiguration -Name PSFullRemote -Force
       }
       Remove-PSSession $FixRemoteSess
     
