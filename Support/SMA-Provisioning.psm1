@@ -33,6 +33,9 @@ Function New-AzureStackTenantDeployment {
         $DomainCredential,
         $Location = "local"
     )
+    
+    #Is the config globally available?
+    $SMAConfig | Out-String >> .\debug.txt
 
     #TODO: Verify presence of azurerm connect and compute modules
 
@@ -71,9 +74,10 @@ Function New-AzureStackTenantDeployment {
     }
 
     Log-Write -LogPath $sLogFile -LineValue "Starting VM provisioning..."
-    $VMNic | Out-String >> .\debug.txt
-    $ProvisionedIP = New-AzureStackWindowsVM -VMName $VMName -VMNic $VMNic -ErrorAction Stop
-    return $ProvisionedIP
+
+    $VMNic | % {if($_.GetType().Name -eq "PSNetworkInterface"){$result = $_}}
+
+    $ProvisionedIP = New-AzureStackWindowsVM -VMName $VMName -VMNic $result -ErrorAction Stop
 }
 
 Function New-AzureStackVnet{
@@ -133,8 +137,6 @@ Function New-AzureStackVnet{
             $pip = New-AzureRmPublicIpAddress -ResourceGroupName $ResourceGroupName -AllocationMethod Dynamic -Name VPNGatewayIP -Location $Location
 
             Log-Write -LogPath $sLogFile -LineValue "Creating the gateway ipconfiguration with ip $pip and subnet $VPNSubnet.Name"
-            
-            
 
             $VPNIpconfig = New-AzureRmVirtualNetworkGatewayIpConfig -Name "AMSTEL-VPN-ipconfig" -PublicIpAddress $pip -Subnet $VPNSubnet 
             
@@ -155,7 +157,7 @@ Function New-AzureStackVnet{
             -GatewayIpAddress $LocalEndpoint `
             -AddressPrefix $LocalNetwork
 
-            New-AzureRmVirtualNetworkGatewayConnection -Name "IPsec-Connection" `
+            $Connection = New-AzureRmVirtualNetworkGatewayConnection -Name "IPsec-Connection" `
             -ResourceGroupName $ResourceGroupName -Location $Location `
             -VirtualNetworkGateway1 $VirtualGateway `
             -LocalNetworkGateway2 $LocalGateway `
@@ -193,18 +195,8 @@ Function New-AzureStackVnet{
         if(!$nic){   
             Log-Write -LogPath $sLogFile -LineValue "Updating the subnet configuration.."
             $subnet = Get-AzureRmVirtualNetworkSubnetConfig -Name "HostSubnet" -VirtualNetwork $vnet
-            #Log-Write -LogPath $sLogFile -LineValue "Creating ipconfig.."
-            #$IPconfig = New-AzureRmNetworkInterfaceIpConfig -Name $VMNicName -PrivateIpAddressVersion IPv4 -PrivateIpAddress $Network.Address -Subnet $subnet
-            $res | Out-String > .\debug.txt
-            $Location | Out-String >> .\debug.txt
-            $VMNicName | Out-String >> .\debug.txt
-            $nsg | Out-String >> .\debug.txt
-            $subnet | Out-String >> .\debug.txt
-            $Network.Address | Out-String >> .\debug.txt
             Log-Write -LogPath $sLogFile -LineValue "Creating interface.."
             $nic = New-AzureRmNetworkInterface -ResourceGroupName $res -Location $Location -Name $VMNicName -NetworkSecurityGroup $nsg -Subnet $subnet -PrivateIpAddress $Network.Address -DnsServer "8.8.8.8","4.4.4.4" -ErrorAction Stop
-            $nic | Out-String >> .\debug.txt
-            $nic | Get-Member | Out-String >> .\debug.txt
             Log-Write -LogPath $sLogFile -LineValue "Created the network interface."
         } else {
             Log-Write -LogPath $sLogFile -LineValue "The network interface already exists."
