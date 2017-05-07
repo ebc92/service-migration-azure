@@ -10,11 +10,11 @@ invoke-command -Session $ARMSession -FilePath $SetPrerequisites
 #Authenticate the session with Azure AD
 $ScriptBlock = {
     param($Credential)
-    $Context = Get-AzureRMContext -ErrorAction SilentlyContinue
-    if($Context.Environment -ne "AzureStackAdmin"){
+    <#$Context = Get-AzureRMContext -ErrorAction SilentlyContinue
+    if($Context.Environment -ne "AzureStackAdmin"){#>
         Login-AzureRmAccount -EnvironmentName AzureStackAdmin `
         -Credential $Credential
-    }
+    #}
 }
 invoke-command -Session $ARMSession -ScriptBlock $ScriptBlock -ArgumentList $ARMCredential
 
