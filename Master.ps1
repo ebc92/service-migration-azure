@@ -66,7 +66,7 @@ $m = "Starting service migration execution.."
 Log-Write -LogPath $sLogFile -LineValue $m
 Write-Verbose $m
 
-$module = @("ADDC\ADDC-Migration.psm1", "MSSQL\MSSQL-Migration.psm1", "Support\SMA-Provisioning.psm1", "File-Share\FSS-Migration.psm1", "Exchange\Exchange-Migration.psm1")
+$module = @("ADDC\ADDC-Migration.psm1", "MSSQL\MSSQL-Migration.psm1", "Support\SMA-Provisioning.psm1", "File-Share\FSS-Migration.psm1")
 
 $module | % {
     Try {

@@ -101,12 +101,12 @@ Function New-AzureStackVnet{
     $nsgName = $VNetName + "-NSG"
 
     Try {
-        $vnet = Get-AzureRmVirtualNetwork -ResourceGroupName $ResourceGroupName -Name $VNetName
+        $vnet = Get-AzureRmVirtualNetwork -ResourceGroupName $ResourceGroupName -Name $VNetName -SilentlyContinue
         #$subnet = Get-AzureRmVirtualNetworkSubnetConfig -Name HostSubnet -VirtualNetwork $vnet
         #$nsg = Get-AzureRmNetworkSecurityGroup -ResourceGroupName $res -Name $nsgName
         #$nsRules = Get-AzureRmNetworkSecurityRuleConfig -NetworkSecurityGroup $nsg
-        $nic = Get-AzureRmNetworkInterface -ResourceGroupName $res -Name $VMNicName
-        $vpn = Get-AzureRmVirtualNetworkGateway -ResourceGroupName $res -Name "AMSTEL-VPN"
+        $nic = Get-AzureRmNetworkInterface -ResourceGroupName $res -Name $VMNicName -SilentlyContinue
+        $vpn = Get-AzureRmVirtualNetworkGateway -ResourceGroupName $res -Name "AMSTEL-VPN" -SilentlyContinue
     } Catch {
         Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $False
     }
@@ -198,7 +198,7 @@ Function New-AzureStackVnet{
             Log-Write -LogPath $sLogFile -LineValue "Updating the subnet configuration.."
             $subnet = Get-AzureRmVirtualNetworkSubnetConfig -Name "HostSubnet" -VirtualNetwork $vnet
             Log-Write -LogPath $sLogFile -LineValue "Creating public ip..."
-            $pip = New-AzureRmPublicIpAddress -ResourceGroupName $ResourceGroupName -AllocationMethod Dynamic -Location $Location
+            $pip = New-AzureRmPublicIpAddress -ResourceGroupName $ResourceGroupName -AllocationMethod Dynamic -Location $Location -Name "$($VMNicName)-CFG"
             Log-Write -LogPath $sLogFile -LineValue "Creating interface.."
             $nic = New-AzureRmNetworkInterface -ResourceGroupName $res -Location $Location -Name $VMNicName -Subnet $subnet -PublicIpAddress $pip -PrivateIpAddress $Network.Address -ErrorAction Stop
             Log-Write -LogPath $sLogFile -LineValue "Created the network interface."
