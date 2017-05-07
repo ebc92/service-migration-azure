@@ -53,7 +53,7 @@ Function New-AzureStackTenantDeployment {
     }
 
     Try{ 
-        $exists = Get-AzureRmResourceGroup -Name $ResourceGroupName -ErrorAction SilentlyContinue
+        $exists = Get-AzureRmResourceGroup -Name $ResourceGroupName -ErrorAction SilentlyContinue | Out-Null
     } Catch {
         Log-Write -LogPath $sLogFile -LineValue "Resource Group could not be retrieved."
     }
@@ -100,9 +100,9 @@ Function New-AzureStackVnet{
 
     Try {
         $vnet = Get-AzureRmVirtualNetwork -ResourceGroupName $ResourceGroupName -Name $VNetName
-        $subnet = Get-AzureRmVirtualNetworkSubnetConfig -Name HostSubnet -VirtualNetwork $vnet
-        $nsg = Get-AzureRmNetworkSecurityGroup -ResourceGroupName $res -Name $nsgName
-        $nsRules = Get-AzureRmNetworkSecurityRuleConfig -NetworkSecurityGroup $nsg
+        #$subnet = Get-AzureRmVirtualNetworkSubnetConfig -Name HostSubnet -VirtualNetwork $vnet
+        #$nsg = Get-AzureRmNetworkSecurityGroup -ResourceGroupName $res -Name $nsgName
+        #$nsRules = Get-AzureRmNetworkSecurityRuleConfig -NetworkSecurityGroup $nsg
         $nic = Get-AzureRmNetworkInterface -ResourceGroupName $res -Name $VMNicName
         $vpn = Get-AzureRmVitualNetworkGateway -ResourceGroupName $res
     } Catch {
@@ -111,8 +111,8 @@ Function New-AzureStackVnet{
     
     Try {
 
-        # Create a subnet configuration
-        if(!$subnet){
+        # Create a vNet
+        if(!$vnet){
             $SubnetNetwork = & $IpCalc $Network.HostMin -Netmask 255.255.255.128
             $subnet = New-AzureRmVirtualNetworkSubnetConfig -Name HostSubnet -AddressPrefix $SubnetNetwork.Network
             Log-Write -LogPath $sLogFile -LineValue "Created the host subnet configuration."
@@ -120,18 +120,19 @@ Function New-AzureStackVnet{
             $VpnNetwork = & $IpCalc $Network.HostMax -Netmask 255.255.255.128
             $VPNSubnet = New-AzureRmVirtualNetworkSubnetConfig -Name GatewaySubnet -AddressPrefix $VpnNetwork.Network
             Log-Write -LogPath $sLogFile -LineValue "Created the VPN subnet configuration."
-        } else {
-            Log-Write -LogPath $sLogFile -LineValue "The subnet configuration already exists."
-        }
 
-        # Create a vNet TODO: SEPARATE VNET AND VPN CREATION
-        if(!$vnet -or !$vpn){
             Log-Write -LogPath $sLogFile -LineValue "Creating the virtual network and its VPN gateway."
             Log-Write -LogPath $sLogFile -LineValue "Local Endpoint is: $LocalEndpoint, network is $Network, localnetwork is $LocalNetwork"
             
 
             $vnet = New-AzureRmVirtualNetwork -ResourceGroupName $ResourceGroupName -Location $Location -Name $VNetName -AddressPrefix $Network.Network -Subnet $subnet,$VPNSubnet
+            Log-Write -LogPath $sLogFile -LineValue "Virtual network and VPN gateway was successfully created."
 
+        } else {
+            Log-Write -LogPath $sLogFile -LineValue "The virtual network already exists."
+        }
+
+        if (!$vpn){
             $VPNSubnet = Get-AzureRmVirtualNetworkSubnetConfig -Name GatewaySubnet -VirtualNetwork $vnet
 
             $pip = New-AzureRmPublicIpAddress -ResourceGroupName $ResourceGroupName -AllocationMethod Dynamic -Name VPNGatewayIP -Location $Location
@@ -163,14 +164,9 @@ Function New-AzureStackVnet{
             -LocalNetworkGateway2 $LocalGateway `
             -ConnectionType IPsec `
             -SharedKey "OnlyLettersAndNumbers1"
-
-            Log-Write -LogPath $sLogFile -LineValue "Virtual network and VPN gateway was successfully created."
-
-        } else {
-            Log-Write -LogPath $sLogFile -LineValue "The virtual network already exists."
         }
 
-        # Check if subnet configuration exists
+        <# Check if subnet configuration exists
         if(!$subnet){
             Log-Write -LogPath $sLogFile -LineValue "Could not get the subnet configuration."
         }
@@ -189,7 +185,7 @@ Function New-AzureStackVnet{
             Log-Write -LogPath $sLogFile -LineValue "Created network security group with RDP rules."
         } else {
             Log-Write -LogPath $sLogFile -LineValue "The network security group already exists."
-        }
+        } #>
 
         # Create a virtual network card and associate with public IP address and NSG
         if(!$nic){   
