@@ -4,9 +4,9 @@
 # this file will not be touched when new functions are exported to
 # this module.
 
-$baseDir = '\\testsrv-share\TempExchange'
-$fileShare = (Join-Path -Path $baseDir -ChildPath executables)
-$logDate = (Get-Date -Format dd_M_yyyy_HHmm).ToString() 
-$sLogPath = "$baseDir\log\"
-$sLogName = "Migrate-Exchange-$logDate.log"
-$sLogFile = Join-Path -Path $sLogPath -ChildPath $sLogName
+$global:baseDir = '\\testsrv-share\TempExchange'
+$global:fileShare = (Join-Path -Path $baseDir -ChildPath executables)
+$global:logDate = (Get-Date -Format dd_M_yyyy_HHmm).ToString() 
+$global:sLogPath = "$baseDir\log\"
+$global:sLogName = "Migrate-Exchange-$logDate.log"
+$global:sLogFile = Join-Path -Path $sLogPath -ChildPath $sLogName
