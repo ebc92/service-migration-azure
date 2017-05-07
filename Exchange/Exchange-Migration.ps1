@@ -183,6 +183,7 @@ Function Mount-FileShare {
   )
   
   #Mounting fileshare to local so that it can be accessed in remote sessions
+  #Normally I would set first free driveletter as path, but due to time restriction I went with the last used one.
   Invoke-Command -ComputerName $ComputerName -Credential $DomainCredential -ScriptBlock { 
     Write-Verbose -Message "Mounting new PSDrive"
     New-PSDrive -Name "Z" -PSProvider FileSystem -Root $using:baseDir -Persist -Credential $using:DomainCredential -ErrorAction SilentlyContinue -Verbose
@@ -226,8 +227,6 @@ Function Mount-Exchange {
     New-Item -ItemType File -Path $ExchLetter -ErrorAction Ignore
     $ExchangeBinary > $ExchLetter
   }
-  
-
 }
 
 
@@ -724,7 +723,7 @@ Function Install-Prerequisite {
         }
       }
       Write-Verbose -Message "Removing remote session $InstallSession"
-      $InstallSession | Remove-PSSession
+      
       
       Write-Verbose -Message "Importing PFX certificate"
       Import-PfxCertificate -FilePath "$baseDir\Cert\cert.pfx" -CertStoreLocation Cert:\LocalMachine\My\ -Password $CertPW -Verbose
@@ -777,8 +776,19 @@ Function Install-Prerequisite {
       #Pushes DSC script to target
       Start-DscConfiguration -Path $PSScriptRoot\InstallExchange -Force -Verbose -Wait
       
+      & Join-Path -Path $PSScriptRoot -ChildPath ..\Support\Start-RebookCheck.ps1" $ComputerName $DomainCredential"
+      
+      Do {
+        Write-Verbose -Message "Sleeping for 1 minute, then checking if LCM is done cofiguring"
+        Start-Sleep -Seconds 60
+        $DSCDone = Invoke-Command -Session $InstallSession -ScriptBlock {
+          Get-DscLocalConfigurationManager
+        }
+      } while ($DSCDone.LCMState -ne "Idle")
+      
       Stop-Transcript
       
+      $InstallSession | Remove-PSSession
       <#     Foreach($element in $InstallFiles) {
           $i++
           Write-Progress -Activity 'Installing prerequisites for Exchange 2016' -Status "Currently installing file $i of $total"`
@@ -790,6 +800,7 @@ Function Install-Prerequisite {
        
     Catch {
       Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $True
+      Remove-PSSession $InstallSession
       Break
     }
   }
@@ -906,7 +917,9 @@ Function Export-ExchCert {
       Log-Write -LogPath $sLogFile -LineValue " "
     }
   }
-}Function Configure-Exchange {
+}
+
+Function Configure-Exchange {
   [CmdletBinding()]
   Param(
     [Parameter(Mandatory=$true)]
@@ -940,7 +953,7 @@ Function Export-ExchCert {
       
       $Password = ConvertTo-SecureString $Password -AsPlainText -Force
       
-      Import-ExchangeCertificate -FileName Z:\Cert\exchcert.pfx -PrivateKeyExportable $true -Password $Password | `
+      Import-ExchangeCertificate -FileName Z:\Cert\exchcert.pfx -PrivateKeyExportable $true -Password $Password -Server $ComputerName | `
       Exchange-Certificate -Services POP,IMAP,IIS,SMTP -DoNotRequireSsl
     }      
     Catch {
