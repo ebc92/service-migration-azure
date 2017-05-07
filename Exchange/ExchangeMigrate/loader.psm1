@@ -8,13 +8,10 @@
 
 # LOADING ALL FUNCTION DEFINITIONS:
 
-. $PSScriptRoot\Install-Exchange.ps1
-. $PSScriptRoot\Install-PreRequisites.ps1
-. $PSScriptRoot\Set-ClientAccess.ps1
-. $PSScriptRoot\Set-MailBoxDatabase.ps1
-. $PSScriptRoot\Set-Transport.ps1
-. $PSScriptRoot\Sync-ClientAccess.ps1
-. $PSScriptRoot\Sync-MailBox.ps1
-. $PSScriptRoot\Sync-Transport.ps1
-. $PSScriptRoot\Test-MailFlow.ps1
-. $PSScriptRoot\Uninstall-OldExchange.ps1
+. $PSScriptRoot\Configure-Exchange.ps1
+. $PSScriptRoot\Export-ExchCert.ps1
+. $PSScriptRoot\Get-Prerequisite.ps1
+. $PSScriptRoot\Install-Prerequisite.ps1
+. $PSScriptRoot\Mount-Exchange.ps1
+. $PSScriptRoot\Mount-FileShare.ps1
+. $PSScriptRoot\New-DSCCertificate.ps1

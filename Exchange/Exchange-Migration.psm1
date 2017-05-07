@@ -1,4 +1,4 @@
-﻿#Requires -version 5.0
+﻿#Requires -version 4.0
 ########################\###/#########################
 #########################\O/##########################
 ##   ______          _                              ##
@@ -171,6 +171,25 @@ Function Get-Prerequisite {
   }
 }
 
+#Mount the Fileshare drive
+Function Mount-FileShare {
+  Param(
+    [Parameter(Mandatory=$true)]
+    [pscredential]$DomainCredential,
+    [Parameter(Mandatory=$true)]
+    [String]$ComputerName,
+    [Parameter(Mandatory=$true)]
+    [String]$baseDir
+  )
+  
+  #Mounting fileshare to local so that it can be accessed in remote sessions
+  #Normally I would set first free driveletter as path, but due to time restriction I went with the last used one.
+  Invoke-Command -ComputerName $ComputerName -Credential $DomainCredential -ScriptBlock { 
+    Write-Verbose -Message "Mounting new PSDrive"
+    New-PSDrive -Name "Z" -PSProvider FileSystem -Root $using:baseDir -Persist -Credential $using:DomainCredential -ErrorAction SilentlyContinue -Verbose
+  }
+}
+
 #Mounts Exchange 2016 image from share
 Function Mount-Exchange {
   Param(
@@ -187,14 +206,9 @@ Function Mount-Exchange {
   $ErrorActionPreference = "Continue"
   "$FileShare in local session supposed to be used for mounting image"
       
-  $ExchangeBinary = Invoke-Command -Session $InstallSession -ScriptBlock { 
-    #Mounting fileshare to local so that it can be accessed in remote sessions
-    Write-Verbose -Message "Mounting new PSDrive"
-    New-PSDrive -Name "Z" -PSProvider FileSystem -Root $using:baseDir -Persist -Credential $using:DomainCredential -ErrorAction SilentlyContinue -Verbose
-    $SourceFile = "Z:\executables"
-
+  $ExchangeBinary = Invoke-Command -Session $InstallSession -ScriptBlock {
     #Do while to make sure correct file is mounted
-
+    $SourceFile = "Z:\executables"
     #Makes sure $ExchangeBinary variable is emtpy       
     $ExchangeBinary = $null
     $ExchangeBinary = (Get-WmiObject win32_volume | Where-Object -Property Label -eq "EXCHANGESERVER2016-X64-CU5").Name
@@ -213,8 +227,6 @@ Function Mount-Exchange {
     New-Item -ItemType File -Path $ExchLetter -ErrorAction Ignore
     $ExchangeBinary > $ExchLetter
   }
-  
-
 }
 
 
@@ -589,7 +601,7 @@ Function New-DSCCertificate {
     }
     #Checks if the certificate used already exists
     
-    $certverifypath = [bool](dir cert:\LocalMachine\My\ | Where-Object { $_.subject -like "cn=$using:ComputerName-dsccert" })
+    $certverifypath = [bool](Get-ChildItem cert:\LocalMachine\My\ | Where-Object { $_.subject -like "cn=$using:ComputerName-dsccert" })
     if(!($certverifypath)) {
       New-SelfSignedCertificateEx `
       -Subject "CN=$using:ComputerName-dsccert" `
@@ -711,7 +723,7 @@ Function Install-Prerequisite {
         }
       }
       Write-Verbose -Message "Removing remote session $InstallSession"
-      $InstallSession | Remove-PSSession
+      
       
       Write-Verbose -Message "Importing PFX certificate"
       Import-PfxCertificate -FilePath "$baseDir\Cert\cert.pfx" -CertStoreLocation Cert:\LocalMachine\My\ -Password $CertPW -Verbose
@@ -764,8 +776,19 @@ Function Install-Prerequisite {
       #Pushes DSC script to target
       Start-DscConfiguration -Path $PSScriptRoot\InstallExchange -Force -Verbose -Wait
       
+      & Join-Path -Path $PSScriptRoot -ChildPath ..\Support\Start-RebookCheck.ps1" $ComputerName $DomainCredential"
+      
+      Do {
+        Write-Verbose -Message "Sleeping for 1 minute, then checking if LCM is done cofiguring"
+        Start-Sleep -Seconds 60
+        $DSCDone = Invoke-Command -Session $InstallSession -ScriptBlock {
+          Get-DscLocalConfigurationManager
+        }
+      } while ($DSCDone.LCMState -ne "Idle")
+      
       Stop-Transcript
       
+      $InstallSession | Remove-PSSession
       <#     Foreach($element in $InstallFiles) {
           $i++
           Write-Progress -Activity 'Installing prerequisites for Exchange 2016' -Status "Currently installing file $i of $total"`
@@ -777,6 +800,7 @@ Function Install-Prerequisite {
        
     Catch {
       Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $True
+      Remove-PSSession $InstallSession
       Break
     }
   }
@@ -788,11 +812,9 @@ Function Install-Prerequisite {
     }
   }
 }
-Function Migrate-Data {
+Function Export-ExchCert {
   [CmdletBinding()]
   Param(
-    [Parameter(Mandatory=$true)]
-    [String]$ComputerName,
     [Parameter(Mandatory=$true)]
     [String]$SourceComputer,
     [Parameter(Mandatory=$true)]
@@ -804,71 +826,182 @@ Function Migrate-Data {
   )
   
   Begin{
-    Log-Write -LogPath $sLogFile -LineValue '<Write what happens>...'
+    Log-Write -LogPath $sLogFile -LineValue 'Exporting Exchange Certificate to fileshare...'
   }
   
   Process{
     Try{
-      $FixRemoteSess = New-PSSession -ComputerName $SourceComputer -Credential $DomainCredential
-      Invoke-Command -Session $FixRemoteSess {
-        #Gets Exchange Install Path, will always remain the same.
-        $exchdir = (Get-ItemProperty HKLM:\SOFTWARE\Microsoft\ExchangeServer\V15\Setup).MsiInstallPath
-        $PSWebPath = (Join-Path $exchdir -ChildPath ClientAccess\PowerShell\)
-        $NewPSWebAppDir = (Join-Path -Path $exchdir -ChildPath ClientAccess\PSFullRemote)
+      #I found a much better, and more secure way of doing the below. Instead of actively invoke-command, I import the module from session below
+      #I left the comment block in, just incase I need to do some XML editing
+      <#
+          $FixRemoteSess = New-PSSession -ComputerName $SourceComputer -Credential $DomainCredential
+          Invoke-Command -Session $FixRemoteSess {
+          #Gets Exchange Install Path, will always remain the same.
+          $exchdir = (Get-ItemProperty HKLM:\SOFTWARE\Microsoft\ExchangeServer\V15\Setup).MsiInstallPath
+          $PSWebPath = (Join-Path $exchdir -ChildPath ClientAccess\PowerShell\)
+          $NewPSWebAppDir = (Join-Path -Path $exchdir -ChildPath ClientAccess\PSFullRemote)
         
-        #Creates a new directory and copies the web.config for the new application pool we are creating
-        New-Item -ItemType Directory -Path $NewPSWebAppDir -ErrorAction Ignore
-        Copy-Item -Path (Join-Path -Path $PSWebPath -ChildPath web.config) -Destination $NewPSWebAppDir        
+          #Creates a new directory and copies the web.config for the new application pool we are creating
+          New-Item -ItemType Directory -Path $NewPSWebAppDir -ErrorAction Ignore
+          Copy-Item -Path (Join-Path -Path $PSWebPath -ChildPath web.config) -Destination $NewPSWebAppDir        
         
-        #Edits the web.config XML file so that one can run EMS in FullLanguage mode.
-        [xml]$FixPSRemote = (Get-content $NewPSWebAppDir\web.config)
-        $UpdatePSConf = $FixPsRemote.configuration.appSettings.add | Where-Object {$_.Key -eq "PSLanguageMode"}
-        $UpdatePSConf.value = 'FullLanguage'
-        $xmlsavepath = (Join-Path -Path $NewPSWebAppDir -ChildPath web.config)
-        $FixPSRemote.Save($xmlsavepath)
+          #Edits the web.config XML file so that one can run EMS in FullLanguage mode.
+          [xml]$FixPSRemote = (Get-content $NewPSWebAppDir\web.config)
+          $UpdatePSConf = $FixPsRemote.configuration.appSettings.add | Where-Object {$_.Key -eq "PSLanguageMode"}
+          $UpdatePSConf.value = 'FullLanguage'
+          $xmlsavepath = (Join-Path -Path $NewPSWebAppDir -ChildPath web.config)
+          $FixPSRemote.Save($xmlsavepath)
         
-        #Creates a new application pool
-        $psapppool = New-WebAppPool -Name PSFullRemote
+          Creates a new application pool
+            $psapppool = New-WebAppPool -Name PSFullRemote
         
-        #Sets the account which IIS runs the app pool under ( LocalSystem )
-        Set-ItemProperty IIS:\AppPools\PSFullremote -Name ProcessModel -Value @{identityType=0}
+            #Sets the account which IIS runs the app pool under ( LocalSystem )
+            Set-ItemProperty IIS:\AppPools\PSFullremote -Name ProcessModel -Value @{identityType=0}
         
-        #Starts the new app pool
-        Start-WebAppPool -Name PSFullRemote
+            #Starts the new app pool
+            Start-WebAppPool -Name PSFullRemote
         
-        #Creates a new application ( PowerShell ) to run in the app pool, using Default Web Site because of time constraints
-        $psapplication = New-WebApplication -Name PSFullRemote -Site 'Default Web Site' `
-        -PhysicalPath "$NewPSWebAppDir" -ApplicationPool $psapppool.Name
+            #Creates a new application ( PowerShell ) to run in the app pool, using Default Web Site because of time constraints
+            $psapplication = New-WebApplication -Name PSFullRemote -Site 'Default Web Site' `
+            -PhysicalPath "$NewPSWebAppDir" -ApplicationPool $psapppool.Name
         
-        #Sets SSL settings
-        Set-WebConfigurationProperty -Filter //security/access -Name SslFlags -Value SslNegotiateCert `
-        -PSPath IIS:\ -Location 'Default Web Site/PSFullRemote'
+            #Sets SSL settings
+            Set-WebConfigurationProperty -Filter //security/access -Name SslFlags -Value SslNegotiateCert `
+            -PSPath IIS:\ -Location 'Default Web Site/PSFullRemote'
         
-        #Create endpoint which you use -URI parameter to connect to
-        Register-PSSessionConfiguration -Name PSFullRemote -Force
-        Set-PSSessionConfiguration -Name PSFullRemote -Force
-      }
-      Remove-PSSession $FixRemoteSess
+            #Create endpoint which you use -URI parameter to connect to
+            Register-PSSessionConfiguration -Name PSFullRemote -Force
+          Set-PSSessionConfiguration -Name PSFullRemote -Force
+        
+          #The above should have worked in theory, but doesn't. Due to time constraints I made a "solution".
+          #The change below works, but is NOT recommended, bad practice ahead:
+          $HttpProxyDir = ( Join-Path -Path $exchdir -ChildPath FrontEnd\HttpProxy\Powershell)
+
+          #Moves the items in the directory in case one has to go back to the current approach
+          New-Item -ItemType Directory -Path $HttpProxyDir -Name oldfiles -Force
+          Move-Item $HttpProxyDir\*.* -Destination ( Join-Path -Path $HttpProxyDir -ChildPath oldfiles ) -Force
+        
+          #Copies the web.config that allows for full language remoting
+          Copy-Item -Path $NewPSWebAppDir\web.config -Destination ($HttpProxyDir)
+          }
+      Remove-PSSession $FixRemoteSess #>    
     
-    
-    
+      #Creates a session to the Exchange Remote Management Shell so that we can run Exchange commands
       $ConfigSession = New-PSSession -ConfigurationName Microsoft.Exchange -ConnectionUri http://$fqdn/powershell `
       -Credential $DomainCredential -Authentication Kerberos
+      
+      #Imports the module that exists in the session, in this case, Exchange Management -AllowClobber gives the imported commands presedence.
+      Import-Module (Import-PSSession $ConfigSession -AllowClobber)
             
-      $ExchCert = Invoke-Command -Session $ConfigSession -ScriptBlock {
-        Get-ExchangeCertificate
-      }
+      $ExchCert = Get-ExchangeCertificate
+      
       $ExchCert = ($ExchCert | Where-Object {$_.Subject -eq "CN=$SourceComputer"}).Thumbprint
       
       $Password = ConvertTo-SecureString $Password -AsPlainText -Force
       
-      Invoke-Command -Session $ConfigSession -ScriptBlock {
-        Param($ExchCert)
-        Export-ExchangeCertificate -Thumbprint $ExchCert -FileName C:\Cert\exchcert.pfx -Password $Password
-      } -ArgumentList $ExchCert
+      Export-ExchangeCertificate -Thumbprint $ExchCert -FileName Z:\Cert\exchcert.pfx -Password $Password
+      Remove-PSSession $ConfigSession     
+    }      
+    Catch {
+      Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $True
+      Remove-PSSession $ConfigSession
+      Break
+    }
+  }
+  
+  End{
+    If($?){
+      Log-Write -LogPath $sLogFile -LineValue "Completed Successfully."
+      Log-Write -LogPath $sLogFile -LineValue " "
+    }
+  }
+}
+
+Function Configure-Exchange {
+  [CmdletBinding()]
+  Param(
+    [Parameter(Mandatory=$true)]
+    [String]$ComputerName,
+    [Parameter(Mandatory=$true)]
+    [String]$SourceComputer,
+    [Parameter(Mandatory=$true)]
+    [String]$newfqdn,
+    [Parameter(Mandatory=$true)]
+    [String]$Password,
+    [Parameter(Mandatory=$true)]
+    [pscredential]$DomainCredential,
+    [Parameter(Mandatory=$true)]
+    [String]$hostname
+  )
+  
+  Begin{
+    Log-Write -LogPath $sLogFile -LineValue 'Configuring new Exchange Install...'
+  }
+  
+  Process{
+    Try{   
+      #Creates a session to the Exchange Remote Management Shell so that we can run Exchange commands
+      $ConfigSession = New-PSSession -ConfigurationName Microsoft.Exchange -ConnectionUri http://$newfqdn/powershell `
+      -Credential $DomainCredential -Authentication Kerberos
+      
+      #Imports the module that exists in the session, in this case, Exchange Management -AllowClobber gives the imported commands presedence.
+      Import-Module (Import-PSSession $ConfigSession -AllowClobber)
+            
+      $ExchCert = Get-ExchangeCertificate
+      
+      $ExchCert = ($ExchCert | Where-Object {$_.Subject -eq "CN=$SourceComputer"}).Thumbprint
+      
+      $Password = ConvertTo-SecureString $Password -AsPlainText -Force
+      
+      Import-ExchangeCertificate -FileName Z:\Cert\exchcert.pfx -PrivateKeyExportable $true -Password $Password -Server $ComputerName | `
+      Exchange-Certificate -Services POP,IMAP,IIS,SMTP -DoNotRequireSsl
+      
+      #Now starting with setting up Exchange Virtual Directory URLs, using http:// because it is a test enviroment
+      
+      #Set OutlookAnywhere URLs
+      Get-OutlookAnywhere -Server $ComputerName | Set-OutlookAnywhere -InternalHostname $hostname `
+      -InternalClientAuthenticationMethod Ntlm -InternalClientsRequireSsl $false  `
+      -ExternalHostname $hostname -ExternalClientAuthenticationMethod Basic `
+      -ExternalClientsRequireSsl $false -IISAuthenticationMethods Negotiate,NTLM,Basic
+      
+      #Set ECP URLs
+      Get-EcpVirtualDirectory -Server $newfqdn | Set-EcpVirtualDirectory -InternalURL http://$hostname/ecp `
+      -ExternalURL http://$hostname/ecp
+      
+      #Set OWA URLs
+      Get-OwaVirtualDirectory -Server keshav-ex16| Set-OwaVirtualDirectory -InternalUrl http://www.$hostname.com/owa `
+      -ExternalUrl http://$hostname/owa
+      
+      #Set EWS URLs
+      Get-WebServicesVirtualDirectory -Server $newfqdn | Set-WebServicesVirtualDirectory -InternalUrl http://$hostname/EWS/Exchange.asmx `
+      -ExternalUrl http://$hostname/EWS/Exchange.asmx
+      
+      #Set ActiveSync URLs      Get-ActiveSyncVirtualDirectory –Server $newfqdn | Set-ActiveSyncVirtualDirectory `
+      -InternalUrl http://$hostname/Microsoft-Server-ActiveSync –ExternalUrl http://$hostname/Microsoft-Server-ActiveSync
+      
+      #Set OAB URLs
+      Get-OabVirtualDirectory -Server $newfqdn | Set-OabVirtualDirectory -InternalUrl http://$hostname/OAB -ExternalUrl http://$hostname/OAB
+      
+      #Set MAPI URLs
+      Get-MapiVirtualDirectory -Server $newfqdn | Set-MapiVirtualDirectory -InternalUrl http://$hostname/mapi -ExternalUrl http://$hostname/mapi
+      
+      #URLs are set, starting migration of data
+      #Gets the name of the new Exchange Database
+      $NewMailDatabase = (Get-MailboxDatabase -Server $ComputerName).Name
+      $OldMailDatabase = (Get-MailboxDatabase -Server $SourceComputer).Name
+      
+      #Starts a move request for the mailboxes to the new Exchange server
+      Get-Mailbox -Arbitration | Where-Object {$_.Servername -eq "$SourceComputer"} | New-MoveRequest -TargetDatabase $NewMailDatabase
+      
+      #Starts a move request for the public folders
+      Get-Mailbox -Server $SourceComputer -PublicFolder | New-MoveRequest -TargetDatabase $NewMailDatabase
+      
+      #Moves the user mailboxes
+      Get-Mailbox -Database $OldMailDatabase | New-MoveRequest -TargetDatabase $NewMailDatabase
+      
+      #Reboots server
       
       
-     
     }      
     Catch {
       Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $True
