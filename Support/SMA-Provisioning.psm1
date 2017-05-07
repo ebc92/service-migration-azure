@@ -53,7 +53,8 @@ Function New-AzureStackTenantDeployment {
     }
 
     Try{ 
-        $exists = Get-AzureRmResourceGroup -Name $ResourceGroupName -ErrorAction Stop
+        Get-AzureRmResourceGroup -Name $ResourceGroupName -ErrorAction Stop
+        Log-Write -LogPath $sLogFile -LineValue "Created Azure Resource Group $ResourceGroupName."
     } Catch {
         New-AzureRmResourceGroup -Name $ResourceGroupName -Location $Location
         Log-Write -LogPath $sLogFile -LineValue "Resource Group could not be retrieved."
@@ -62,14 +63,14 @@ Function New-AzureStackTenantDeployment {
     <#
     if(!$exists){
         New-AzureRmResourceGroup -Name $ResourceGroupName -Location $Location
-        Log-Write -LogPath $sLogFile -LineValue "Created Azure Resource Group $ResourceGroupName."
+        
     } else {
         Log-Write -LogPath $sLogFile -LineValue "Resource Group already exists."
     }#>
 
     Try {
         $VMNic = New-AzureStackVnet -NetworkIP $IPAddress -ResourceGroupName $ResourceGroupName -VNetName "AMSTEL-VNET" -VMName $VMName -ErrorAction Stop
-        
+        Log-Write -LogPath $sLogFile -LineValue "VM Network interface was created."
     } Catch {
         Log-Write -LogPath $sLogFile -LineValue "The VM deployment failed because no NIC was returned."
         Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $False
@@ -198,7 +199,7 @@ Function New-AzureStackVnet{
             Log-Write -LogPath $sLogFile -LineValue "Creating public ip..."
             $pip = New-AzureRmPublicIpAddress -ResourceGroupName $ResourceGroupName -AllocationMethod Dynamic -Name VPNGatewayIP -Location $Location
             Log-Write -LogPath $sLogFile -LineValue "Creating interface.."
-            $nic = New-AzureRmNetworkInterface -ResourceGroupName $res -Location $Location -Name $VMNicName -NetworkSecurityGroup $nsg -Subnet $subnet -PublicIpAddress $publicip -PrivateIpAddress $Network.Address -ErrorAction Stop
+            $nic = New-AzureRmNetworkInterface -ResourceGroupName $res -Location $Location -Name $VMNicName -Subnet $subnet -PublicIpAddress $publicip -PrivateIpAddress $Network.Address -ErrorAction Stop
             Log-Write -LogPath $sLogFile -LineValue "Created the network interface."
         } else {
             Log-Write -LogPath $sLogFile -LineValue "The network interface already exists."
