@@ -101,12 +101,12 @@ Function New-AzureStackVnet{
     $nsgName = $VNetName + "-NSG"
 
     Try {
-        $vnet = Get-AzureRmVirtualNetwork -ResourceGroupName $ResourceGroupName -Name $VNetName -SilentlyContinue
+        $vnet = Get-AzureRmVirtualNetwork -ResourceGroupName $ResourceGroupName -Name $VNetName -ErrorAction SilentlyContinue
         #$subnet = Get-AzureRmVirtualNetworkSubnetConfig -Name HostSubnet -VirtualNetwork $vnet
         #$nsg = Get-AzureRmNetworkSecurityGroup -ResourceGroupName $res -Name $nsgName
         #$nsRules = Get-AzureRmNetworkSecurityRuleConfig -NetworkSecurityGroup $nsg
-        $nic = Get-AzureRmNetworkInterface -ResourceGroupName $res -Name $VMNicName -SilentlyContinue
-        $vpn = Get-AzureRmVirtualNetworkGateway -ResourceGroupName $res -Name "AMSTEL-VPN" -SilentlyContinue
+        $nic = Get-AzureRmNetworkInterface -ResourceGroupName $ResourceGroupName -Name $VMNicName -ErrorAction SilentlyContinue
+        $vpn = Get-AzureRmVirtualNetworkGateway -ResourceGroupName $ResourceGroupName -Name "AMSTEL-VPN" -ErrorAction SilentlyContinue
     } Catch {
         Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $False
     }
