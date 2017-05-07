@@ -195,8 +195,10 @@ Function New-AzureStackVnet{
         if(!$nic){   
             Log-Write -LogPath $sLogFile -LineValue "Updating the subnet configuration.."
             $subnet = Get-AzureRmVirtualNetworkSubnetConfig -Name "HostSubnet" -VirtualNetwork $vnet
+            Log-Write -LogPath $sLogFile -LineValue "Creating public ip..."
+            $pip = New-AzureRmPublicIpAddress -ResourceGroupName $ResourceGroupName -AllocationMethod Dynamic -Name VPNGatewayIP -Location $Location
             Log-Write -LogPath $sLogFile -LineValue "Creating interface.."
-            $nic = New-AzureRmNetworkInterface -ResourceGroupName $res -Location $Location -Name $VMNicName -NetworkSecurityGroup $nsg -Subnet $subnet -PrivateIpAddress $Network.Address -DnsServer "8.8.8.8","4.4.4.4" -ErrorAction Stop
+            $nic = New-AzureRmNetworkInterface -ResourceGroupName $res -Location $Location -Name $VMNicName -NetworkSecurityGroup $nsg -Subnet $subnet -PublicIpAddress $publicip -PrivateIpAddress $Network.Address -ErrorAction Stop
             Log-Write -LogPath $sLogFile -LineValue "Created the network interface."
         } else {
             Log-Write -LogPath $sLogFile -LineValue "The network interface already exists."
@@ -274,11 +276,12 @@ Function New-AzureStackWindowsVM {
             -FileUri "https://raw.githubusercontent.com/ebc92/service-migration-azure/develop/Support/Set-DomainPolicy.ps1" `
             -Run 'Set-DomainPolicy.ps1' `
             -Argument "$($DomainName) $($DomainCredential)" `
-            -Name TrustedHostExtension `
+            -Name DomainPolicyExtension `
             -ErrorAction Stop | Update-AzureVM
             Log-Write -LogPath $sLogFile -LineValue "Successfully added DomainPolicy ScriptExtension to the provisioned VM."
         } Catch {
             Log-Write -LogPath $sLogFile -LineValue "Could not add TrustedHost DomainPolicy to the provisioned VM."
+            Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $False
         }
 
         return $VMNic.PrivateIPAddress
