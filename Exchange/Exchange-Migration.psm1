@@ -601,7 +601,7 @@ Function New-DSCCertificate {
     }
     #Checks if the certificate used already exists
     
-    $certverifypath = [bool](dir cert:\LocalMachine\My\ | Where-Object { $_.subject -like "cn=$using:ComputerName-dsccert" })
+    $certverifypath = [bool](Get-ChildItem cert:\LocalMachine\My\ | Where-Object { $_.subject -like "cn=$using:ComputerName-dsccert" })
     if(!($certverifypath)) {
       New-SelfSignedCertificateEx `
       -Subject "CN=$using:ComputerName-dsccert" `
@@ -816,8 +816,6 @@ Function Export-ExchCert {
   [CmdletBinding()]
   Param(
     [Parameter(Mandatory=$true)]
-    [String]$ComputerName,
-    [Parameter(Mandatory=$true)]
     [String]$SourceComputer,
     [Parameter(Mandatory=$true)]
     [String]$fqdn,
@@ -931,7 +929,9 @@ Function Configure-Exchange {
     [Parameter(Mandatory=$true)]
     [String]$Password,
     [Parameter(Mandatory=$true)]
-    [pscredential]$DomainCredential
+    [pscredential]$DomainCredential,
+    [Parameter(Mandatory=$true)]
+    [String]$hostname
   )
   
   Begin{
@@ -955,6 +955,53 @@ Function Configure-Exchange {
       
       Import-ExchangeCertificate -FileName Z:\Cert\exchcert.pfx -PrivateKeyExportable $true -Password $Password -Server $ComputerName | `
       Exchange-Certificate -Services POP,IMAP,IIS,SMTP -DoNotRequireSsl
+      
+      #Now starting with setting up Exchange Virtual Directory URLs, using http:// because it is a test enviroment
+      
+      #Set OutlookAnywhere URLs
+      Get-OutlookAnywhere -Server $ComputerName | Set-OutlookAnywhere -InternalHostname $hostname `
+      -InternalClientAuthenticationMethod Ntlm -InternalClientsRequireSsl $false  `
+      -ExternalHostname $hostname -ExternalClientAuthenticationMethod Basic `
+      -ExternalClientsRequireSsl $false -IISAuthenticationMethods Negotiate,NTLM,Basic
+      
+      #Set ECP URLs
+      Get-EcpVirtualDirectory -Server $newfqdn | Set-EcpVirtualDirectory -InternalURL http://$hostname/ecp `
+      -ExternalURL http://$hostname/ecp
+      
+      #Set OWA URLs
+      Get-OwaVirtualDirectory -Server keshav-ex16| Set-OwaVirtualDirectory -InternalUrl http://www.$hostname.com/owa `
+      -ExternalUrl http://$hostname/owa
+      
+      #Set EWS URLs
+      Get-WebServicesVirtualDirectory -Server $newfqdn | Set-WebServicesVirtualDirectory -InternalUrl http://$hostname/EWS/Exchange.asmx `
+      -ExternalUrl http://$hostname/EWS/Exchange.asmx
+      
+      #Set ActiveSync URLs      Get-ActiveSyncVirtualDirectory –Server $newfqdn | Set-ActiveSyncVirtualDirectory `
+      -InternalUrl http://$hostname/Microsoft-Server-ActiveSync –ExternalUrl http://$hostname/Microsoft-Server-ActiveSync
+      
+      #Set OAB URLs
+      Get-OabVirtualDirectory -Server $newfqdn | Set-OabVirtualDirectory -InternalUrl http://$hostname/OAB -ExternalUrl http://$hostname/OAB
+      
+      #Set MAPI URLs
+      Get-MapiVirtualDirectory -Server $newfqdn | Set-MapiVirtualDirectory -InternalUrl http://$hostname/mapi -ExternalUrl http://$hostname/mapi
+      
+      #URLs are set, starting migration of data
+      #Gets the name of the new Exchange Database
+      $NewMailDatabase = (Get-MailboxDatabase -Server $ComputerName).Name
+      $OldMailDatabase = (Get-MailboxDatabase -Server $SourceComputer).Name
+      
+      #Starts a move request for the mailboxes to the new Exchange server
+      Get-Mailbox -Arbitration | Where-Object {$_.Servername -eq "$SourceComputer"} | New-MoveRequest -TargetDatabase $NewMailDatabase
+      
+      #Starts a move request for the public folders
+      Get-Mailbox -Server $SourceComputer -PublicFolder | New-MoveRequest -TargetDatabase $NewMailDatabase
+      
+      #Moves the user mailboxes
+      Get-Mailbox -Database $OldMailDatabase | New-MoveRequest -TargetDatabase $NewMailDatabase
+      
+      #Reboots server
+      
+      
     }      
     Catch {
       Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $True
