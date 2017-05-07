@@ -33,9 +33,6 @@ Function New-AzureStackTenantDeployment {
         $DomainCredential,
         $Location = "local"
     )
-    
-    #Is the config globally available?
-    $SMAConfig | Out-String >> .\debug.txt
 
     #TODO: Verify presence of azurerm connect and compute modules
 
@@ -69,7 +66,7 @@ Function New-AzureStackTenantDeployment {
     }#>
 
     Try {
-        $VMNic = New-AzureStackVnet -NetworkIP $IPAddress -ResourceGroupName $ResourceGroupName -VNetName "AMSTEL-VNET" -VMName $VMName -ErrorAction Stop
+        $VMNic = New-AzureStackVnet -NetworkIP $IPAddress -ResourceGroupName $ResourceGroupName -VNetName "AMSTEL-VNET" -VMName $VMName
         Log-Write -LogPath $sLogFile -LineValue "VM Network interface was created."
     } Catch {
         Log-Write -LogPath $sLogFile -LineValue "The VM deployment failed because no NIC was returned."
@@ -109,9 +106,9 @@ Function New-AzureStackVnet{
         #$nsg = Get-AzureRmNetworkSecurityGroup -ResourceGroupName $res -Name $nsgName
         #$nsRules = Get-AzureRmNetworkSecurityRuleConfig -NetworkSecurityGroup $nsg
         $nic = Get-AzureRmNetworkInterface -ResourceGroupName $res -Name $VMNicName
-        $vpn = Get-AzureRmVitualNetworkGateway -ResourceGroupName $res
+        $vpn = Get-AzureRmVitualNetworkGateway -ResourceGroupName $res -Name "AMSTEL-VPN"
     } Catch {
-
+        Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $False
     }
     
     Try {
@@ -171,6 +168,8 @@ Function New-AzureStackVnet{
             -LocalNetworkGateway2 $LocalGateway `
             -ConnectionType IPsec `
             -SharedKey "OnlyLettersAndNumbers1"
+        } else {
+            Log-Write -LogPath $sLogFile -LineValue "The VPN infrastructure already exists."
         }
 
         <# Check if subnet configuration exists
