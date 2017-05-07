@@ -22,6 +22,13 @@ In:::the/    ::::dMMMMMb::::    \ Land::of:
         them:In:the:Land:of:Mordor
            where:::the::Shadows
                 :::lie.:::
+
+Credential-list
+*AzureLocalCredential
+*AzureTenantCredential
+*DomainCredential
+*LocalCredential (VMCredential)
+
 #>
 
 #---------------------------------------------------------[Initialisations]--------------------------------------------------------

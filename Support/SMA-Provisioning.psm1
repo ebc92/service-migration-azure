@@ -200,7 +200,7 @@ Function New-AzureStackVnet{
             Log-Write -LogPath $sLogFile -LineValue "Creating public ip..."
             $pip = New-AzureRmPublicIpAddress -ResourceGroupName $ResourceGroupName -AllocationMethod Dynamic -Location $Location
             Log-Write -LogPath $sLogFile -LineValue "Creating interface.."
-            $nic = New-AzureRmNetworkInterface -ResourceGroupName $res -Location $Location -Name $VMNicName -Subnet $subnet -PublicIpAddress $publicip -PrivateIpAddress $Network.Address -ErrorAction Stop
+            $nic = New-AzureRmNetworkInterface -ResourceGroupName $res -Location $Location -Name $VMNicName -Subnet $subnet -PublicIpAddress $pip -PrivateIpAddress $Network.Address -ErrorAction Stop
             Log-Write -LogPath $sLogFile -LineValue "Created the network interface."
         } else {
             Log-Write -LogPath $sLogFile -LineValue "The network interface already exists."
