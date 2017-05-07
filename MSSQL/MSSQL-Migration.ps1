@@ -14,7 +14,7 @@ $SqlCredential
 
 #Install SMA
 $SMARoot = Resolve-Path -Path (Join-Path -Path $PSScriptRoot -ChildPath "..\")
-Invoke-Command -ComputerName $Source -FilePath (Join-Path $SMARoot -ChildPath ".\Support\Install-SMModule.ps1") -Credential $Credential
+#Invoke-Command -ComputerName $Source -FilePath (Join-Path $SMARoot -ChildPath ".\Support\Install-SMModule.ps1") -Credential $Credential
 
 $ScriptBlock = {
     $sLogFile = $using:LogPath
@@ -38,9 +38,9 @@ $ScriptBlock = {
     Start-MSSQLInstallConfig -PackagePath $using:PackagePath -Credential $using:Credential
 }
 
-Invoke-Command -ComputerName $Source -ScriptBlock $ScriptBlock -Credential $Credential
+#Invoke-Command -ComputerName $Source -ScriptBlock $ScriptBlock -Credential $Credential
 
-New-AzureStackTenantDeployment -VMName $ComputerName -IPAddress "192.168.59.114/24" -Credential $Credential
+#New-AzureStackTenantDeployment -VMName $ComputerName -IPAddress "192.168.59.114/24" -Credential $Credential
 
 $cd = @{
     AllNodes = @(
@@ -54,7 +54,8 @@ $cd = @{
 
 Try {
     Log-Write -LogPath $LogPath -LineValue "Generating MOF-file from DSC script."
-    DesiredStateSQL -ConfigurationData $cd -PackagePath $PackagePath -WinSources "$PackagePath\sxs" -Credential $Credential
+    DesiredStateSQL -ConfigurationData $cd -PackagePath $PackagePath -DomainCredential $DomainCredential
+    # ^add aDomainName, interfacealias, DNS
     Log-Write -LogPath $LogPath -LineValue "Starting DSC configuration."
     Start-DscConfiguration -ComputerName $Destination -Path .\DesiredStateSQL -Verbose -Wait -Force -Credential $Credential -ErrorAction Stop
     Log-Write -LogPath $LogPath -LineValue "DSC configuration was succcessfully pushed."

@@ -56,6 +56,7 @@ $sLogName = "service-migration-azure.log"
 $global:SMAConfig = Get-IniContent -FilePath (Join-Path -Path $PSScriptRoot -ChildPath "Configuration.ini")
 $global:sLogFile = $SMAConfig.Global.Get_Item('logpath')
 $global:AzureStackSession
+$environmentname = $SMAConfig.Global.Get_Item('environmentname')
 
 #-----------------------------------------------------------[Execution]------------------------------------------------------------
 
@@ -92,10 +93,12 @@ $Authenticator = Join-Path -Path $PSScriptRoot -ChildPath "\Support\Remote-ARM\S
 #-----------------------------------------------------------[Active Directory]---------------------------------------------------------
 
 #& (Join-Path -Path $PSScriptRoot -ChildPath "\ADDC\ADDC-Migration.ps1")
-Invoke-Command -Session $AzureStackSession -ScriptBlock {New-AzureStackTenantDeployment -VMName "TEST2" -IPAddress "192.168.59.14/24" -DomainCredential $DomainCredential}
+#Invoke-Command -Session $AzureStackSession -ScriptBlock {New-AzureStackTenantDeployment -VMName "TEST2" -IPAddress "192.168.59.14/24" -DomainCredential $DomainCredential}
 
 #-----------------------------------------------------------[SQL Server]---------------------------------------------------------------
+$Name = "$($environmentname)-$($SMAConfig.MSSQL.Get_Item('hostname'))" 
 
+Invoke-Command -Session $AzureStackSession -ScriptBlock {New-AzureStackTenantDeployment -VMName $using:Name -IPAddress "192.168.59.114/24" -DomainCredential $DomainCredential}
 #& (Join-Path -Path $PSScriptRoot -ChildPath "\MSSQL\MSSQL-Migration.ps1")
 
 #-----------------------------------------------------------[File and sharing]---------------------------------------------------------

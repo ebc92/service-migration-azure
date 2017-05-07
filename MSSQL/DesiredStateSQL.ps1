@@ -132,7 +132,13 @@
             }
 
             SetScript = {
-                Import-Module -Name Sqlps
+                Try{
+                    Import-Module -Name Sqlps
+                } Catch {
+                    $env:PSModulePath = $env:PSModulePath + ";C|<:\Program Files (x86)\Microsoft SQL Server\130\Tools\PowerShell\Modules"
+                    Import-Module -Name Sqlps
+                }
+                
 
                 <# TODO: 
                 Get instancename from .ini-file #>
@@ -159,13 +165,13 @@
                 $Tcp = $Mc.GetSmoObject($uri)
                 $Tcp.IPAddresses | % { 
                     if($_.Name -eq "IPAll"){
-                        $_.IpAddressProperties[4].Value = "1433"
+                        $_.IpAddressProperties[1].Value = "1433"
                         $Tcp.Alter()
                         $Tcp
                     }
                 }
 
-                Restart-Service -name "SQLAgent`$$InstanceName"    
+                Restart-Service -name "SQLAgent`$$InstanceName", "SQLServer"  
 
             }
 
