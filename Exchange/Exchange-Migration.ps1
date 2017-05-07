@@ -788,32 +788,101 @@ Function Install-Prerequisite {
     }
   }
 }
-<#Function Migrate-Transport {
-    [CmdletBinding()]
-    Param(
-    )
+Function Migrate-Data {
+  [CmdletBinding()]
+  Param(
+    [Parameter(Mandatory=$true)]
+    [String]$ComputerName,
+    [Parameter(Mandatory=$true)]
+    [String]$SourceComputer,
+    [Parameter(Mandatory=$true)]
+    [String]$fqdn,
+    [Parameter(Mandatory=$true)]
+    [String]$Password,
+    [Parameter(Mandatory=$true)]
+    [pscredential]$DomainCredential
+  )
   
-    Begin{
+  Begin{
     Log-Write -LogPath $sLogFile -LineValue '<Write what happens>...'
-    }
+  }
   
-    Process{
+  Process{
     Try{
+      $FixRemoteSess = New-PSSession -ComputerName $SourceComputer -Credential $DomainCredential
+      Invoke-Command -Session $FixRemoteSess {
+        #Gets Exchange Install Path, will always remain the same.
+        $exchdir = (Get-ItemProperty HKLM:\SOFTWARE\Microsoft\ExchangeServer\V15\Setup).MsiInstallPath
+        $PSWebPath = (Join-Path $exchdir -ChildPath ClientAccess\PowerShell\)
+        $NewPSWebAppDir = (Join-Path -Path $exchdir -ChildPath ClientAccess\PSFullRemote)
+        
+        #Creates a new directory and copies the web.config for the new application pool we are creating
+        New-Item -ItemType Directory -Path $NewPSWebAppDir -ErrorAction Ignore
+        Copy-Item -Path (Join-Path -Path $PSWebPath -ChildPath web.config) -Destination $NewPSWebAppDir        
+        
+        #Edits the web.config XML file so that one can run EMS in FullLanguage mode.
+        [xml]$FixPSRemote = (Get-content $NewPSWebAppDir\web.config)
+        $UpdatePSConf = $FixPsRemote.configuration.appSettings.add | Where-Object {$_.Key -eq "PSLanguageMode"}
+        $UpdatePSConf.value = 'FullLanguage'
+        $xmlsavepath = (Join-Path -Path $NewPSWebAppDir -ChildPath web.config)
+        $FixPSRemote.Save($xmlsavepath)
+        
+        #Creates a new application pool
+        $psapppool = New-WebAppPool -Name PSFullRemote
+        
+        #Sets the account which IIS runs the app pool under ( LocalSystem )
+        Set-ItemProperty IIS:\AppPools\PSFullremote -Name ProcessModel -Value @{identityType=0}
+        
+        #Starts the new app pool
+        Start-WebAppPool -Name PSFullRemote
+        
+        #Creates a new application ( PowerShell ) to run in the app pool, using Default Web Site because of time constraints
+        $psapplication = New-WebApplication -Name PSFullRemote -Site 'Default Web Site' `
+        -PhysicalPath "$NewPSWebAppDir" -ApplicationPool $psapppool.Name
+        
+        #Sets SSL settings
+        Set-WebConfigurationProperty -Filter //security/access -Name SslFlags -Value SslNegotiateCert `
+        -PSPath IIS:\ -Location 'Default Web Site/PSFullRemote'
+        
+        #Create endpoint which you use -URI parameter to connect to
+        Register-PSSessionConfiguration -Name PSFullRemote -Force
+        Set-PSSessionConfiguration -Name PSFullRemote -Force
+      }
+      Remove-PSSession $FixRemoteSess
+    
+    
+    
+      $ConfigSession = New-PSSession -ConfigurationName Microsoft.Exchange -ConnectionUri http://$fqdn/powershell `
+      -Credential $DomainCredential -Authentication Kerberos
+            
+      $ExchCert = Invoke-Command -Session $ConfigSession -ScriptBlock {
+        Get-ExchangeCertificate
+      }
+      $ExchCert = ($ExchCert | Where-Object {$_.Subject -eq "CN=$SourceComputer"}).Thumbprint
+      
+      $Password = ConvertTo-SecureString $Password -AsPlainText -Force
+      
+      Invoke-Command -Session $ConfigSession -ScriptBlock {
+        Param($ExchCert)
+        Export-ExchangeCertificate -Thumbprint $ExchCert -FileName C:\Cert\exchcert.pfx -Password $Password
+      } -ArgumentList $ExchCert
+      
+      
      
     }      
     Catch {
-    Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $True
-    Break
+      Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $True
+      Break
     }
-    }
+  }
   
-    End{
+  End{
     If($?){
-    Log-Write -LogPath $sLogFile -LineValue "Completed Successfully."
-    Log-Write -LogPath $sLogFile -LineValue " "
+      Log-Write -LogPath $sLogFile -LineValue "Completed Successfully."
+      Log-Write -LogPath $sLogFile -LineValue " "
     }
-    }
-} #>
+  }
+}
 
 #-----------------------------------------------------------[Execution]------------------------------------------------------------
 
