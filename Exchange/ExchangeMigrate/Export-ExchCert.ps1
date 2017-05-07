@@ -12,7 +12,7 @@
   )
   
   Begin{
-    Log-Write -LogPath $sLogFile -LineValue 'Exporting Exchange Certificate to fileshare...'
+    Log-Write -LogPath $xLogFile -LineValue 'Exporting Exchange Certificate to fileshare...'
   }
   
   Process{
@@ -89,7 +89,7 @@
       
     }      
     Catch {
-      Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $True
+      Log-Error -LogPath $xLogFile -ErrorDesc $_.Exception -ExitGracefully $True
       Remove-PSSession $ConfigSession
       Break
     }
@@ -97,8 +97,8 @@
   
   End{
     If($?){
-      Log-Write -LogPath $sLogFile -LineValue "Completed Exporting Exchange Certificate Successfully."
-      Log-Write -LogPath $sLogFile -LineValue "-------------------- Function Export-ExchCert Finished --------------------"
+      Log-Write -LogPath $xLogFile -LineValue "Completed Exporting Exchange Certificate Successfully."
+      Log-Write -LogPath $xLogFile -LineValue "-------------------- Function Export-ExchCert Finished --------------------"
       Write-Verbose "Completed Exporting Exchange Certificate Successfully."
       Remove-PSSession $ConfigSession
     }
