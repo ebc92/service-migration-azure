@@ -13,13 +13,13 @@ $IpCalc = Join-Path -Path $SMARoot -ChildPath "Libraries\ipcalculator.ps1"
 
 #----------------------------------------------------------[Declarations]----------------------------------------------------------
 
-$sScriptVersion = "0.1"
+$sScriptVersion = "1"
 $sLogPath = "C:\Logs"
-$sLogName = "SMA-Provisioning.log"
+$sLogName = "resource-provisioning.log"
 $sLogFile = Join-Path -Path $sLogPath -ChildPath $sLogName
 
-#$LocalEndpoint = $SMAConfig.VPN.Get_Item('endpoint')
-#$LocalNetwork = $SMAConfig.VPN.Get_Item('network')
+#$LocalEndpoint = $SMAConfig.VPN.localendpoint
+#$LocalNetwork = $SMAConfig.VPN.network
 $LocalEndpoint = "158.38.53.113"
 $LocalNetwork = "192.168.58.0/24"
 #-----------------------------------------------------------[Functions]------------------------------------------------------------
@@ -30,15 +30,10 @@ Function New-AzureStackTenantDeployment {
         [Parameter(Mandatory=$true)]
         [String]$VMName,
         [String]$IPAddress,
+        $DomainName = "amstel.local",
         $DomainCredential,
         $Location = "local"
     )
-
-    #TODO: Verify presence of azurerm connect and compute modules
-
-    $DomainName = "amstel.local"
-
-    #Import-Module AzureStack, AzureRM
 
     Log-Start -LogPath $sLogPath -LogName $sLogName -ScriptVersion $sScriptVersion
 
@@ -73,13 +68,13 @@ Function New-AzureStackTenantDeployment {
         Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $False
     }
 
-    $VMNic | Out-String >> .\debug.txt
-
     Log-Write -LogPath $sLogFile -LineValue "Starting VM provisioning..."
 
     $VMNic | % {if($_.GetType().Name -eq "PSNetworkInterface"){$result = $_}}
 
     $ProvisionedIP = New-AzureStackWindowsVM -VMName $VMName -VMNic $result -ErrorAction Stop
+
+    Log-Finish -LogPath $sLogFile -NoExit $true
 }
 
 Function New-AzureStackVnet{

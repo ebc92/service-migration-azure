@@ -59,9 +59,10 @@ $LocalCredential = (Get-Credential -Message "Please insert a password for the lo
 $sLogPath = "C:\Logs"
 $sLogName = "service-migration-azure.log"
 $global:SMAConfig = Get-IniContent -FilePath (Join-Path -Path $PSScriptRoot -ChildPath "Configuration.ini")
-$global:sLogFile = $SMAConfig.Global.Get_Item('logpath')
+$global:sLogFile = $SMAConfig.Global.logpath
 $global:AzureStackSession
-$environmentname = $SMAConfig.Global.Get_Item('environmentname')
+$environmentname = $SMAConfig.Global.environmentname
+$CIDR = "/$($SMAConfig.Global.network.Split("/")[1])"
 
 #-----------------------------------------------------------[Execution]------------------------------------------------------------
 
@@ -101,9 +102,10 @@ $Authenticator = Join-Path -Path $PSScriptRoot -ChildPath "\Support\Remote-ARM\S
 #Invoke-Command -Session $AzureStackSession -ScriptBlock {New-AzureStackTenantDeployment -VMName "TEST2" -IPAddress "192.168.59.14/24" -DomainCredential $DomainCredential}
 
 #-----------------------------------------------------------[SQL Server]---------------------------------------------------------------
-$Name = "$($environmentname)-$($SMAConfig.MSSQL.Get_Item('hostname'))" 
+$Name = "$($environmentname)-$($SMAConfig.MSSQL.Get_Item('hostname'))"
+$Destination = $SMAConfig.MSSQL.destination + $CIDR
 
-Invoke-Command -Session $AzureStackSession -ScriptBlock {New-AzureStackTenantDeployment -VMName $using:Name -IPAddress "192.168.59.114/24" -DomainCredential $using:DomainCredential}
+Invoke-Command -Session $AzureStackSession -ScriptBlock {New-AzureStackTenantDeployment -VMName $using:Name -IPAddress $Destination -DomainCredential $using:DomainCredential}
 #& (Join-Path -Path $PSScriptRoot -ChildPath "\MSSQL\MSSQL-Migration.ps1")
 
 #-----------------------------------------------------------[File and sharing]---------------------------------------------------------
