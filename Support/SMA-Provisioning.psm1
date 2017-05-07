@@ -18,10 +18,9 @@ $sLogPath = "C:\Logs"
 $sLogName = "resource-provisioning.log"
 $sLogFile = Join-Path -Path $sLogPath -ChildPath $sLogName
 
-#$LocalEndpoint = $SMAConfig.VPN.localendpoint
-#$LocalNetwork = $SMAConfig.VPN.network
-$LocalEndpoint = "158.38.53.113"
-$LocalNetwork = "192.168.58.0/24"
+$LocalEndpoint = $SMAConfig.Global.localendpoint
+$LocalNetwork = $SMAConfig.Global.network
+$EnvironmentName = $SMAConfig.Global.environmentname
 #-----------------------------------------------------------[Functions]------------------------------------------------------------
 
 Function New-AzureStackTenantDeployment {
@@ -46,10 +45,10 @@ Function New-AzureStackTenantDeployment {
 
     Try{ 
         Get-AzureRmResourceGroup -Name $ResourceGroupName -ErrorAction Stop
-        Log-Write -LogPath $sLogFile -LineValue "Created Azure Resource Group $ResourceGroupName."
+        Log-Write -LogPath $sLogFile -LineValue "Retrieved Azure Resource Group $ResourceGroupName."
     } Catch {
         New-AzureRmResourceGroup -Name $ResourceGroupName -Location $Location
-        Log-Write -LogPath $sLogFile -LineValue "Resource Group could not be retrieved."
+        Log-Write -LogPath $sLogFile -LineValue "Created Azure Resource Group $ResourceGroupName."
     }
 
     <#
@@ -61,7 +60,7 @@ Function New-AzureStackTenantDeployment {
     }#>
 
     Try {
-        $VMNic = New-AzureStackVnet -NetworkIP $IPAddress -ResourceGroupName $ResourceGroupName -VNetName "AMSTEL-VNET" -VMName $VMName
+        $VMNic = New-AzureStackVnet -NetworkIP $IPAddress -ResourceGroupName $ResourceGroupName -VNetName "$($EnvironmentName)-VNET" -VMName $VMName
         Log-Write -LogPath $sLogFile -LineValue "VM Network interface was created."
     } Catch {
         Log-Write -LogPath $sLogFile -LineValue "The VM deployment failed because no NIC was returned."
@@ -132,17 +131,19 @@ Function New-AzureStackVnet{
         $vpn | Out-String >> .\debug.txt
 
         if (!$vpn){
-            $VPNSubnet = Get-AzureRmVirtualNetworkSubnetConfig -Name GatewaySubnet -VirtualNetwork $vnet
+            $VPNSubnet = Get-AzureRmVirtualNetworkSubnetConfig -Name "GatewaySubnet" -VirtualNetwork $vnet
 
-            $pip = New-AzureRmPublicIpAddress -ResourceGroupName $ResourceGroupName -AllocationMethod Dynamic -Name VPNGatewayIP -Location $Location
+            Log-Write -LogPath $sLogFile -LineValue "Provisioning public ip."
 
-            Log-Write -LogPath $sLogFile -LineValue "Creating the gateway ipconfiguration with ip $($pip.Address) and subnet $($VPNSubnet.Name)"
+            $pip = New-AzureRmPublicIpAddress -ResourceGroupName $ResourceGroupName -AllocationMethod Dynamic -Name "VPNGatewayIP" -Location $Location
 
-            $VPNIpconfig = New-AzureRmVirtualNetworkGatewayIpConfig -Name "AMSTEL-VPN-ipconfig" -PublicIpAddress $pip -Subnet $VPNSubnet 
+            Log-Write -LogPath $sLogFile -LineValue "Creating the VPN gateway ipconfig."
+
+            $VPNIpconfig = New-AzureRmVirtualNetworkGatewayIpConfig -Name "$($EnvironmentName)-VPN-CFG" -PublicIpAddress $pip -Subnet $VPNSubnet 
             
             Log-Write -LogPath $sLogFile -LineValue "Creating the VPN gateway." 
                  
-            $VirtualGateway = New-AzureRmVirtualNetworkGateway -Name "AMSTEL-VPN" `
+            $VirtualGateway = New-AzureRmVirtualNetworkGateway -Name "$($EnvironmentName)-VPN" `
             -ResourceGroupName $ResourceGroupName `
             -Location $Location `
             -IpConfigurations $VPNIpconfig `
@@ -151,7 +152,7 @@ Function New-AzureStackVnet{
             -GatewaySku Basic
 
             Log-Write -LogPath $sLogFile -LineValue "Creating local network gateway."
-            $LocalGateway = New-AzureRmLocalNetworkGateway -Name "AMSTEL-GATE" `
+            $LocalGateway = New-AzureRmLocalNetworkGateway -Name "$($EnvironmentName)-GATE" `
             -ResourceGroupName $ResourceGroupName `
             -Location $Location `
             -GatewayIpAddress $LocalEndpoint `
