@@ -53,17 +53,19 @@ Function New-AzureStackTenantDeployment {
     }
 
     Try{ 
-        $exists = Get-AzureRmResourceGroup -Name $ResourceGroupName -ErrorAction SilentlyContinue | Out-Null
+        $exists = Get-AzureRmResourceGroup -Name $ResourceGroupName -ErrorAction Stop
     } Catch {
+        New-AzureRmResourceGroup -Name $ResourceGroupName -Location $Location
         Log-Write -LogPath $sLogFile -LineValue "Resource Group could not be retrieved."
     }
 
+    <#
     if(!$exists){
         New-AzureRmResourceGroup -Name $ResourceGroupName -Location $Location
         Log-Write -LogPath $sLogFile -LineValue "Created Azure Resource Group $ResourceGroupName."
     } else {
         Log-Write -LogPath $sLogFile -LineValue "Resource Group already exists."
-    }
+    }#>
 
     Try {
         $VMNic = New-AzureStackVnet -NetworkIP $IPAddress -ResourceGroupName $ResourceGroupName -VNetName "AMSTEL-VNET" -VMName $VMName -ErrorAction Stop
@@ -72,6 +74,8 @@ Function New-AzureStackTenantDeployment {
         Log-Write -LogPath $sLogFile -LineValue "The VM deployment failed because no NIC was returned."
         Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $False
     }
+
+    $VMNic | Out-String >> .\debug.txt
 
     Log-Write -LogPath $sLogFile -LineValue "Starting VM provisioning..."
 
