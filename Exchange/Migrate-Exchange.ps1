@@ -14,21 +14,26 @@ $Password = (ConvertTo-SecureString $SMAConfig.Exchange.password -AsPlainText -F
 
 
 
-
-Get-Prerequisite -fileShare $fileshare -ComputerName -DomainCredential 
+#Downloads all required files
+Get-Prerequisite -fileShare $fileshare -ComputerName $ComputerName -DomainCredential $DomainCredential
 
 #Mount fileshare on source VM
-Mount-FileShare -DomainCredential -ComputerName -baseDir
+Mount-FileShare $fileshare -DomainCredential $DomainCredential -ComputerName $ComputerName -baseDir $baseDir
 
 #Mount fileshare on target VM
-Mount-FileShare -DomainCredential -ComputerName -baseDir
+Mount-FileShare -DomainCredential $DomainCredential -ComputerName $ComputerName -baseDir $baseDir
 
-Mount-Exchange -FileShare -ComputerName -baseDir -DomainCredential
+#Mounts the Exchange ISO
+Mount-Exchange -FileShare $fileshare -ComputerName $ComputerName -baseDir $baseDir -DomainCredential $DomainCredential
 
-New-DSCCertificate -ComputerName -DomainCredential
+#Creates a new certificate to encrypt .mof DSC files
+New-DSCCertificate -ComputerName $ComputerName -DomainCredential $DomainCredential
 
-Install-Prerequisite -baseDir -ComputerName -DomainCredential
+#Compiles .mof files, installs UCMA and starts DSC
+Install-Prerequisite -baseDir $baseDir -ComputerName $ComputerName -DomainCredential $DomainCredential
 
-Export-ExchCert -SourceComputer -fqdn -Password -DomainCredential
+#Gets the Exchange Certificate and exports it
+Export-ExchCert -SourceComputer $SourceComputer -fqdn $fqdn -Password $Password -DomainCredential $DomainCredential
 
-Configure-Exchange -ComputerName -SourceComputer -newfqdn -Password -DomainCredential -hostname
+#Configures all Exchange settings
+Configure-Exchange -ComputerName $ComputerName -SourceComputer $SourceComputer -newfqdn $newfqdn -Password $Password -DomainCredential $DomainCredential -hostname $www

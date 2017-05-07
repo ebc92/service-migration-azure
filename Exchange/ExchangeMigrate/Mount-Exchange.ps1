@@ -18,7 +18,7 @@
       $ErrorActionPreference = "Continue"
       "$FileShare in local session supposed to be used for mounting image"
       
-      Log-Write -LogPath $sLogFile -LineValue "Entering $InstallSession to mount Exchange Disk Image"      
+      Log-Write -LogPath $xLogFile -LineValue "Entering $InstallSession to mount Exchange Disk Image"      
       $ExchangeBinary = Invoke-Command -Session $InstallSession -ScriptBlock {
         #Do while to make sure correct file is mounted
         $SourceFile = "Z:\executables"
@@ -40,11 +40,11 @@
         New-Item -ItemType File -Path $ExchLetter -ErrorAction Ignore
         $ExchangeBinary > $ExchLetter
       }
-      Log-Write -LogPath $sLogFile -LineValue "Got Drive Letter $ExchangeBinary"
+      Log-Write -LogPath $xLogFile -LineValue "Got Drive Letter $ExchangeBinary"
     }
   
     Catch {
-      Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $True      
+      Log-Error -LogPath $xLogFile -ErrorDesc $_.Exception -ExitGracefully $True      
       Write-Verbose -Message "Removing remote session $InstallSession"
       $InstallSession | Remove-PSSession
       Break
@@ -53,8 +53,8 @@
   
   End{
     If($?){
-      Log-Write -LogPath $sLogFile -LineValue "Mounted ISO successfully."
-      Log-Write -LogPath $sLogFile -LineValue "-------------------- Function Mount-Exchange Finished --------------------"
+      Log-Write -LogPath $xLogFile -LineValue "Mounted ISO successfully."
+      Log-Write -LogPath $xLogFile -LineValue "-------------------- Function Mount-Exchange Finished --------------------"
       Write-Verbose -Message "Mounted ISO successfully."      
       Write-Verbose -Message "Removing remote session $InstallSession"
       $InstallSession | Remove-PSSession

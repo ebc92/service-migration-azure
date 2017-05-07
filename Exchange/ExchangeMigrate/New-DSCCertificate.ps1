@@ -415,7 +415,7 @@
       }
     }
     Catch {
-      Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $True      
+      Log-Error -LogPath $xLogFile -ErrorDesc $_.Exception -ExitGracefully $True      
       Write-Verbose -Message "Removing remote session $InstallSession"
       $InstallSession | Remove-PSSession
       Break
@@ -423,8 +423,8 @@
   }
   End{
     If($?){
-      Log-Write -LogPath $sLogFile -LineValue "Successfully created the certificate"
-      Log-Write -LogPath $sLogFile -LineValue "-------------------- Function New-DSCCertificate Finished --------------------"
+      Log-Write -LogPath $xLogFile -LineValue "Successfully created the certificate"
+      Log-Write -LogPath $xLogFile -LineValue "-------------------- Function New-DSCCertificate Finished --------------------"
       Write-Verbose -Message "Removing remote session $InstallSession"
       $InstallSession | Remove-PSSession
       Write-Verbose -Message "Successfully created the certificate."

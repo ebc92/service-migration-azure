@@ -13,7 +13,7 @@
       #Mounting fileshare to local so that it can be accessed in remote sessions
       #Normally I would set first free driveletter as path, but due to time restriction I went with the last used one.
       
-      Log-Write -LogPath $sLogFile -LineValue "Mounting fileshare on $ComputerName"
+      Log-Write -LogPath $xLogFile -LineValue "Mounting fileshare on $ComputerName"
       Write-Verbose -Message "Mounting fileshare on $ComputerName"      
       Invoke-Command -ComputerName $ComputerName -Credential $DomainCredential -ScriptBlock { 
         Write-Verbose -Message "Mounting new PSDrive"
@@ -21,15 +21,15 @@
       }
     }
     Catch {
-      Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $True
+      Log-Error -LogPath $xLogFile -ErrorDesc $_.Exception -ExitGracefully $True
       Break
     }
   }
   
   End{
     If($?){
-      Log-Write -LogPath $sLogFile -LineValue "Mounted file share successfully."
-      Log-Write -LogPath $sLogFile -LineValue "-------------------- Function Mount-FileShare Finished --------------------"
+      Log-Write -LogPath $xLogFile -LineValue "Mounted file share successfully."
+      Log-Write -LogPath $xLogFile -LineValue "-------------------- Function Mount-FileShare Finished --------------------"
       Write-Verbose -Message "Installed prerequisites successfully."
     }
   }

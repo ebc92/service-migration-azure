@@ -6,28 +6,28 @@
        under:the:sky,:Seven:for:the
      Dwarf-Lords::in::their::halls:of
     stone,:Nine             for:Mortal
-   :::Men:::     ________     doomed::to
- die.:One   _,-'...:... `-.    for:::the
- ::Dark::  ,- .:::::::::::. `.   Lord::on
-his:dark ,'  .:::::zzz:::::.  `.  :throne::
-In:::the/    ::::dMMMMMb::::    \ Land::of:
-:Mordor:\    ::::dMMmgJP::::    / :where::::
-::the::: '.  '::::YMMMP::::'  ,'   Shadows:
- lie.::One `. ``:::::::::'' ,'    :Script:
- to:rule:    `-._```:'''_,-'     ::them::
- all,::One      `-----'        Script:to
-   ::find:::                  them,:One
+    :::Men:::     ________     doomed::to
+    die.:One   _,-'...:... `-.    for:::the
+    ::Dark::  ,- .:::::::::::. `.   Lord::on
+    his:dark ,'  .:::::zzz:::::.  `.  :throne::
+    In:::the/    ::::dMMMMMb::::    \ Land::of:
+    :Mordor:\    ::::dMMmgJP::::    / :where::::
+    ::the::: '.  '::::YMMMP::::'  ,'   Shadows:
+    lie.::One `. ``:::::::::'' ,'    :Script:
+    to:rule:    `-._```:'''_,-'     ::them::
+    all,::One      `-----'        Script:to
+    ::find:::                  them,:One
     Script:::to            bring::them
       all::and::in:the:darkness:bind
         them:In:the:Land:of:Mordor
            where:::the::Shadows
                 :::lie.:::
 
-Credential-list
-*AzureLocalCredential
-*AzureTenantCredential
-*DomainCredential
-*LocalCredential (VMCredential)
+    Credential-list
+    *AzureLocalCredential
+    *AzureTenantCredential
+    *DomainCredential
+    *LocalCredential (VMCredential)
 
 #>
 
@@ -48,6 +48,11 @@ $functions | % {
         Write-Verbose $_.Exception
     }
 }
+
+$AzureLocalCredential = (Get-Credential -Message "Please insert your Local AzureStack Credentials")
+$AzureTenantCredential = (Get-Credential -Message "Please insert your Azure Tenant Credentials")
+$DomainCredential = (Get-Credential -Message "Please insert your domain administrator credentials")
+$LocalCredential = (Get-Credential -Message "Please insert a password for the local administrator on the new VMs")
 
 #----------------------------------------------------------[Global Declarations]----------------------------------------------------------
 #ToDo: Read path & name from config file
@@ -98,7 +103,7 @@ $Authenticator = Join-Path -Path $PSScriptRoot -ChildPath "\Support\Remote-ARM\S
 #-----------------------------------------------------------[SQL Server]---------------------------------------------------------------
 $Name = "$($environmentname)-$($SMAConfig.MSSQL.Get_Item('hostname'))" 
 
-Invoke-Command -Session $AzureStackSession -ScriptBlock {New-AzureStackTenantDeployment -VMName $using:Name -IPAddress "192.168.59.114/24" -DomainCredential $DomainCredential}
+Invoke-Command -Session $AzureStackSession -ScriptBlock {New-AzureStackTenantDeployment -VMName $using:Name -IPAddress "192.168.59.114/24" -DomainCredential $using:DomainCredential}
 #& (Join-Path -Path $PSScriptRoot -ChildPath "\MSSQL\MSSQL-Migration.ps1")
 
 #-----------------------------------------------------------[File and sharing]---------------------------------------------------------
@@ -106,7 +111,9 @@ Invoke-Command -Session $AzureStackSession -ScriptBlock {New-AzureStackTenantDep
 #& (Join-Path -Path $PSScriptRoot -ChildPath "\File-Share\FSS-Migration.ps1")
 
 #-----------------------------------------------------------[Exchange]-----------------------------------------------------------------
+$ExchName = "$($environmentname)-$($SMAConfig.Exchange.hostname)"
 
-#& (Join-Path -Path $PSScriptRoot -ChildPath "\Exchange\Exchange-Migration.ps1")
+Invoke-Command -Session $AzureStackSession -ScriptBlock {New-AzureStackTenantDeployment -VMName $using:ExchName -IPAddress "192.168.59.116/24" -DomainCredential $using:DomainCredential}
+#& (Join-Path -Path $PSScriptRoot -ChildPath "\Exchange\Migrate-Exchange.ps1")
 
 Log-Finish -LogPath $sLogFile -NoExit $true

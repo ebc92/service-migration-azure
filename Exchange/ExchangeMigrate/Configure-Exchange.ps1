@@ -16,7 +16,7 @@
   )
   
   Begin{
-    Log-Write -LogPath $sLogFile -LineValue 'Configuring new Exchange Install...'
+    Log-Write -LogPath $xLogFile -LineValue 'Configuring new Exchange Install...'
   }
   
   Process{
@@ -85,7 +85,7 @@
       
     }      
     Catch {
-      Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $True
+      Log-Error -LogPath $xLogFile -ErrorDesc $_.Exception -ExitGracefully $True
       $ConfigSession | Remove-PSSession
       Break
     }
@@ -93,8 +93,8 @@
   
   End{
     If($?){
-      Log-Write -LogPath $sLogFile -LineValue "Successfully configured the new Exchange Server"
-      Log-Write -LogPath $sLogFile -LineValue "-------------------- Function Configure-Exchange Finished --------------------"
+      Log-Write -LogPath $xLogFile -LineValue "Successfully configured the new Exchange Server"
+      Log-Write -LogPath $xLogFile -LineValue "-------------------- Function Configure-Exchange Finished --------------------"
       Write-Verbose -Message "Successfully configured the new Exchange Server"
       $ConfigSession | Remove-PSSession
     }

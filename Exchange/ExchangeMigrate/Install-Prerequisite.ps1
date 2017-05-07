@@ -11,9 +11,9 @@
   
   Begin{
     $variableOutput = '        $fileShare ' + "= $fileShare"
-    Log-Write -LogPath $sLogFile -LineValue 'Installing prerequisites for Microsoft Exchange 2013...'
-    Log-Write -LogPath $sLogFile -LineValue "The following variables are set for $MyInvocation.MyCommand.Name :"
-    Log-Write -LogPath $sLogFile -LineValue "$variableOutput"
+    Log-Write -LogPath $xLogFile -LineValue 'Installing prerequisites for Microsoft Exchange 2013...'
+    Log-Write -LogPath $xLogFile -LineValue "The following variables are set for $MyInvocation.MyCommand.Name :"
+    Log-Write -LogPath $xLogFile -LineValue "$variableOutput"
   }
   
   Process{
@@ -144,7 +144,7 @@
     }
        
     Catch {
-      Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $True      
+      Log-Error -LogPath $xLogFile -ErrorDesc $_.Exception -ExitGracefully $True      
       Write-Verbose -Message "Removing remote session $InstallSession"
       $InstallSession | Remove-PSSession
       Break
@@ -153,8 +153,8 @@
   
   End{
     If($?){
-      Log-Write -LogPath $sLogFile -LineValue "Installed prerequisites successfully."
-      Log-Write -LogPath $sLogFile -LineValue "-------------------- Function Install-Prerequisite Finished --------------------"
+      Log-Write -LogPath $xLogFile -LineValue "Installed prerequisites successfully."
+      Log-Write -LogPath $xLogFile -LineValue "-------------------- Function Install-Prerequisite Finished --------------------"
       Write-Verbose -Message "Installed prerequisites successfully."      
       Write-Verbose -Message "Removing remote session $InstallSession"
       $InstallSession | Remove-PSSession
