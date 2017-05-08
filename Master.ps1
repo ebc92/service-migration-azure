@@ -120,6 +120,6 @@ $ExchName = "$($environmentname)-$($SMAConfig.Exchange.hostname)"
 #Invoke-Command -Session $AzureStackSession -ScriptBlock {New-AzureStackTenantDeployment -VMName $using:ExchName -IPAddress "192.168.59.116/24" -DomainCredential $using:DomainCredential}
 #& (Join-Path -Path $PSScriptRoot -ChildPath "\Exchange\Migrate-Exchange.ps1 $DomainCredential")
 
-#-----------------------------------------------------------[Tests]-----------------------------------------------------------------
-#Invoke-Command -Session $AzureStackSession -ScriptBlock {New-AzureStackTenantDeployment -VMName "TEST" -IPAddress "192.168.59.14/24" -DomainCredential $using:DomainCredential}
+#Close the azure stack session & log file
+Remove-PSSession $AzureStackSession
 Log-Finish -LogPath $sLogFile -NoExit $true
