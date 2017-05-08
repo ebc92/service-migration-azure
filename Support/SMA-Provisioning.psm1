@@ -15,7 +15,7 @@ $IpCalc = Join-Path -Path $SMARoot -ChildPath "Libraries\ipcalculator.ps1"
 
 $sScriptVersion = "1"
 $sLogPath = "C:\Logs"
-$sLogName = "resource-provisioning.log"
+$sLogName = "SMA-VMprovisioning-$($xLogDate = (Get-Date -Format dd_M_yyyy_HHmm).ToString()).log"
 $sLogFile = Join-Path -Path $sLogPath -ChildPath $sLogName
 
 $LocalEndpoint = $SMAConfig.Global.localendpoint

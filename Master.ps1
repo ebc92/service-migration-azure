@@ -1,7 +1,7 @@
 ﻿<# 
         One script to rule them all 
 
-              Four::modules
+               Three::modules
           for:::the::Elven-Kings
        under:the:sky,:Seven:for:the
      Dwarf-Lords::in::their::halls:of
@@ -9,15 +9,15 @@
     :::Men:::     ________     doomed::to
     die.:One   _,-'...:... `-.    for:::the
     ::Dark::  ,- .:::::::::::. `.   Lord::on
-    his:dark ,'  .:::::zzz:::::.  `.  :throne:
-    In:::the/    ::::dMMMMMb::::    \ Land::of
-    :Mordor:\    ::::dMMmgJP::::    / :where::
-    ::the::: '.  '::::YMMMP::::'  ,'  Shadows:
-    lie.::One  `. ``:::::::::'' ,'    Ring::to
-    ::rule::    `-._```:'''_,-'     ::them::
-    all,::One      `-----'        ring::to
+    his:dark ,'  .:::::zzz:::::.  `.  :throne::
+    In:::the/    ::::dMMMMMb::::    \ Land::of:
+    :Mordor:\    ::::dMMmgJP::::    / :where::::
+    ::the::: '.  '::::YMMMP::::'  ,'   Shadows:
+    lie.::One `. ``:::::::::'' ,'    :Script:
+    to:rule:    `-._```:'''_,-'     ::them::
+    all,::One      `-----'        Script:to
     ::find:::                  them,:One
-    Ring:::::to            bring::them
+    Script:::to            bring::them
       all::and::in:the:darkness:bind
         them:In:the:Land:of:Mordor
            where:::the::Shadows
@@ -55,12 +55,13 @@ $DomainCredential = (Get-Credential -Message "Please insert your domain administ
 $LocalCredential = (Get-Credential -Message "Please insert a password for the local administrator on the new VMs")
 
 #----------------------------------------------------------[Global Declarations]----------------------------------------------------------
-#ToDo: Read path & name from config file
-$sLogPath = "C:\Logs"
-$sLogName = "service-migration-azure.log"
+
 $global:SMAConfig = Get-IniContent -FilePath (Join-Path -Path $PSScriptRoot -ChildPath "Configuration.ini")
-$global:sLogFile = $SMAConfig.Global.logpath
-$global:AzureStackSession
+
+$sLogPath = $SMAConfig.Global.logpath
+$sLogName = "SMA-Master-$($xLogDate = (Get-Date -Format dd_M_yyyy_HHmm).ToString()).log"
+$sLogFile = Join-Path -Path $sLogPath -ChildPath $sLogName
+
 $environmentname = $SMAConfig.Global.environmentname
 $CIDR = "/$($SMAConfig.Global.network.Split("/")[1])"
 
@@ -102,7 +103,7 @@ $Authenticator = Join-Path -Path $PSScriptRoot -ChildPath "\Support\Remote-ARM\S
 #Invoke-Command -Session $AzureStackSession -ScriptBlock {New-AzureStackTenantDeployment -VMName "TEST2" -IPAddress "192.168.59.14/24" -DomainCredential $DomainCredential}
 
 #-----------------------------------------------------------[SQL Server]---------------------------------------------------------------
-$Name = "$($environmentname)-$($SMAConfig.MSSQL.hostname)"
+$Name = "$($environmentname)-$($SMAConfig.MSSQL.Get_Item('hostname'))"
 $Destination = $SMAConfig.MSSQL.destination + $CIDR
 
 #Invoke-Command -Session $AzureStackSession -ScriptBlock {New-AzureStackTenantDeployment -VMName $using:Name -IPAddress $Destination -DomainCredential $using:DomainCredential}
@@ -114,10 +115,9 @@ $Destination = $SMAConfig.MSSQL.destination + $CIDR
 
 #-----------------------------------------------------------[Exchange]-----------------------------------------------------------------
 $ExchName = "$($environmentname)-$($SMAConfig.Exchange.hostname)"
-$ExchDestIP = $SMAConfig.Exchange.newip + $CIDR
 
-Invoke-Command -Session $AzureStackSession -ScriptBlock {New-AzureStackTenantDeployment -VMName $using:ExchName -IPAddress $using:ExchDestIP -DomainCredential $using:DomainCredential}
-& (Join-Path -Path $PSScriptRoot -ChildPath "\Exchange\Migrate-Exchange.ps1 $DomainCredential")
+#Invoke-Command -Session $AzureStackSession -ScriptBlock {New-AzureStackTenantDeployment -VMName $using:ExchName -IPAddress "192.168.59.116/24" -DomainCredential $using:DomainCredential}
+#& (Join-Path -Path $PSScriptRoot -ChildPath "\Exchange\Migrate-Exchange.ps1 $DomainCredential")
 
 #-----------------------------------------------------------[Tests]-----------------------------------------------------------------
 Invoke-Command -Session $AzureStackSession -ScriptBlock {New-AzureStackTenantDeployment -VMName "TEST" -IPAddress "192.168.59.14/24" -DomainCredential $using:DomainCredential}
