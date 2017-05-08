@@ -293,6 +293,8 @@ Function New-AzureStackWindowsVM {
             Start-Sleep -Seconds 60
         } while ($Extension.ProvisioningState -ne "Transitioning")
 
+        Restart-AzureRmVm -ResourceGroupName $ResourceGroupName -Name $VMName
+
         $NoConnectivity = $true
         do {
             try {
