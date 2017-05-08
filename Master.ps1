@@ -1,7 +1,7 @@
 ﻿<# 
         One script to rule them all 
 
-               Three::modules
+              Four::modules
           for:::the::Elven-Kings
        under:the:sky,:Seven:for:the
      Dwarf-Lords::in::their::halls:of
@@ -9,15 +9,15 @@
     :::Men:::     ________     doomed::to
     die.:One   _,-'...:... `-.    for:::the
     ::Dark::  ,- .:::::::::::. `.   Lord::on
-    his:dark ,'  .:::::zzz:::::.  `.  :throne::
-    In:::the/    ::::dMMMMMb::::    \ Land::of:
-    :Mordor:\    ::::dMMmgJP::::    / :where::::
-    ::the::: '.  '::::YMMMP::::'  ,'   Shadows:
-    lie.::One `. ``:::::::::'' ,'    :Script:
-    to:rule:    `-._```:'''_,-'     ::them::
-    all,::One      `-----'        Script:to
+    his:dark ,'  .:::::zzz:::::.  `.  :throne:
+    In:::the/    ::::dMMMMMb::::    \ Land::of
+    :Mordor:\    ::::dMMmgJP::::    / :where::
+    ::the::: '.  '::::YMMMP::::'  ,'  Shadows:
+    lie.::One  `. ``:::::::::'' ,'    Ring::to
+    ::rule::    `-._```:'''_,-'     ::them::
+    all,::One      `-----'        ring::to
     ::find:::                  them,:One
-    Script:::to            bring::them
+    Ring:::::to            bring::them
       all::and::in:the:darkness:bind
         them:In:the:Land:of:Mordor
            where:::the::Shadows
@@ -102,7 +102,7 @@ $Authenticator = Join-Path -Path $PSScriptRoot -ChildPath "\Support\Remote-ARM\S
 #Invoke-Command -Session $AzureStackSession -ScriptBlock {New-AzureStackTenantDeployment -VMName "TEST2" -IPAddress "192.168.59.14/24" -DomainCredential $DomainCredential}
 
 #-----------------------------------------------------------[SQL Server]---------------------------------------------------------------
-$Name = "$($environmentname)-$($SMAConfig.MSSQL.Get_Item('hostname'))"
+$Name = "$($environmentname)-$($SMAConfig.MSSQL.hostname)"
 $Destination = $SMAConfig.MSSQL.destination + $CIDR
 
 #Invoke-Command -Session $AzureStackSession -ScriptBlock {New-AzureStackTenantDeployment -VMName $using:Name -IPAddress $Destination -DomainCredential $using:DomainCredential}
@@ -114,9 +114,10 @@ $Destination = $SMAConfig.MSSQL.destination + $CIDR
 
 #-----------------------------------------------------------[Exchange]-----------------------------------------------------------------
 $ExchName = "$($environmentname)-$($SMAConfig.Exchange.hostname)"
+$ExchDestIP = $SMAConfig.Exchange.newip + $CIDR
 
-#Invoke-Command -Session $AzureStackSession -ScriptBlock {New-AzureStackTenantDeployment -VMName $using:ExchName -IPAddress "192.168.59.116/24" -DomainCredential $using:DomainCredential}
-#& (Join-Path -Path $PSScriptRoot -ChildPath "\Exchange\Migrate-Exchange.ps1 $DomainCredential")
+Invoke-Command -Session $AzureStackSession -ScriptBlock {New-AzureStackTenantDeployment -VMName $using:ExchName -IPAddress $using:ExchDestIP -DomainCredential $using:DomainCredential}
+& (Join-Path -Path $PSScriptRoot -ChildPath "\Exchange\Migrate-Exchange.ps1 $DomainCredential")
 
 #-----------------------------------------------------------[Tests]-----------------------------------------------------------------
 Invoke-Command -Session $AzureStackSession -ScriptBlock {New-AzureStackTenantDeployment -VMName "TEST" -IPAddress "192.168.59.14/24" -DomainCredential $using:DomainCredential}
