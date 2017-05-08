@@ -35,7 +35,7 @@
       $Password = ConvertTo-SecureString $Password -AsPlainText -Force
       
       Import-ExchangeCertificate -FileName Z:\Cert\exchcert.pfx -PrivateKeyExportable $true -Password $Password -Server $ComputerName | `
-      Exchange-Certificate -Services POP,IMAP,IIS,SMTP -DoNotRequireSsl
+      Enable-ExchangeCertificate -Services POP,IMAP,SMTP,IIS -DoNotRequireSsl
       
       #Now starting with setting up Exchange Virtual Directory URLs, using http:// because it is a test enviroment
       
