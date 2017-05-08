@@ -1,16 +1,13 @@
 ﻿Param(
     $DomainName,
-    $DomainCredential
+    $Username,
+    $Password
 )
 
-$Policy = Get-ExecutionPolicy
+Set-ExecutionPolicy Unrestricted
 
-if($Policy -ne "Unrestricted"){
-    Set-ExecutionPolicy Unrestricted
-}
+$SecureString = ConvertTo-SecureString $Password -AsPlainText -Force
 
-$Domain = (Get-WmiObject Win32_ComputerSystem).Domain
+$Credential = New-Object System.Management.Automation.PSCredential($Username,$SecureString)
 
-if($Domain -ne $DomainName){
-    Add-Computer -DomainName amstel.local -Credential $DomainCredential
-}
+Add-Computer -DomainName $DomainName -Credential $Credential

@@ -25,9 +25,11 @@ $EnvironmentName = $SMAConfig.Global.environmentname
 
 Function New-AzureStackTenantDeployment {
     Param(
+        [Parameter(Mandatory=$true)]
         [String]$ResourceGroupName = "service-migration-azure",
         [Parameter(Mandatory=$true)]
         [String]$VMName,
+        [Parameter(Mandatory=$true)]
         [String]$IPAddress,
         $DomainName = "amstel.local",
         $DomainCredential,
@@ -131,18 +133,16 @@ Function New-AzureStackVnet{
         $vpn | Out-String >> .\debug.txt
 
         if (!$vpn){
+            Log-Write -LogPath $sLogFile -LineValue "Starting VPN infrastucture deployment."
             $VPNSubnet = Get-AzureRmVirtualNetworkSubnetConfig -Name "GatewaySubnet" -VirtualNetwork $vnet
 
             Log-Write -LogPath $sLogFile -LineValue "Provisioning public ip."
-
             $pip = New-AzureRmPublicIpAddress -ResourceGroupName $ResourceGroupName -AllocationMethod Dynamic -Name "VPNGatewayIP" -Location $Location
 
             Log-Write -LogPath $sLogFile -LineValue "Creating the VPN gateway ipconfig."
-
             $VPNIpconfig = New-AzureRmVirtualNetworkGatewayIpConfig -Name "$($EnvironmentName)-VPN-CFG" -PublicIpAddress $pip -Subnet $VPNSubnet 
             
-            Log-Write -LogPath $sLogFile -LineValue "Creating the VPN gateway." 
-                 
+            Log-Write -LogPath $sLogFile -LineValue "Creating the VPN gateway."                 
             $VirtualGateway = New-AzureRmVirtualNetworkGateway -Name "$($EnvironmentName)-VPN" `
             -ResourceGroupName $ResourceGroupName `
             -Location $Location `
@@ -158,6 +158,7 @@ Function New-AzureStackVnet{
             -GatewayIpAddress $LocalEndpoint `
             -AddressPrefix $LocalNetwork
 
+            Log-Write -LogPath $sLogFile -LineValue "Creating local-virtual gateway connection."
             $Connection = New-AzureRmVirtualNetworkGatewayConnection -Name "IPsec-Connection" `
             -ResourceGroupName $ResourceGroupName -Location $Location `
             -VirtualNetworkGateway1 $VirtualGateway `
@@ -268,12 +269,14 @@ Function New-AzureStackWindowsVM {
         }
 
         Try {
+            $Username = "amstel\administrator"
+            $Password = Read-host -Prompt "Enter password, i swear its secure:"
             Set-AzureRmVMCustomScriptExtension -ResourceGroupName $ResourceGroup `
             -VMName $VMName `
             -Location $Location `
             -FileUri "https://raw.githubusercontent.com/ebc92/service-migration-azure/develop/Support/Set-DomainPolicy.ps1" `
             -Run 'Set-DomainPolicy.ps1' `
-            -Argument "$($DomainName) $($DomainCredential)" `
+            -Argument "$($DomainName) $($Username) $($Password)" `
             -Name DomainPolicyExtension `
             -ErrorAction Stop | Update-AzureVM
             Log-Write -LogPath $sLogFile -LineValue "Successfully added DomainPolicy ScriptExtension to the provisioned VM."
