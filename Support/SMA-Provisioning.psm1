@@ -289,6 +289,7 @@ Function New-AzureStackWindowsVM {
 
         do {
             $Extension = Get-AzureRmVMCustomScriptExtension -ResourceGroupName $ResourceGroupName -VMName $VMName -Name "DomainPolicyExtension"
+            Log-Write -LogPath $sLogFile -LineValue "ScriptExtension provisioning state is $($Extension.ProvisioningState)"
             Log-Write -LogPath $sLogFile -LineValue "Sleeping for 60 seconds while waiting for scriptextension..."
             Start-Sleep -Seconds 60
         } while ($Extension.ProvisioningState -ne "Succeeded")
@@ -305,7 +306,7 @@ Function New-AzureStackWindowsVM {
                 $NoConnectivity = $false}
             } catch {
                 $RetryTime = 30
-                og-Write -LogPath $sLogFile -LineValue "Cannot establish PowerShell connectivity to the VM. Retrying in $RetryTime seconds."
+                Log-Write -LogPath $sLogFile -LineValue "Cannot establish PowerShell connectivity to the VM. Retrying in $RetryTime seconds."
                 start-sleep -s $RetryTime
             }
         } while ($NoConnectivity)
