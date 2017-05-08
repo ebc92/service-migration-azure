@@ -15,3 +15,5 @@ Add-Computer -DomainName $DomainName -Credential $Credential
 Enable-PSRemoting -Force
 
 Set-Item wsman::localhost\Client\TrustedHosts -Value "*"
+
+Restart-Computer localhost -Force

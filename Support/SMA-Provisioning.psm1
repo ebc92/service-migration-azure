@@ -14,8 +14,9 @@ $IpCalc = Join-Path -Path $SMARoot -ChildPath "Libraries\ipcalculator.ps1"
 #----------------------------------------------------------[Declarations]----------------------------------------------------------
 
 $sScriptVersion = "1.0"
+$xLogDate = (Get-Date -Format dd_M_yyyy_HHmm).ToString()
 $sLogPath = $SMAConfig.Global.logpath
-$sLogName = "SMA-VMprovisioning-$($xLogDate = (Get-Date -Format dd_M_yyyy_HHmm).ToString()).log"
+$sLogName = "SMA-VMprovisioning-$($xLogDate).log"
 $sLogFile = Join-Path -Path $sLogPath -ChildPath $sLogName
 
 $LocalEndpoint = $SMAConfig.Global.localendpoint
@@ -270,7 +271,7 @@ Function New-AzureStackWindowsVM {
         }
 
         Try {
-            Log-Write -LogPath $sLogFile -LineValue "Setting the DomainPolicy script extension.."
+            Log-Write -LogPath $sLogFile -LineValue "Setting the DomainPolicy script extension..."
             Set-AzureRmVMCustomScriptExtension -ResourceGroupName $ResourceGroup `
             -VMName $VMName `
             -Location $Location `
@@ -285,12 +286,26 @@ Function New-AzureStackWindowsVM {
             Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $False
         }
 
-        $Extension = Get-AzureRmVMCustomScriptExtension -ResourceGroupName $ResourceGroupName -VMName $VMName -Name "DomainPolicyExtension"
-
         do {
-            Log-Write -LogPath $sLogFile -LineValue "Waiting for ScriptExtension provisioning."
+            $Extension = Get-AzureRmVMCustomScriptExtension -ResourceGroupName $ResourceGroupName -VMName $VMName -Name "DomainPolicyExtension"
+            Log-Write -LogPath $sLogFile -LineValue "Sleeping for 60 seconds while waiting for scriptextension..."
             Start-Sleep -Seconds 60
         } while ($Extension.ProvisioningState -ne "Transitioning")
+
+        $NoConnectivity = $true
+        do {
+            try {
+                Log-Write -LogPath $sLogFile -LineValue "Trying connection to $ComputerName..."
+                if ($s = New-PSSession -ComputerName $ComputerName -Credential (New-Object System.Management.Automation.PSCredential($Username,$Password)) -ErrorAction Stop){
+                Log-Write -LogPath $sLogFile -LineValue "VM successfully restarted after applying ScriptExtension." 
+                Remove-PSSession $s
+                $NoConnectivity = $false}
+            } catch {
+                $RetryTime = 30
+                Write-Output "Cannot establish PowerShell connectivity to the VM. Retrying in $RetryTime seconds."
+                start-sleep -s $RetryTime
+            }
+        } while ($NoConnectivity)
 
         return $VMNic.PrivateIPAddress
     
