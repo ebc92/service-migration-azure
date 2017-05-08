@@ -13,9 +13,9 @@ $IpCalc = Join-Path -Path $SMARoot -ChildPath "Libraries\ipcalculator.ps1"
 
 #----------------------------------------------------------[Declarations]----------------------------------------------------------
 
-$sScriptVersion = "1"
-$sLogPath = "C:\Logs"
-$sLogName = "resource-provisioning.log"
+$sScriptVersion = "1.0"
+$sLogPath = $SMAConfig.Global.logpath
+$sLogName = "SMA-VMprovisioning-$($xLogDate = (Get-Date -Format dd_M_yyyy_HHmm).ToString()).log"
 $sLogFile = Join-Path -Path $sLogPath -ChildPath $sLogName
 
 $LocalEndpoint = $SMAConfig.Global.localendpoint
@@ -226,8 +226,9 @@ Function New-AzureStackWindowsVM {
   
   Process{
     Try{
-        Log-Write -LogPath $sLogFile -LineValue "Getting nic info from new-aswvm."
-        Log-Write -LogPath $sLogFile -LineValue $VMNic.IpConfigurationsText
+        $Username = Read-host -Prompt "Enter domain admin user"
+        $Password = Read-host -Prompt "Enter password, i swear its secure"
+
         # Get the VM Image Offer
         $offer = Get-AzureRmVMImageOffer -Location $Location -PublisherName MicrosoftWindowsServer
         Log-Write -LogPath $sLogFile -LineValue "Retrieved the Windows Server VM Image Offer."
@@ -269,8 +270,7 @@ Function New-AzureStackWindowsVM {
         }
 
         Try {
-            $Username = "amstel\administrator"
-            $Password = Read-host -Prompt "Enter password, i swear its secure:"
+            Log-Write -LogPath $sLogFile -LineValue "Setting the DomainPolicy script extension.."
             Set-AzureRmVMCustomScriptExtension -ResourceGroupName $ResourceGroup `
             -VMName $VMName `
             -Location $Location `
@@ -278,7 +278,7 @@ Function New-AzureStackWindowsVM {
             -Run 'Set-DomainPolicy.ps1' `
             -Argument "$($DomainName) $($Username) $($Password)" `
             -Name DomainPolicyExtension `
-            -ErrorAction Stop | Update-AzureVM
+            -ErrorAction Stop
             Log-Write -LogPath $sLogFile -LineValue "Successfully added DomainPolicy ScriptExtension to the provisioned VM."
         } Catch {
             Log-Write -LogPath $sLogFile -LineValue "Could not add TrustedHost DomainPolicy to the provisioned VM."
@@ -294,9 +294,19 @@ Function New-AzureStackWindowsVM {
   
   End{
     If($?){
-      Log-Write -LogPath $sLogFile -LineValue "Successfully created the VM:"
-      Log-Write -LogPath $sLogFile -LineValue "VM Name: $($VMName) `nResource Group: $($ResourceGroup) `nVM Size: $($VMSize) `nIP Address: $($VMNic.PrivateIPAddress) `nStorage account: $($StorageAccountName) "
-      Log-Write -LogPath $sLogFile -LineValue "VM provisioning completed successfully."
+
+      $output = @("Successfully created the VM:",
+        "VM Name: $($VMName)",
+        "Resource Group: $($ResourceGroup)", 
+        "VM Size: $($VMSize)",
+        "IP Address: $($VMNic.IpConfigurations.PrivateIPAddress)",
+        "VM provisioning script end."
+      )
+
+      $output | % {
+        Log-Write -LogPath $sLogFile -LineValue $_
+      }
+
     }
   }
 }
