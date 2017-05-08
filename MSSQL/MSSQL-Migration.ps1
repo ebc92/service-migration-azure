@@ -1,12 +1,14 @@
 ﻿#Getting migration variables from configuration file
-$AzureStack = $SMAConfig.Global.Get_Item('azurestack')
-$Source = $SMAConfig.MSSQL.Get_Item('source')
-$Destination = $SMAConfig.MSSQL.Get_Item('destination')
-$Instance = $SMAConfig.MSSQL.Get_Item('instance')
-$ComputerName = $SMAConfig.MSSQL.Get_Item('hostname')
-$PackagePath = Join-Path -Path $SMAConfig.Global.Get_Item('fileshare') -ChildPath $SMAConfig.MSSQL.Get_Item('packagepath')
+$Source = $SMAConfig.MSSQL.source
+$Destination = $SMAConfig.MSSQL.destination
+$Instance = $SMAConfig.MSSQL.instance
+$ComputerName = $SMAConfig.MSSQL.hostname
+$PackagePath = Join-Path -Path $SMAConfig.Global.fileshare -ChildPath $SMAConfig.MSSQL.packagepath
 
-$LogPath = $SMAConfig.Global.Get_Item('logpath')
+$sLogPath = $SMAConfig.Global.logpath
+$xLogDate = (Get-Date -Format dd_M_yyyy_HHmm).ToString()
+$sLogName = "SMA-MSSQL-$($xLogDate).log"
+$sLogFile = Join-Path -Path $sLogPath -ChildPath $sLogName
 
 #Todo: retrieve creds & concatenate source to trustedhost
 $Credential = $DomainCredential
@@ -14,7 +16,7 @@ $SqlCredential
 
 #Install SMA
 $SMARoot = Resolve-Path -Path (Join-Path -Path $PSScriptRoot -ChildPath "..\")
-#Invoke-Command -ComputerName $Source -FilePath (Join-Path $SMARoot -ChildPath ".\Support\Install-SMModule.ps1") -Credential $Credential
+Invoke-Command -ComputerName $Source -FilePath (Join-Path $SMARoot -ChildPath ".\Support\Install-SMModule.ps1") -Credential $Credential
 
 $ScriptBlock = {
     $sLogFile = $using:LogPath
@@ -35,12 +37,12 @@ $ScriptBlock = {
 }
 
     Import-Module (Join-Path -Path $SMARoot -ChildPath "MSSQL\MSSQL-Migration.psm1") -Force
-    Start-MSSQLInstallConfig -PackagePath $using:PackagePath -Credential $using:Credential
+    Start-MSSQLInstallConfig -PackagePath $using:PackagePath -Credential $using:DomainCredential
 }
 
-#Invoke-Command -ComputerName $Source -ScriptBlock $ScriptBlock -Credential $Credential
+Invoke-Command -ComputerName $Source -ScriptBlock $ScriptBlock -Credential $DomainCredential
 
-#New-AzureStackTenantDeployment -VMName $ComputerName -IPAddress "192.168.59.114/24" -Credential $Credential
+<#
 
 $cd = @{
     AllNodes = @(
@@ -53,22 +55,26 @@ $cd = @{
 }
 
 Try {
-    Log-Write -LogPath $LogPath -LineValue "Generating MOF-file from DSC script."
+    Log-Write -LogPath $sLogFile -LineValue "Generating MOF-file from DSC script."
     DesiredStateSQL -ConfigurationData $cd -PackagePath $PackagePath -DomainCredential $DomainCredential
     # ^add aDomainName, interfacealias, DNS
-    Log-Write -LogPath $LogPath -LineValue "Starting DSC configuration."
+    Log-Write -LogPath $sLogFile -LineValue "Starting DSC configuration."
     Start-DscConfiguration -ComputerName $Destination -Path .\DesiredStateSQL -Verbose -Wait -Force -Credential $Credential -ErrorAction Stop
-    Log-Write -LogPath $LogPath -LineValue "DSC configuration was succcessfully pushed."
+    Log-Write -LogPath $sLogFile -LineValue "DSC configuration was succcessfully pushed."
 
 } Catch {
-    Log-Write -LogPath $LogPath -LineValue "An error occured when pushing the DSC configuration."
-    Log-Error -LogPath $LogPath -ErrorDesc $_.Exception -ExitGracefully $False
+    Log-Write -LogPath $sLogFile -LineValue "An error occured when pushing the DSC configuration."
+    Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $False
 }
 
 
 
-<#
+
 Try {
+    [System.Reflection.Assembly]::LoadWithPartialName("Microsoft.SqlServer.ConnectionInfo") 
+    [System.Reflection.Assembly]::LoadWithPartialName("Microsoft.SqlServer.SMO")
+    [System.Reflection.Assembly]::LoadWithPartialName("Microsoft.SqlServer.SmoExtended") 
+
     Start-MSSQLMigration -Source $Source -Destination $Destination -InstanceName $Instance -Credential $Credential -SqlCredential $SqlCredential -Share $PackagePath
 
 } Catch {

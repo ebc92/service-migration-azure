@@ -297,10 +297,12 @@ Function New-AzureStackWindowsVM {
         Restart-AzureRmVm -ResourceGroupName $ResourceGroupName -Name $VMName
 
         $NoConnectivity = $true
+        $RemotingCredential = New-Object System.Management.Automation.PSCredential($Username,$Password)
+        Get-AzureRmPublicIpAddress | % {if($_.Id -eq $nic.IpConfigurations.PublicIpAddress.Id){$PublicIP = $_}}
         do {
             try {
                 Log-Write -LogPath $sLogFile -LineValue "Trying connection to $($VMName)..."
-                if ($s = New-PSSession -ComputerName $VMNic.IpConfigurations.PrivateIPAddress -Credential (New-Object System.Management.Automation.PSCredential($Username,$Password)) -ErrorAction Stop){
+                if ($s = New-PSSession -ComputerName $PublicIP -Credential $RemotingCredential -ErrorAction Stop){
                 Log-Write -LogPath $sLogFile -LineValue "VM successfully restarted after applying ScriptExtension." 
                 Remove-PSSession $s
                 $NoConnectivity = $false}
