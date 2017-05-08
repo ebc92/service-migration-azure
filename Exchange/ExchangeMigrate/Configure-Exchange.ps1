@@ -57,8 +57,8 @@
       Get-WebServicesVirtualDirectory -Server $newfqdn | Set-WebServicesVirtualDirectory -InternalUrl http://$hostname/EWS/Exchange.asmx `
       -ExternalUrl http://$hostname/EWS/Exchange.asmx
       
-      #Set ActiveSync URLs      Get-ActiveSyncVirtualDirectory –Server $newfqdn | Set-ActiveSyncVirtualDirectory `
-      -InternalUrl http://$hostname/Microsoft-Server-ActiveSync –ExternalUrl http://$hostname/Microsoft-Server-ActiveSync
+      #Set ActiveSync URLs      Get-ActiveSyncVirtualDirectory -Server $newfqdn | Set-ActiveSyncVirtualDirectory `
+      -InternalUrl http://$hostname/Microsoft-Server-ActiveSync -ExternalUrl http://$hostname/Microsoft-Server-ActiveSync
       
       #Set OAB URLs
       Get-OabVirtualDirectory -Server $newfqdn | Set-OabVirtualDirectory -InternalUrl http://$hostname/OAB -ExternalUrl http://$hostname/OAB
