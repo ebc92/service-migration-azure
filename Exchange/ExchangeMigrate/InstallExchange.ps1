@@ -39,6 +39,7 @@ Configuration InstallExchange
   
     WindowsFeature NetFW45
     {
+      DependsOn = '[xPendingReboot]BeforeServerRoles'
       Ensure = 'Present'
       Name = 'NET-Framework-45-Features'
     }
@@ -46,8 +47,7 @@ Configuration InstallExchange
     WindowsFeature RPCProxy
     {
       Ensure = 'Present'
-      Name = 'RPC-over-HTTP-proxy'
-      DependsOn = '[xPendingReboot]BeforeServerRoles'
+      Name = 'RPC-over-HTTP-proxy'      
     }
         
     WindowsFeature RSATClus
