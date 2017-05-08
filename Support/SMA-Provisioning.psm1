@@ -291,7 +291,7 @@ Function New-AzureStackWindowsVM {
             $Extension = Get-AzureRmVMCustomScriptExtension -ResourceGroupName $ResourceGroupName -VMName $VMName -Name "DomainPolicyExtension"
             Log-Write -LogPath $sLogFile -LineValue "Sleeping for 60 seconds while waiting for scriptextension..."
             Start-Sleep -Seconds 60
-        } while ($Extension.ProvisioningState -ne "Succeeded" -or "Failed")
+        } while (($Extension.ProvisioningState -ne "Succeeded") -or ($Extension.ProvisioningState -ne "Failed"))
 
         Restart-AzureRmVm -ResourceGroupName $ResourceGroupName -Name $VMName
 
