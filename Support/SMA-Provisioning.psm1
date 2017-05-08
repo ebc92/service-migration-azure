@@ -265,6 +265,7 @@ Function New-AzureStackWindowsVM {
         Add-AzureRmVMNetworkInterface -Id $VMNic.Id
 
         Try {
+            Log-Write -LogPath $sLogFile -LineValue "Creating the virtual machine..."
             New-AzureRmVM -ResourceGroupName $ResourceGroup -Location $Location -VM $vmConfig -Verbose
         } Catch {
             Log-Write -LogPath $sLogFile -LineValue "Could not create VM with the specified configuration."
