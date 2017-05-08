@@ -291,21 +291,21 @@ Function New-AzureStackWindowsVM {
             $Extension = Get-AzureRmVMCustomScriptExtension -ResourceGroupName $ResourceGroupName -VMName $VMName -Name "DomainPolicyExtension"
             Log-Write -LogPath $sLogFile -LineValue "Sleeping for 60 seconds while waiting for scriptextension..."
             Start-Sleep -Seconds 60
-        } while ($Extension.ProvisioningState -ne "Transitioning")
+        } while ($Extension.ProvisioningState -ne "Succeeded" -or "Failed")
 
         Restart-AzureRmVm -ResourceGroupName $ResourceGroupName -Name $VMName
 
         $NoConnectivity = $true
         do {
             try {
-                Log-Write -LogPath $sLogFile -LineValue "Trying connection to $ComputerName..."
-                if ($s = New-PSSession -ComputerName $ComputerName -Credential (New-Object System.Management.Automation.PSCredential($Username,$Password)) -ErrorAction Stop){
+                Log-Write -LogPath $sLogFile -LineValue "Trying connection to $($VMName)..."
+                if ($s = New-PSSession -ComputerName $VMNic.IpConfigurations.PrivateIPAddress -Credential (New-Object System.Management.Automation.PSCredential($Username,$Password)) -ErrorAction Stop){
                 Log-Write -LogPath $sLogFile -LineValue "VM successfully restarted after applying ScriptExtension." 
                 Remove-PSSession $s
                 $NoConnectivity = $false}
             } catch {
                 $RetryTime = 30
-                Write-Output "Cannot establish PowerShell connectivity to the VM. Retrying in $RetryTime seconds."
+                og-Write -LogPath $sLogFile -LineValue "Cannot establish PowerShell connectivity to the VM. Retrying in $RetryTime seconds."
                 start-sleep -s $RetryTime
             }
         } while ($NoConnectivity)
