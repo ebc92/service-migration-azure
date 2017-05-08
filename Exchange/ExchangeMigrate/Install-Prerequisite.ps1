@@ -6,7 +6,9 @@
     [parameter(Mandatory=$true)]
     [string]$ComputerName,
     [parameter(Mandatory=$true)]
-    [PSCredential]$DomainCredential
+    [PSCredential]$DomainCredential,
+    [parameter(Mandatory=$true)]
+    [securestring]$CertPW
   )
   
   Begin{
@@ -25,7 +27,8 @@
       $CertExportPath = "C:\Cert\dsccert.cer"
       $ExchangeBinary = (Get-WmiObject win32_volume | Where-Object -Property Label -eq "EXCHANGESERVER2016-X64-CU5").Name
       
-      
+      Log-Write -LogPath $xLogFile -LineValue "Testing if the certificate path exists"
+      Write-Verbose -Message "Testing if the certificate path exists"
       Invoke-Command -Session $InstallSession -ScriptBlock {      
         #Check to see if certificate directory exists, and creates it if not
         $VerifyCertPath = (Test-Path -Path "C:\Cert\")
@@ -35,6 +38,8 @@
         }
       }
       
+      Log-Write -LogPath $xLogFile -LineValue "Getting the certificate thumb"
+      Write-Verbose -Message "Getting the certificate thumb"
       $CertThumb = Invoke-Command -Session $InstallSession -ScriptBlock { 
         Write-Verbose -Message "Getting Certificate Thumbprint"
         #Get Certificate thumbprint
@@ -42,7 +47,8 @@
         $CertThumb
       }
 
-      $CertThumb
+      Log-Write -LogPath $xLogFile -LineValue "Exporting the certificate to the file share. Thumb = $CertThumb"
+      Write-Verbose -Message "Exporting the certificate to the file share. Thumb = $CertThumb"
       Invoke-Command -Session $InstallSession -ScriptBlock {
         $VerbosePreference = 'Continue'
         #Exporting Certificate            
@@ -78,26 +84,30 @@
         }
       }
       
-      
+      Log-Write -LogPath $xLogFile -LineValue "Importing PFX certificate"
       Write-Verbose -Message "Importing PFX certificate"
       Import-PfxCertificate -FilePath "$baseDir\Cert\cert.pfx" -CertStoreLocation Cert:\LocalMachine\My\ -Password $CertPW -Verbose
       #$CertLocalExport = (Get-ChildItem -Path "Cert:\LocalMachine\My\$CertThumb")
       
-      $ComputerName
-      $CertThumb
+      Log-Write -LogPath $xLogFile -LineValue "Running DSC configuration on $ComputerName"
+      Log-Write -LogPath $xLogFile -LineValue "With Thumb = $CertThumb"
+      Write-Verbose -Message "Running DSC configuration on $ComputerName"
+      Write-Verbose -Message "CertThumb = $CertThumb"
       
       $CertPath = Join-Path -Path Cert:\LocalMachine\My -ChildPath $CertThumb
-      $CertPath
+      
+      Log-Write -LogPath $xLogFile -LineValue "$CertPath is the target certificate"
+      Write-Verbose -Message "$CertPath is the target certificate"
       Export-Certificate -Cert $CertPath -FilePath $CertExportPath -Type CERT -Verbose
 
       #Install modules
+      Log-Write -LogPath $xLogFile -LineValue "Installing xExchange and xPending DSC modules"
+      Write-Verbose -Message "Installing xExchange and xPending DSC modules"
       Install-Module -Name xExchange, xPendingReboot -Force -Verbose
       
       $DSC = Resolve-Path -Path $PSScriptRoot\InstallExchange.ps1
       . $DSC
       
-      $CertThumb
-      $ComputerName
       #Configuration data for DSC
       $ConfigData=@{
         AllNodes = @(
@@ -114,7 +124,10 @@
         )
       }
       
-      Start-Transcript -Path ( Join-Path -Path $sLogPath -ChildPath dsclog-$logDate.txt )
+      Log-Write -LogPath $xLogFile -LineValue "Starting DSC"
+      Write-Verbose -Message "Starting DSC"
+      
+      Start-Transcript -Path ( Join-Path -Path $xLogPath -ChildPath dsclog-$xlogDate.txt )
       $ExchangeBinary = Get-Content -Path ( Join-Path $baseDir -ChildPath Executables\ExchangeBinary.txt )
       "$ExchangeBinary before compiling DSC script"
                   
