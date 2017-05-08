@@ -157,10 +157,10 @@
       #Pushes DSC script to target
       Start-DscConfiguration -Path $PSScriptRoot\InstallExchange -Force -Verbose -Wait
       
-      & Join-Path -Path $PSScriptRoot -ChildPath ..\Support\Start-RebookCheck.ps1" $ComputerName $DomainCredential"
+      & Join-Path -Path $PSScriptRoot -ChildPath ..\Support\Start-RebootCheck.ps1" $ComputerName $DomainCredential"
       
       Do {
-        Write-Verbose -Message "Sleeping for 1 minute, then checking if LCM is done cofiguring"
+        Write-Verbose -Message "Sleeping for 1 minute, then checking if LCM is done configuring"
         Start-Sleep -Seconds 60
         $DSCDone = Invoke-Command -Session $InstallSession -ScriptBlock {
           Get-DscLocalConfigurationManager
