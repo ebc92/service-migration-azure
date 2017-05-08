@@ -103,7 +103,7 @@ $Authenticator = Join-Path -Path $PSScriptRoot -ChildPath "\Support\Remote-ARM\S
 #Invoke-Command -Session $AzureStackSession -ScriptBlock {New-AzureStackTenantDeployment -VMName "TEST2" -IPAddress "192.168.59.14/24" -DomainCredential $DomainCredential}
 
 #-----------------------------------------------------------[SQL Server]---------------------------------------------------------------
-$Name = "$($environmentname)-$($SMAConfig.MSSQL.Get_Item('hostname'))"
+$Name = "$($environmentname)-$($SMAConfig.MSSQL.hostname)"
 $Destination = $SMAConfig.MSSQL.destination + $CIDR
 
 #Invoke-Command -Session $AzureStackSession -ScriptBlock {New-AzureStackTenantDeployment -VMName $using:Name -IPAddress $Destination -DomainCredential $using:DomainCredential}
