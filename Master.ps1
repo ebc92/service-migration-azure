@@ -106,7 +106,7 @@ $Authenticator = Join-Path -Path $PSScriptRoot -ChildPath "\Support\Remote-ARM\S
 $Name = "$($environmentname)-$($SMAConfig.MSSQL.hostname)"
 $Destination = $SMAConfig.MSSQL.destination + $CIDR
 
-#Invoke-Command -Session $AzureStackSession -ScriptBlock {New-AzureStackTenantDeployment -VMName $using:Name -IPAddress $Destination -DomainCredential $using:DomainCredential}
+Invoke-Command -Session $AzureStackSession -ScriptBlock {New-AzureStackTenantDeployment -VMName $using:Name -IPAddress $using:Destination -DomainCredential $using:DomainCredential}
 #& (Join-Path -Path $PSScriptRoot -ChildPath "\MSSQL\MSSQL-Migration.ps1")
 
 #-----------------------------------------------------------[File and sharing]---------------------------------------------------------
@@ -120,5 +120,5 @@ $ExchName = "$($environmentname)-$($SMAConfig.Exchange.hostname)"
 #& (Join-Path -Path $PSScriptRoot -ChildPath "\Exchange\Migrate-Exchange.ps1 $DomainCredential")
 
 #-----------------------------------------------------------[Tests]-----------------------------------------------------------------
-Invoke-Command -Session $AzureStackSession -ScriptBlock {New-AzureStackTenantDeployment -VMName "TEST" -IPAddress "192.168.59.14/24" -DomainCredential $using:DomainCredential}
+#Invoke-Command -Session $AzureStackSession -ScriptBlock {New-AzureStackTenantDeployment -VMName "TEST" -IPAddress "192.168.59.14/24" -DomainCredential $using:DomainCredential}
 Log-Finish -LogPath $sLogFile -NoExit $true

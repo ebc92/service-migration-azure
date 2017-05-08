@@ -285,6 +285,13 @@ Function New-AzureStackWindowsVM {
             Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $False
         }
 
+        $Extension = Get-AzureRmVMCustomScriptExtension -ResourceGroupName $ResourceGroupName -VMName $VMName -Name "DomainPolicyExtension"
+
+        do {
+            Log-Write -LogPath $sLogFile -LineValue "Waiting for ScriptExtension provisioning."
+            Start-Sleep -Seconds 60
+        } while ($Extension.ProvisioningState -ne "Transitioning")
+
         return $VMNic.PrivateIPAddress
     
     } Catch {
