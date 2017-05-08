@@ -19,7 +19,7 @@ $SMARoot = Resolve-Path -Path (Join-Path -Path $PSScriptRoot -ChildPath "..\")
 Invoke-Command -ComputerName $Source -FilePath (Join-Path $SMARoot -ChildPath ".\Support\Install-SMModule.ps1") -Credential $Credential
 
 $ScriptBlock = {
-    $sLogFile = $using:LogPath
+    $sLogFile = $using:sLogFile
     $SMARoot = "C:\service-migration-azure"
 
 
@@ -35,7 +35,7 @@ $ScriptBlock = {
         Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception
     }
 }
-
+    Log-Start -LogPath $sLogPath -LogName $sLogName -ScriptVersion "1.0"
     Import-Module (Join-Path -Path $SMARoot -ChildPath "MSSQL\MSSQL-Migration.psm1") -Force
     Start-MSSQLInstallConfig -PackagePath $using:PackagePath -Credential $using:DomainCredential
 }

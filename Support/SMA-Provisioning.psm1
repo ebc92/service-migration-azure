@@ -26,7 +26,6 @@ $EnvironmentName = $SMAConfig.Global.environmentname
 
 Function New-AzureStackTenantDeployment {
     Param(
-        [Parameter(Mandatory=$true)]
         [String]$ResourceGroupName = "service-migration-azure",
         [Parameter(Mandatory=$true)]
         [String]$VMName,
