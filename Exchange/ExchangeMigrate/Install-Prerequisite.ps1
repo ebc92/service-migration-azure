@@ -22,7 +22,7 @@
     Try{
       $InstallSession = New-PSSession -ComputerName $ComputerName -Credential $DomainCredential
       
-      $CertPW = Read-Host -Prompt "Please input a password for the certificate: " -AsSecureString
+      #$CertPW = Read-Host -Prompt "Please input a password for the certificate: " -AsSecureString
       $Domain = "Amstel"
       $CertExportPath = "C:\Cert\dsccert.cer"
       $ExchangeBinary = (Get-WmiObject win32_volume | Where-Object -Property Label -eq "EXCHANGESERVER2016-X64-CU5").Name
@@ -51,6 +51,9 @@
       Write-Verbose -Message "Exporting the certificate to the file share. Thumb = $CertThumb"
       Invoke-Command -Session $InstallSession -ScriptBlock {
         $VerbosePreference = 'Continue'
+
+        New-PSDrive -Name "Z" -PSProvider FileSystem -Root $using:baseDir -Credential $using:DomainCredential  -ErrorAction SilentlyContinue -Verbose
+
         #Exporting Certificate            
         Write-Verbose -Message "Exporting cert to $using:CertExportPath"
               
@@ -60,11 +63,18 @@
         Export-Certificate -Cert $CertExport -FilePath $using:CertExportPath -Type CERT
         $CertExport | Export-PfxCertificate -FilePath Z:\Cert\cert.pfx -Password $using:CertPW
         
-        #Move Exchange install files
-        New-Item -ItemType Directory -Path "C:\TempExchange" -ErrorAction Ignore
-        Write-Verbose -Message "Moving Exchange ISO from share, to local storage"
-        Start-BitsTransfer -Source "Z:\Executables\EXCHANGESERVER2016-X64-CU5.iso" -Destination "C:\TempExchange\" -Credential $using:DomainCredential
-        Write-Verbose -Message "Exchange ISO successfully moved to C:\TempExchange\"
+        $isoexists = Test-Path -Path C:\TempExchange\EXCHANGESERVER2016-X64-CU5.iso
+
+        If (!($isoexists)) {
+            #Move Exchange install files
+            New-Item -ItemType Directory -Path "C:\TempExchange" -ErrorAction Ignore
+            Write-Verbose -Message "Moving Exchange ISO from share, to local storage"
+            Start-BitsTransfer -Source "Z:\Executables\EXCHANGESERVER2016-X64-CU5.iso" -Destination "C:\TempExchange\" -Credential $using:DomainCredential
+            Write-Verbose -Message "Exchange ISO successfully moved to C:\TempExchange\"
+        } else {
+            Write-Verbose -Message "C:\TempExchange\EXCHANGESERVER2016-X64-CU5.iso already exists, moving on"
+            Log-Write -LogPath $xLogFile -LineValue "C:\TempExchange\EXCHANGESERVER2016-X64-CU5.iso already exists, moving on"
+        }
       
 
         #Install modules
@@ -75,7 +85,7 @@
         $ucmatest = Test-Path -Path "C:\Program Files\Microsoft UCMA 4.0"
         
         if(!($ucmatest)) {
-          #InstallUCMA
+          #InstallUCMA          
           Write-Verbose -Message "Starting Install of UCMA"
           Start-Process -FilePath "Z:\Executables\UcmaRuntimeSetup.exe" -ArgumentList '/passive /norestart' -NoNewWindow -Wait -Verbose
           Write-Verbose -Message "UCMA Installed, starting DSC"
@@ -105,8 +115,9 @@
       Write-Verbose -Message "Installing xExchange and xPending DSC modules"
       Install-Module -Name xExchange, xPendingReboot -Force -Verbose
       
-      $DSC = Resolve-Path -Path $PSScriptRoot\InstallExchange.ps1
+      $DSC = (Join-Path -Path $PSScriptRoot -ChildPath InstallExchange.ps1)
       . $DSC
+      "$DSC"
       
       #Configuration data for DSC
       $ConfigData=@{
@@ -130,15 +141,18 @@
       Start-Transcript -Path ( Join-Path -Path $xLogPath -ChildPath dsclog-$xlogDate.txt )
       $ExchangeBinary = Get-Content -Path ( Join-Path $baseDir -ChildPath Executables\ExchangeBinary.txt )
       "$ExchangeBinary before compiling DSC script"
-                  
+      
+      Log-Write -LogPath $xLogFile -LineValue "Compiling DSC Script"            
       Write-Verbose -Message "Compiling DSC script"
       #Compiles DSC Script
       InstallExchange -ConfigurationData $ConfigData -DomainCredential $DomainCredential -ExchangeBinary $ExchangeBinary -Verbose
 
+      Log-Write -LogPath $xLogFile -LineValue "Setting up LCM on target computer"
       Write-Verbose -Message "Setting up LCM on target computer"
       #Sets up LCM on target comp
       Set-DscLocalConfigurationManager -Path $PSScriptRoot\InstallExchange -Force -Verbose
 
+      Log-Write -LogPath $xLogFile -LineValue "Pushing DSC script to target computer"
       Write-Verbose -Message "Pushing DSC script to target computer"
       #Pushes DSC script to target
       Start-DscConfiguration -Path $PSScriptRoot\InstallExchange -Force -Verbose -Wait

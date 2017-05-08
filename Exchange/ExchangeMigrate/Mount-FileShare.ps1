@@ -17,7 +17,7 @@
       Write-Verbose -Message "Mounting fileshare on $ComputerName"      
       Invoke-Command -ComputerName $ComputerName -Credential $DomainCredential -ScriptBlock { 
         Write-Verbose -Message "Mounting new PSDrive"
-        New-PSDrive -Name "Z" -PSProvider FileSystem -Root $using:baseDir -Persist -Credential $using:DomainCredential -ErrorAction SilentlyContinue -Verbose
+        New-PSDrive -Name "Z" -PSProvider FileSystem -Root $using:baseDir -Persist -Credential $using:DomainCredential -Scope Global -ErrorAction SilentlyContinue -Verbose
       }
     }
     Catch {

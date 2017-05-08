@@ -20,6 +20,7 @@
       
       Log-Write -LogPath $xLogFile -LineValue "Entering $InstallSession to mount Exchange Disk Image"      
       $ExchangeBinary = Invoke-Command -Session $InstallSession -ScriptBlock {
+        New-PSDrive -Name "Z" -PSProvider FileSystem -Root $using:baseDir -Persist -Credential $using:DomainCredential -Scope Global -ErrorAction SilentlyContinue -Verbose | Out-Null
         #Do while to make sure correct file is mounted
         $SourceFile = "Z:\executables"
         #Makes sure $ExchangeBinary variable is emtpy       

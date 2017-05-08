@@ -49,10 +49,10 @@ $functions | % {
     }
 }
 
-#$AzureLocalCredential = (Get-Credential -Message "Please insert your Local AzureStack Credentials")
-#$AzureTenantCredential = (Get-Credential -Message "Please insert your Azure Tenant Credentials")
-#$DomainCredential = (Get-Credential -Message "Please insert your domain administrator credentials")
-#$LocalCredential = (Get-Credential -Message "Please insert a password for the local administrator on the new VMs")
+$AzureLocalCredential = (Get-Credential -Message "Please insert your Local AzureStack Credentials" -UserName Azurestack\AzurestackAdmin)
+$AzureTenantCredential = (Get-Credential -Message "Please insert your Azure Tenant Credentials" -UserName administrator@amstelstack.onmicrosoft.com )
+$DomainCredential = (Get-Credential -Message "Please insert your domain administrator credentials" -UserName amstel\administrator)
+$LocalCredential = (Get-Credential -Message "Please insert a password for the local administrator on the new VMs" -UserName Administrator)
 
 #----------------------------------------------------------[Global Declarations]----------------------------------------------------------
 
@@ -74,7 +74,7 @@ $m = "Starting service migration execution.."
 Log-Write -LogPath $sLogFile -LineValue $m
 Write-Verbose $m
 
-$module = @("ADDC\ADDC-Migration.psm1", "MSSQL\MSSQL-Migration.psm1", "Support\SMA-Provisioning.psm1", "File-Share\FSS-Migration.psm1")
+$module = @("ADDC\ADDC-Migration.psm1", "MSSQL\MSSQL-Migration.psm1", "Support\SMA-Provisioning.psm1", "File-Share\FSS-Migration.psm1", "Exchange\ExchangeMigrate\loader.psm1")
 
 $module | % {
     Try {
@@ -107,7 +107,7 @@ $Authenticator = Join-Path -Path $PSScriptRoot -ChildPath "\Support\Remote-ARM\S
 $Name = "$($environmentname)-$($SMAConfig.MSSQL.hostname)"
 $Destination = $SMAConfig.MSSQL.destination + $CIDR
 
-Invoke-Command -Session $AzureStackSession -ScriptBlock {New-AzureStackTenantDeployment -VMName $using:Name -IPAddress $using:Destination -DomainCredential $using:DomainCredential}
+#Invoke-Command -Session $AzureStackSession -ScriptBlock {New-AzureStackTenantDeployment -VMName $using:Name -IPAddress $using:Destination -DomainCredential $using:DomainCredential}
 #& (Join-Path -Path $PSScriptRoot -ChildPath "\MSSQL\MSSQL-Migration.ps1")
 
 #-----------------------------------------------------------[File and sharing]---------------------------------------------------------
@@ -116,9 +116,10 @@ Invoke-Command -Session $AzureStackSession -ScriptBlock {New-AzureStackTenantDep
 
 #-----------------------------------------------------------[Exchange]-----------------------------------------------------------------
 $ExchName = "$($environmentname)-$($SMAConfig.Exchange.hostname)"
+$ExchNewIP = $SMAConfig.Exchange.newip + $CIDR
 
-#Invoke-Command -Session $AzureStackSession -ScriptBlock {New-AzureStackTenantDeployment -VMName $using:ExchName -IPAddress "192.168.59.116/24" -DomainCredential $using:DomainCredential}
-#& (Join-Path -Path $PSScriptRoot -ChildPath "\Exchange\Migrate-Exchange.ps1 $DomainCredential")
+#Invoke-Command -Session $AzureStackSession -ScriptBlock {New-AzureStackTenantDeployment -VMName $using:ExchName -IPAddress $using:ExchNewIP -DomainCredential $using:DomainCredential}
+& (Join-Path -Path $PSScriptRoot -ChildPath \Exchange\Migrate-Exchange.ps1) $DomainCredential
 
 #Close the azure stack session & log file
 Remove-PSSession $AzureStackSession

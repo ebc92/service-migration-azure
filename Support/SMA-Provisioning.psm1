@@ -227,7 +227,7 @@ Function New-AzureStackWindowsVM {
   Process{
     Try{
         $Username = Read-host -Prompt "Enter domain admin user"
-        $Password = Read-host -Prompt "Enter password, i swear its secure"
+        $Password = Read-host -Prompt "Enter password, i swear its secure" -AsSecureString
 
         # Get the VM Image Offer
         $offer = Get-AzureRmVMImageOffer -Location $Location -PublisherName MicrosoftWindowsServer

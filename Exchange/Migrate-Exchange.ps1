@@ -34,27 +34,27 @@ $global:xLogFile = Join-Path -Path $xLogPath -ChildPath $xLogName
 Log-Start -LogPath $xLogPath -LogName $xLogName -ScriptVersion "1.0"
 
 #Downloads all required files
-Get-Prerequisite -fileShare $fileshare -ComputerName $ComputerName -DomainCredential $DomainCredential
+Get-Prerequisite -fileShare $fileshare -ComputerName $ComputerName -DomainCredential $DomainCredential -Verbose
 
 #Mount fileshare on source VM
-Mount-FileShare $fileshare -DomainCredential $DomainCredential -ComputerName $ComputerName -baseDir $baseDir
+Mount-FileShare -DomainCredential $DomainCredential -ComputerName $SourceComputer -baseDir $baseDir -Verbose
 
 #Mount fileshare on target VM
-Mount-FileShare -DomainCredential $DomainCredential -ComputerName $ComputerName -baseDir $baseDir
+Mount-FileShare -DomainCredential $DomainCredential -ComputerName $ComputerName -baseDir $baseDir -Verbose
 
 #Mounts the Exchange ISO
-Mount-Exchange -FileShare $fileshare -ComputerName $ComputerName -baseDir $baseDir -DomainCredential $DomainCredential
+Mount-Exchange -FileShare $fileshare -ComputerName $ComputerName -baseDir $baseDir -DomainCredential $DomainCredential -Verbose
 
 #Creates a new certificate to encrypt .mof DSC files
-New-DSCCertificate -ComputerName $ComputerName -DomainCredential $DomainCredential
+New-DSCCertificate -ComputerName $ComputerName -DomainCredential $DomainCredential -Verbose
 
 #Compiles .mof files, installs UCMA and starts DSC
-Install-Prerequisite -baseDir $baseDir -ComputerName $ComputerName -DomainCredential $DomainCredential -CertPW $Password
+Install-Prerequisite -baseDir $baseDir -ComputerName $ComputerName -DomainCredential $DomainCredential -CertPW $Password -Verbose
 
 #Gets the Exchange Certificate and exports it
-Export-ExchCert -SourceComputer $SourceComputer -fqdn $fqdn -Password $Password -DomainCredential $DomainCredential
+Export-ExchCert -SourceComputer $SourceComputer -fqdn $fqdn -Password $Password -DomainCredential $DomainCredential -Verbose
 
 #Configures all Exchange settings
-Configure-Exchange -ComputerName $ComputerName -SourceComputer $SourceComputer -newfqdn $newfqdn -Password $Password -DomainCredential $DomainCredential -hostname $www
+Configure-Exchange -ComputerName $ComputerName -SourceComputer $SourceComputer -newfqdn $newfqdn -Password $Password -DomainCredential $DomainCredential -hostname $www -Verbose
 
 Log-Finish -LogPath $xLogFile -NoExit $true
