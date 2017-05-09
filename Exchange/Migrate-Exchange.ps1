@@ -65,14 +65,16 @@ Install-Prerequisite -baseDir $baseDir -ComputerName $ComputerName -DomainCreden
 
 #Check if target server needs a reboot before continuing
 & Join-Path -Path $PSScriptRoot -ChildPath ..\Support\Start-RebootCheck.ps1" $ComputerName $DomainCredential"
-      
+
+
+<#      
 Do {
   Write-Verbose -Message "Sleeping for 1 minute, then checking if LCM is done configuring"
   Start-Sleep -Seconds 60
   $DSCDone = Invoke-Command -Session $InstallSession -ScriptBlock {
     Get-DscLocalConfigurationManager
   }
-} while ($DSCDone.LCMState -ne "Idle")
+} while ($DSCDone.LCMState -ne "Idle") #>
 
 #Gets the Exchange Certificate and exports it
 Export-ExchCert -SourceComputer $SourceComputer -fqdn $fqdn -Password $Password -DomainCredential $DomainCredential -Verbose
