@@ -15,13 +15,23 @@
       
       Log-Write -LogPath $xLogFile -LineValue "Mounting fileshare on $ComputerName"
       Write-Verbose -Message "Mounting fileshare on $ComputerName"      
-      Invoke-Command -ComputerName $ComputerName -Credential $DomainCredential -ScriptBlock { 
+      Invoke-Command -Session $SourceInstall -ScriptBlock { 
+        Write-Verbose -Message "Mounting new PSDrive"
+        New-PSDrive -Name "Z" -PSProvider FileSystem -Root $using:baseDir -Persist -Credential $using:DomainCredential -Scope Global -ErrorAction SilentlyContinue -Verbose
+      }
+      
+      
+      Invoke-Command -Session $InstallSession -ScriptBlock { 
         Write-Verbose -Message "Mounting new PSDrive"
         New-PSDrive -Name "Z" -PSProvider FileSystem -Root $using:baseDir -Persist -Credential $using:DomainCredential -Scope Global -ErrorAction SilentlyContinue -Verbose
       }
     }
     Catch {
       Log-Error -LogPath $xLogFile -ErrorDesc $_.Exception -ExitGracefully $True
+      
+      #Removes active sessions in case of crash
+      $SourceInstall | Remove-PSSession
+      $InstallSession | Remove-PSSession
       Break
     }
   }

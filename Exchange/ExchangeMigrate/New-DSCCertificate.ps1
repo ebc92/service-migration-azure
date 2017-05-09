@@ -7,8 +7,6 @@
   
   Process{
     Try{
-      $InstallSession = New-PSSession -ComputerName $ComputerName -Credential $DomainCredential
-  
       Invoke-Command  -Session $InstallSession -ScriptBlock {
         [bool]$createcert = $false
         "$createcert as it is at start of running cert creation"
@@ -425,8 +423,6 @@
     If($?){
       Log-Write -LogPath $xLogFile -LineValue "Successfully created the certificate"
       Log-Write -LogPath $xLogFile -LineValue "-------------------- Function New-DSCCertificate Finished --------------------"
-      Write-Verbose -Message "Removing remote session $InstallSession"
-      $InstallSession | Remove-PSSession
       Write-Verbose -Message "Successfully created the certificate."
     }
   }

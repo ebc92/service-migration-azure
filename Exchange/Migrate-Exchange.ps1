@@ -31,6 +31,9 @@ $global:xLogPath = "$baseDir\log\"
 $xLogName = "SMA-Exchange-$xLogDate.log"
 $global:xLogFile = Join-Path -Path $xLogPath -ChildPath $xLogName
 
+$global:InstallSession = New-PSSession -ComputerName $ComputerName -Credential $DomainCredential
+$global:SourceInstall = New-PSSession -ComputerName $SourceComputer -Credential $DomainCredential
+
 Log-Start -LogPath $xLogPath -LogName $xLogName -ScriptVersion "1.0"
 
 #Downloads all required files
@@ -42,6 +45,7 @@ Mount-FileShare -DomainCredential $DomainCredential -ComputerName $SourceCompute
 #Mount fileshare on target VM
 Mount-FileShare -DomainCredential $DomainCredential -ComputerName $ComputerName -baseDir $baseDir -Verbose
 
+
 #Mounts the Exchange ISO
 Mount-Exchange -FileShare $fileshare -ComputerName $ComputerName -baseDir $baseDir -DomainCredential $DomainCredential -Verbose
 
@@ -51,10 +55,26 @@ New-DSCCertificate -ComputerName $ComputerName -DomainCredential $DomainCredenti
 #Compiles .mof files, installs UCMA and starts DSC
 Install-Prerequisite -baseDir $baseDir -ComputerName $ComputerName -DomainCredential $DomainCredential -CertPW $Password -Verbose
 
+
+#Check if target server needs a reboot before continuing
+& Join-Path -Path $PSScriptRoot -ChildPath ..\Support\Start-RebootCheck.ps1" $ComputerName $DomainCredential"
+      
+Do {
+  Write-Verbose -Message "Sleeping for 1 minute, then checking if LCM is done configuring"
+  Start-Sleep -Seconds 60
+  $DSCDone = Invoke-Command -Session $InstallSession -ScriptBlock {
+    Get-DscLocalConfigurationManager
+  }
+} while ($DSCDone.LCMState -ne "Idle")
+
 #Gets the Exchange Certificate and exports it
 Export-ExchCert -SourceComputer $SourceComputer -fqdn $fqdn -Password $Password -DomainCredential $DomainCredential -Verbose
 
+
 #Configures all Exchange settings
 Configure-Exchange -ComputerName $ComputerName -SourceComputer $SourceComputer -newfqdn $newfqdn -Password $Password -DomainCredential $DomainCredential -hostname $www -Verbose
+
+$SourceInstall | Remove-PSSession
+$InstallSession | Remove-PSSession
 
 Log-Finish -LogPath $xLogFile -NoExit $true

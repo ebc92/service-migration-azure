@@ -20,7 +20,6 @@
   
   Process{
     Try{
-      $InstallSession = New-PSSession -ComputerName $ComputerName -Credential $DomainCredential
       
       #Checking package provider list for NuGet
       $nuget = Invoke-Command -Session $InstallSession -ScriptBlock { 
@@ -99,7 +98,6 @@
       Log-Write -LogPath $xLogFile -LineValue "Got all prerequisites successfully."
       Log-Write -LogPath $xLogFile -LineValue "-------------------- Function Get-Prerequisite Finished --------------------"
       Write-Verbose -Message 'Got all prerequisites successfully.'
-      $InstallSession | Remove-PSSession
     }
   }
 }

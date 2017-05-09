@@ -11,9 +11,7 @@
   )
   
   Process{
-    Try{
-      $InstallSession = New-PSSession -ComputerName $ComputerName -Credential $DomainCredential
-  
+    Try{  
       $er = $ErrorActionPreference
       $ErrorActionPreference = "Continue"
       "$FileShare in local session supposed to be used for mounting image"
@@ -56,9 +54,7 @@
     If($?){
       Log-Write -LogPath $xLogFile -LineValue "Mounted ISO successfully."
       Log-Write -LogPath $xLogFile -LineValue "-------------------- Function Mount-Exchange Finished --------------------"
-      Write-Verbose -Message "Mounted ISO successfully."      
-      Write-Verbose -Message "Removing remote session $InstallSession"
-      $InstallSession | Remove-PSSession
+      Write-Verbose -Message "Mounted ISO successfully."
     }
   }
 }

@@ -20,8 +20,6 @@
   
   Process{
     Try{
-      $InstallSession = New-PSSession -ComputerName $ComputerName -Credential $DomainCredential
-      
       #$CertPW = Read-Host -Prompt "Please input a password for the certificate: " -AsSecureString
       $Domain = "Amstel"
       $CertExportPath = "C:\Cert\dsccert.cer"
@@ -51,9 +49,7 @@
       Write-Verbose -Message "Exporting the certificate to the file share. Thumb = $CertThumb"
       Invoke-Command -Session $InstallSession -ScriptBlock {
         $VerbosePreference = 'Continue'
-
-        New-PSDrive -Name "Z" -PSProvider FileSystem -Root $using:baseDir -Credential $using:DomainCredential  -ErrorAction SilentlyContinue -Verbose
-
+        
         #Exporting Certificate            
         Write-Verbose -Message "Exporting cert to $using:CertExportPath"
               
@@ -76,11 +72,9 @@
             Log-Write -LogPath $xLogFile -LineValue "C:\TempExchange\EXCHANGESERVER2016-X64-CU5.iso already exists, moving on"
         }
       
-
         #Install modules
         Install-Module -Name xExchange, xPendingReboot -Force -Verbose
-
-        
+                
         #Test-path to see if UCMA is installed
         $ucmatest = Test-Path -Path "C:\Program Files\Microsoft UCMA 4.0"
         
@@ -139,6 +133,9 @@
       Write-Verbose -Message "Starting DSC"
       
       Start-Transcript -Path ( Join-Path -Path $xLogPath -ChildPath dsclog-$xlogDate.txt )
+      
+      Set-Location $PSScriptRoot
+      
       $ExchangeBinary = Get-Content -Path ( Join-Path $baseDir -ChildPath Executables\ExchangeBinary.txt )
       "$ExchangeBinary before compiling DSC script"
       
@@ -156,17 +153,7 @@
       Write-Verbose -Message "Pushing DSC script to target computer"
       #Pushes DSC script to target
       Start-DscConfiguration -Path $PSScriptRoot\InstallExchange -Force -Verbose -Wait
-      
-      & Join-Path -Path $PSScriptRoot -ChildPath ..\Support\Start-RebootCheck.ps1" $ComputerName $DomainCredential"
-      
-      Do {
-        Write-Verbose -Message "Sleeping for 1 minute, then checking if LCM is done configuring"
-        Start-Sleep -Seconds 60
-        $DSCDone = Invoke-Command -Session $InstallSession -ScriptBlock {
-          Get-DscLocalConfigurationManager
-        }
-      } while ($DSCDone.LCMState -ne "Idle")
-      
+          
       Stop-Transcript
     }
        
@@ -182,9 +169,7 @@
     If($?){
       Log-Write -LogPath $xLogFile -LineValue "Installed prerequisites successfully."
       Log-Write -LogPath $xLogFile -LineValue "-------------------- Function Install-Prerequisite Finished --------------------"
-      Write-Verbose -Message "Installed prerequisites successfully."      
-      Write-Verbose -Message "Removing remote session $InstallSession"
-      $InstallSession | Remove-PSSession
+      Write-Verbose -Message "Installed prerequisites successfully."
     }
   }
 }
