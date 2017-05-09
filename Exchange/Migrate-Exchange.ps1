@@ -36,7 +36,7 @@ $global:SourceInstall = New-PSSession -ComputerName $SourceComputer -Credential 
 
 Copy-Item (Join-Path -Path $PSScriptRoot -ChildPath xExchange) -Destination "C:\Program Files\WindowsPowerShell\Module" -Recurse -Force
 
-Copy-Item -ToSession -Path (Join-Path -Path $PSScriptRoot -ChildPath xExchange)
+Copy-Item -ToSession $InstallSession -Path (Join-Path -Path $PSScriptRoot -ChildPath xExchange)
 
 
 Log-Start -LogPath $xLogPath -LogName $xLogName -ScriptVersion "1.0"
