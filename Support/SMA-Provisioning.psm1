@@ -300,7 +300,7 @@ Function New-AzureStackWindowsVM {
         Get-AzureRmPublicIpAddress | % {if($_.Id -eq $nic.IpConfigurations.PublicIpAddress.Id){$PublicIP = $_}}
         do {
             try {
-                Log-Write -LogPath $sLogFile -LineValue "Trying connection to $($VMName)..."
+                Log-Write -LogPath $sLogFile -LineValue "Trying connection to $($VMName) with $($PublicIP.IpAddress) ..."
                 if ($s = New-PSSession -ComputerName $PublicIP.IpAddress -Credential $RemotingCredential -ErrorAction Stop){
                 Log-Write -LogPath $sLogFile -LineValue "VM successfully restarted after applying ScriptExtension." 
                 Remove-PSSession $s
@@ -308,6 +308,7 @@ Function New-AzureStackWindowsVM {
             } catch {
                 $RetryTime = 30
                 Log-Write -LogPath $sLogFile -LineValue "Cannot establish PowerShell connectivity to the VM. Retrying in $RetryTime seconds."
+                Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $False
                 start-sleep -s $RetryTime
             }
         } while ($NoConnectivity)
