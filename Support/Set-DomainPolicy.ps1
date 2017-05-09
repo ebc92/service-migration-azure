@@ -1,7 +1,7 @@
 ﻿Param(
     $DomainName,
     $Username,
-    $Password
+    [securestring]$Password
 )
 
 Set-ExecutionPolicy Unrestricted
