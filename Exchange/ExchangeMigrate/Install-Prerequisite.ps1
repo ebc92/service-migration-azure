@@ -73,7 +73,7 @@
         }
       
         #Install modules
-        Install-Module -Name xExchange, xPendingReboot -Force -Verbose
+        Install-Module -Name xPendingReboot -Force -Verbose
                 
         #Test-path to see if UCMA is installed
         $ucmatest = Test-Path -Path "C:\Program Files\Microsoft UCMA 4.0"
@@ -107,7 +107,7 @@
       #Install modules
       Log-Write -LogPath $xLogFile -LineValue "Installing xExchange and xPending DSC modules"
       Write-Verbose -Message "Installing xExchange and xPending DSC modules"
-      Install-Module -Name xExchange, xPendingReboot -Force -Verbose
+      Install-Module -Name xPendingReboot -Force -Verbose
       
       $DSC = (Join-Path -Path $PSScriptRoot -ChildPath InstallExchange.ps1)
       . $DSC

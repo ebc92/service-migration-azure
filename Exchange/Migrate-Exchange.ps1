@@ -34,6 +34,13 @@ $global:xLogFile = Join-Path -Path $xLogPath -ChildPath $xLogName
 $global:InstallSession = New-PSSession -ComputerName $ComputerName -Credential $DomainCredential
 $global:SourceInstall = New-PSSession -ComputerName $SourceComputer -Credential $DomainCredential
 
+Copy-Item "$PSScriptRoot\xExchange" -Destination "C:\Program Files\WindowsPowerShell\Module" -Recurse -Force
+
+Invoke-Command -Session $InstallSession -ScriptBlock {
+  Copy-Item "c:\service-migration-azure-develop\Exchange\xExchange" -Destination "C:\Program Files\WindowsPowerShell\Module" -Recurse -Force
+}
+
+
 Log-Start -LogPath $xLogPath -LogName $xLogName -ScriptVersion "1.0"
 
 #Downloads all required files
