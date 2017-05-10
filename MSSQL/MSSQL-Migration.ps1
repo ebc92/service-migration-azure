@@ -1,4 +1,9 @@
-﻿#Getting migration variables from configuration file
+﻿if(!$SqlCredential){
+    Write-Output "No SQL credentials in scope, aborting!"
+    break
+}
+
+#Getting migration variables from configuration file
 $Source = $SMAConfig.MSSQL.source
 $Destination = $SMAConfig.MSSQL.destination
 $Instance = $SMAConfig.MSSQL.instance
@@ -95,6 +100,12 @@ $ScriptBlock = {
     $sLogPath = $using:sLogPath
     $sLogName = "SMA-MSSQL-$($using:xLogDate).log"
     $sLogFile = Join-Path -Path $sLogPath -ChildPath $sLogName
+
+    $Source = $using:Source
+    $Destination = $using:Destination
+    $Instance = $using:Instance
+    $SqlCredential = $using:SqlCredential
+    $PackagePath = $using:PackagePath
 
     Log-Start -LogPath $sLogPath -LogName $sLogName -ScriptVersion "1.0"
 

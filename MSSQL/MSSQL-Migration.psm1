@@ -76,7 +76,7 @@ Function Start-MSSQLMigration {
             Log-Write -Logpath $sLogFile -LineValue "Could not establish connection to the destination server."
         } else {
             Log-Write -Logpath $sLogFile -LineValue "Connectiontest was successful!"
-            #Start-SqlMigration -Source localhost\$InstanceName -Destination $Destination\$InstanceName -SourceSqlCredential $SqlCredential -DestinationSqlCredential $SqlCredential -NetworkShare $Share -BackupRestore     
+            Start-SqlMigration -Source "localhost\$($InstanceName)" -Destination "$($Destination)\$($InstanceName),1433" -SourceSqlCredential $SqlCredential -DestinationSqlCredential $SqlCredential -NetworkShare $Share -BackupRestore     
         }
     } Catch {
         Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $False

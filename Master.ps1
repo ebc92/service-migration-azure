@@ -49,10 +49,10 @@ $functions | % {
     }
 }
 if(!$DomainCredential){
-    $DomainCredential = (Get-Credential -Message "Please insert your domain administrator credentials")
+    $global:DomainCredential = (Get-Credential -Message "Please insert your domain administrator credentials")
 }
-if(!$DomainCredential){
-    $SqlCredential = (Get-Credential -Message "Please insert a password for SQL Authentication")
+if(!$SqlCredential){
+    $global:SqlCredential = (Get-Credential -Message "Please insert a password for SQL Authentication")
 }
 #$AzureLocalCredential = (Get-Credential -Message "Please insert your Local AzureStack Credentials")
 #$AzureTenantCredential = (Get-Credential -Message "Please insert your Azure Tenant Credentials")
