@@ -60,7 +60,7 @@ Function Start-MSSQLMigration {
     Log-Write -LogPath $sLogFile -LineValue "Starting the MSSQL migration process.."
     Try {
         Log-Write -LogPath $sLogFile -LineValue "Installing dbatools.."
-        $DbaTools = Resolve-Path (Join-Path -Path $PSScriptRoot -ChildPath "\..\Libraries\Install-DBATools.ps1")
+        $DbaTools = Resolve-Path (Join-Path -Path "C:\service-migration-azure-develop\" -ChildPath "Libraries\Install-DBATools.ps1")
         & $DbaTools
 
     } Catch {
