@@ -145,7 +145,7 @@
                     }
                 }
 
-                Restart-Service -name "SQLAgent`$$InstanceName", "SQLServer"  
+                Get-Service *SQL* | Restart-Service -Force 
 
             }
 
@@ -156,6 +156,19 @@
                 return $false
             }
             
+        }
+
+        xFirewall AllowSQL {
+            DependsOn = "[Script]PostDeploymentConfiguration"
+            Name                  = 'SQLServer'
+            DisplayName           = 'SQL Server 1433-1434'
+            Ensure                = 'Present'
+            Enabled               = 'True'
+            Profile               = ('Domain', 'Private')
+            Direction             = 'Inbound'
+            LocalPort             = ('1433', '1434')
+            Protocol              = 'TCP'
+            Description           = 'Firewall Rule for SQL Server'
         }
     }
 
