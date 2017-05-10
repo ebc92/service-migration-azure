@@ -24,7 +24,8 @@ Try {
     $SMARoot = Resolve-Path -Path (Join-Path -Path $PSScriptRoot -ChildPath "..\")
     Write-Output $SMARoot
     $SQLSession = New-PSSession -ComputerName $Source -Credential $DomainCredential
-    #Invoke-Command -Session $SQLSession -FilePath (Join-Path $SMARoot -ChildPath "\Support\Install-SMModule.ps1") -ErrorAction Stop
+    Invoke-Command -Session $SQLSession -ScriptBlock {param($SMAConfig)$global:SMAConfig} -ArgumentList $SMAConfig
+    Invoke-Command -Session $SQLSession -FilePath (Join-Path $SMARoot -ChildPath "\Support\Install-SMModule.ps1") -ErrorAction Stop
 } Catch {
     Log-Write -LogPath $sLogFile -LineValue "An error occured when trying to install service-migration-azure on source host."
     Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $False
