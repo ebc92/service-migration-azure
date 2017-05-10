@@ -227,7 +227,7 @@ Function New-AzureStackWindowsVM {
   Process{
     Try{
         $Username = Read-host -Prompt "Enter domain admin user"
-        $Password = Read-host -Prompt "Enter password, i swear its secure" -AsSecureString
+        $Password = Read-host -Prompt "Enter password, i swear its secure"
 
         # Get the VM Image Offer
         $offer = Get-AzureRmVMImageOffer -Location $Location -PublisherName MicrosoftWindowsServer
@@ -296,7 +296,8 @@ Function New-AzureStackWindowsVM {
         Restart-AzureRmVm -ResourceGroupName $ResourceGroupName -Name $VMName
 
         $NoConnectivity = $true
-        $RemotingCredential = New-Object System.Management.Automation.PSCredential($Username,$Password)
+        $RemotingSecureString = ConvertTo-SecureString $Password -AsPlainText -Force
+        $RemotingCredential = New-Object System.Management.Automation.PSCredential($Username,$RemotingSecureString)
         Get-AzureRmPublicIpAddress | % {if($_.Id -eq $nic.IpConfigurations.PublicIpAddress.Id){$PublicIP = $_}}
         do {
             try {
