@@ -106,8 +106,8 @@
             }
 
             SetScript = {
-                Try{
-                    Import-Module -Name Sqlps
+                Try {
+                    Import-Module -Name Sqlps -ErrorAction Stop
                 } Catch {
                     $env:PSModulePath = $env:PSModulePath + ";C|<:\Program Files (x86)\Microsoft SQL Server\130\Tools\PowerShell\Modules"
                     Import-Module -Name Sqlps
