@@ -48,12 +48,17 @@ $functions | % {
         Write-Verbose $_.Exception
     }
 }
-
+if(!$DomainCredential){
+    $DomainCredential = (Get-Credential -Message "Please insert your domain administrator credentials")
+}
+if(!$DomainCredential){
+    $SqlCredential = (Get-Credential -Message "Please insert a password for SQL Authentication")
+}
 #$AzureLocalCredential = (Get-Credential -Message "Please insert your Local AzureStack Credentials")
 #$AzureTenantCredential = (Get-Credential -Message "Please insert your Azure Tenant Credentials")
-#$DomainCredential = (Get-Credential -Message "Please insert your domain administrator credentials")
+
 #$LocalCredential = (Get-Credential -Message "Please insert a password for the local administrator on the new VMs")
-SqlCredential = (Get-Credential -Message "Please insert a password for SQL Authentication")
+
 
 #----------------------------------------------------------[Global Declarations]----------------------------------------------------------
 

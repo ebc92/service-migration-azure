@@ -57,7 +57,6 @@ Function Start-MSSQLMigration {
     [String]$Share
   )
 
-
     Log-Write -LogPath $sLogFile -LineValue "Starting the MSSQL migration process.."
     Try {
         Log-Write -LogPath $sLogFile -LineValue "Installing dbatools.."

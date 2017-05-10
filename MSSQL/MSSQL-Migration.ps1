@@ -20,8 +20,10 @@ $sLogFile = Join-Path -Path $sLogPath -ChildPath $sLogName
 #Install SMA
 Log-Write -LogPath $sLogFile -LineValue "Installing service-migratio-azure on SQL source host..."
 Try {
+    Write-Output $PSScriptRoot
     $SMARoot = Resolve-Path -Path (Join-Path -Path $PSScriptRoot -ChildPath "..\")
-    Invoke-Command -ComputerName $Source -FilePath (Join-Path $SMARoot -ChildPath ".\Support\Install-SMModule.ps1") -Credential $DomainCredential
+    $SQLSession = New-PSSession -ComputerName $Source -Credential $DomainCredential
+    Invoke-Command -Session $SQLSession -FilePath (Join-Path $SMARoot -ChildPath "\Support\Install-SMModule.ps1") -ErrorAction Stop
 } Catch {
     Log-Write -LogPath $sLogFile -LineValue "An error occured when trying to install service-migration-azure on source host."
     Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $False
@@ -75,6 +77,7 @@ Try {
     Log-Write -LogPath $sLogFile -LineValue "An error occured when pushing the DSC configuration."
     Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $False
 }
+
 #>
 
 $ScriptBlock = {
@@ -89,7 +92,7 @@ $ScriptBlock = {
     $sLogPath = $using:sLogPath
     $sLogName = "SMA-MSSQL-$($using:xLogDate).log"
     $sLogFile = Join-Path -Path $sLogPath -ChildPath $sLogName
-    
+
     Log-Start -LogPath $sLogPath -LogName $sLogName -ScriptVersion "1.0"
 
     Try {
@@ -109,9 +112,10 @@ $ScriptBlock = {
 
 Try {
     Log-Write -LogPath $sLogFile -LineValue "Starting the SQL Server migration..."
-    $SMARoot = Resolve-Path -Path (Join-Path -Path $PSScriptRoot -ChildPath "..\")
-    Invoke-Command -ComputerName $Destination -ScriptBlock $ScriptBlock -Credential $DomainCredential
+    Invoke-Command -Session $SQLSession -ScriptBlock $ScriptBlock
 } Catch {
     Log-Write -LogPath $sLogFile -LineValue "An error occured when trying to run the migration."
     Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $False
 }
+
+Remove-PSSession $SQLSession
