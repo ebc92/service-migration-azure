@@ -56,36 +56,28 @@ Function Start-MSSQLMigration {
     [PSCredential]$SqlCredential,
     [String]$Share
   )
-  
-  Process{
+
 
     Log-Write -LogPath $sLogFile -LineValue "Starting the MSSQL migration process.."
     Try {
         Log-Write -LogPath $sLogFile -LineValue "Installing dbatools.."
-        . $PSScriptRoot\..\Libraries\Install-DBATools.ps1
+        $DbaTools = Resolve-Path (Join-Path -Path $PSScriptRoot -ChildPath "\..\Libraries\Install-DBATools.ps1")
+        & $DbaTools
 
-        Log-Write -LogPath $sLogFile -LineValue "Importing SQL connection test.."
-        . $PSScriptRoot\..\Libraries\Test-WsmanSqlConnection.ps1
     } Catch {
         Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $False
         Log-Write -Logpath $sLogFile -LineValue "dbatools installation failed.."
     }
 
     Try{
-        $ConnectionTest = Test-WsmanSqlConnection -SqlServer "$Destination\$InstanceName" -SqlCredential $SqlCredential
-        If (!ConnectionTest.ConnectSuccess){
+        $ConnectionTest = Test-SqlConnection -SqlServer "$Destination\$InstanceName" -SqlCredential $SqlCredential -ErrorAction Stop
+        If (!$ConnectionTest.ConnectSuccess){
             Log-Write -Logpath $sLogFile -LineValue "Could not establish connection to the destination server."
+        } else {
+            Start-SqlMigration -Source localhost\$InstanceName -Destination $Destination\$InstanceName -SourceSqlCredential $SqlCredential -DestinationSqlCredential $SqlCredential -NetworkShare $Share -BackupRestore     
         }
     } Catch {
         Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $False
-        Log-Write -Logpath $sLogFile -LineValue "Could not run the connection test."
     }
-    
-    Try {
-        Start-SqlMigration -Source $Source\$InstanceName -Destination $Destination\$InstanceName -SourceSqlCredential $Credential -DestinationSqlCredential $SqlCredential -NetworkShare $Share -BackupRestore
-    } Catch {
-        Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $False
-        Log-Write -Logpath $sLogFile -LineValue "Could not run the migration."
-    }
-  }
-}
+
+ }

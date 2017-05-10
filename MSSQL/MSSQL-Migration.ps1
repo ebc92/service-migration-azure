@@ -11,13 +11,18 @@ $sLogName = "SMA-MSSQL-$($xLogDate).log"
 $sLogFile = Join-Path -Path $sLogPath -ChildPath $sLogName
 
 #Todo: retrieve creds & concatenate source to trustedhost
-$Credential = $DomainCredential
-$SqlCredential
+
+#*DomainCredential
+#*SqlCredential
+
+
 
 #Install SMA
 $SMARoot = Resolve-Path -Path (Join-Path -Path $PSScriptRoot -ChildPath "..\")
-Invoke-Command -ComputerName $Source -FilePath (Join-Path $SMARoot -ChildPath ".\Support\Install-SMModule.ps1") -Credential $Credential
+Invoke-Command -ComputerName $Source -FilePath (Join-Path $SMARoot -ChildPath ".\Support\Install-SMModule.ps1") -Credential $DomainCredential
 
+
+<# Retrieve configuration file from source SQL server
 $ScriptBlock = {
     $sLogFile = $using:sLogFile
     $SMARoot = "C:\service-migration-azure"
@@ -42,6 +47,8 @@ $ScriptBlock = {
 
 Invoke-Command -ComputerName $Source -ScriptBlock $ScriptBlock -Credential $DomainCredential
 
+
+
 $cd = @{
     AllNodes = @(
         @{
@@ -55,7 +62,6 @@ $cd = @{
 Try {
     Log-Write -LogPath $sLogFile -LineValue "Generating MOF-file from DSC script."
     DesiredStateSQL -ConfigurationData $cd -PackagePath $PackagePath -DomainCredential $DomainCredential
-    # ^add aDomainName, interfacealias, DNS
     Log-Write -LogPath $sLogFile -LineValue "Starting DSC configuration."
     Start-DscConfiguration -ComputerName $Destination -Path .\DesiredStateSQL -Verbose -Wait -Force -Credential $Credential -ErrorAction Stop
     Log-Write -LogPath $sLogFile -LineValue "DSC configuration was succcessfully pushed."
@@ -64,17 +70,34 @@ Try {
     Log-Write -LogPath $sLogFile -LineValue "An error occured when pushing the DSC configuration."
     Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $False
 }
+#>
 
-Try {
-    [System.Reflection.Assembly]::LoadWithPartialName("Microsoft.SqlServer.ConnectionInfo") 
-    [System.Reflection.Assembly]::LoadWithPartialName("Microsoft.SqlServer.SMO")
-    [System.Reflection.Assembly]::LoadWithPartialName("Microsoft.SqlServer.SmoExtended") 
+$ScriptBlock = {
+    Param(
+    $Source,
+    $Destination,
+    $Instance,
+    $SqlCredential,
+    $PackagePath
+    )
+    
+    $sLogPath = $using:sLogPath
+    $sLogName = "SMA-MSSQL-$($using:xLogDate).log"
+    $sLogFile = Join-Path -Path $sLogPath -ChildPath $sLogName
+    
+    Log-Start -LogPath $sLogPath -LogName $sLogName -ScriptVersion "1.0"
 
-    Start-MSSQLMigration -Source $Source -Destination $Destination -InstanceName $Instance -Credential $Credential -SqlCredential $SqlCredential -Share $PackagePath
+    Try {
+        [System.Reflection.Assembly]::LoadWithPartialName("Microsoft.SqlServer.ConnectionInfo") 
+        [System.Reflection.Assembly]::LoadWithPartialName("Microsoft.SqlServer.SMO")
+        [System.Reflection.Assembly]::LoadWithPartialName("Microsoft.SqlServer.SmoExtended") 
 
-} Catch {
-    Log-Write -LogPath $sLogFile -LineValue "An error occured when pushing the DSC configuration."
-    Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $False
+        Start-MSSQLMigration -Source $Source -Destination $Destination -InstanceName $Instance -Credential $SqlCredential -SqlCredential $SqlCredential -Share $PackagePath -ErrorAction Stop
+
+    } Catch {
+        Log-Write -LogPath $sLogFile -LineValue "An error occured when trying to start the SQL migration."
+        Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $False
+    }
 }
 
-#>
+Invoke-Command -ComputerName $Destination -ScriptBlock $ScriptBlock -Credential $DomainCredential
