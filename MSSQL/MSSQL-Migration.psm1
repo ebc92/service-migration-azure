@@ -70,7 +70,8 @@ Function Start-MSSQLMigration {
     }
 
     Try{
-        $ConnectionTest = Test-WsmanSqlConnection -SqlServer "$Destination\$InstanceName" -SqlCredential $SqlCredential -ErrorAction Stop
+        Log-Write -Logpath $sLogFile -LineValue "Starting connectiontest on $($Destination)\$($InstanceName)."
+        $ConnectionTest = Test-WsmanSqlConnection -SqlServer "$($Destination)\$($InstanceName),1433" -SqlCredential $SqlCredential -ErrorAction Stop
         If (!$ConnectionTest.ConnectSuccess){
             Log-Write -Logpath $sLogFile -LineValue "Could not establish connection to the destination server."
         } else {
