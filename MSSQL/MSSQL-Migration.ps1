@@ -115,7 +115,7 @@ $ScriptBlock = {
 
 Try {
     Log-Write -LogPath $sLogFile -LineValue "Starting the SQL Server migration..."
-    #Invoke-Command -Session $SQLSession -ScriptBlock $ScriptBlock
+    Invoke-Command -Session $SQLSession -ScriptBlock $ScriptBlock
 } Catch {
     Log-Write -LogPath $sLogFile -LineValue "An error occured when trying to run the migration."
     Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $False
