@@ -18,9 +18,14 @@ $sLogFile = Join-Path -Path $sLogPath -ChildPath $sLogName
 
 
 #Install SMA
-$SMARoot = Resolve-Path -Path (Join-Path -Path $PSScriptRoot -ChildPath "..\")
-Invoke-Command -ComputerName $Source -FilePath (Join-Path $SMARoot -ChildPath ".\Support\Install-SMModule.ps1") -Credential $DomainCredential
-
+Log-Write -LogPath $sLogFile -LineValue "Installing service-migratio-azure on SQL source host..."
+Try {
+    $SMARoot = Resolve-Path -Path (Join-Path -Path $PSScriptRoot -ChildPath "..\")
+    Invoke-Command -ComputerName $Source -FilePath (Join-Path $SMARoot -ChildPath ".\Support\Install-SMModule.ps1") -Credential $DomainCredential
+} Catch {
+    Log-Write -LogPath $sLogFile -LineValue "An error occured when trying to install service-migration-azure on source host."
+    Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $False
+}
 
 <# Retrieve configuration file from source SQL server
 $ScriptBlock = {
@@ -100,4 +105,13 @@ $ScriptBlock = {
     }
 }
 
-Invoke-Command -ComputerName $Destination -ScriptBlock $ScriptBlock -Credential $DomainCredential
+
+
+Try {
+    Log-Write -LogPath $sLogFile -LineValue "Starting the SQL Server migration..."
+    $SMARoot = Resolve-Path -Path (Join-Path -Path $PSScriptRoot -ChildPath "..\")
+    Invoke-Command -ComputerName $Destination -ScriptBlock $ScriptBlock -Credential $DomainCredential
+} Catch {
+    Log-Write -LogPath $sLogFile -LineValue "An error occured when trying to run the migration."
+    Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $False
+}
