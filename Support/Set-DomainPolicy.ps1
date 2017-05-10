@@ -1,12 +1,14 @@
 ﻿Param(
     $DomainName,
     $Username,
-    [securestring]$Password
+    $Password
 )
 
 Set-ExecutionPolicy Unrestricted
 
-$Credential = New-Object System.Management.Automation.PSCredential($Username,$Password)
+$SecureString = ConvertTo-SecureString $Password -AsPlainText -Force
+
+$Credential = New-Object System.Management.Automation.PSCredential($Username,$SecureString)
 
 Add-Computer -DomainName $DomainName -Credential $Credential
 

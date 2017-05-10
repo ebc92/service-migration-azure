@@ -42,8 +42,6 @@ $ScriptBlock = {
 
 Invoke-Command -ComputerName $Source -ScriptBlock $ScriptBlock -Credential $DomainCredential
 
-<#
-
 $cd = @{
     AllNodes = @(
         @{
@@ -66,9 +64,6 @@ Try {
     Log-Write -LogPath $sLogFile -LineValue "An error occured when pushing the DSC configuration."
     Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $False
 }
-
-
-
 
 Try {
     [System.Reflection.Assembly]::LoadWithPartialName("Microsoft.SqlServer.ConnectionInfo") 

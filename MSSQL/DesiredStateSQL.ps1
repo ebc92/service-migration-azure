@@ -4,19 +4,6 @@
         [ValidateNotNullOrEmpty()]
         [String]
         $PackagePath,
- 
-        [Parameter(Mandatory=$true)]
-        [ValidateNotNullOrEmpty()]
-        [String]
-        $DomainName,
-
-        [Parameter(Mandatory)]
-        [ValidateNotNullOrEmpty()]
-        [String]$InterfaceAlias,
-
-        [Parameter(Mandatory)]
-        [ValidateNotNullOrEmpty()]
-        [String]$DNS,
 
         [Parameter(Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
@@ -31,19 +18,6 @@
             ActionAfterReboot = 'ContinueConfiguration'
             ConfigurationMode = 'ApplyOnly'
             RebootNodeIfNeeded = $true
-        }
-
-        xDNSServerAddress DnsServerAddress {
-            Address        = $DNS
-            InterfaceAlias = $InterfaceAlias
-            AddressFamily  = 'IPv4'
-        }
-
-        xComputer JoinDomain {
-            Name = "localhost" #$VMName #do not change computername
-            DomainName = $DomainName 
-            Credential = $DomainCredential  # Credential to join to domain
-            DependsOn = '[xDNSServerAddress]DnsServerAddress'
         }
  
         WindowsFeature NetFramework35Core {
@@ -60,7 +34,7 @@
  
         # copy the sqlserver iso
         File SQLServerIso {
-            Credential = $Credential
+            Credential = $DomainCredential
             SourcePath = "$PackagePath\en_sql_server_2016_enterprise_with_service_pack_1_x64_dvd_9542382.iso"
             DestinationPath = "c:\temp\SQLServer.iso"
             Type = "File"
@@ -69,7 +43,7 @@
  
         # copy the ini file to the temp folder
         File SQLServerIniFile {
-            Credential = $Credential
+            Credential = $DomainCredential
             SourcePath = "$PackagePath\DeploymentConfig.ini"
             DestinationPath = "c:\temp"
             Force = $True
