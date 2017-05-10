@@ -59,6 +59,7 @@ Function Start-MSSQLMigration {
 
     Log-Write -LogPath $sLogFile -LineValue "Starting the MSSQL migration process.."
     Try {
+        . "C:\service-migration-azure-develop\Libraries\Test-WsmanSqlConnection.ps1"
         Log-Write -LogPath $sLogFile -LineValue "Installing dbatools.."
         $DbaTools = Resolve-Path (Join-Path -Path "C:\service-migration-azure-develop\" -ChildPath "Libraries\Install-DBATools.ps1")
         & $DbaTools
@@ -69,7 +70,7 @@ Function Start-MSSQLMigration {
     }
 
     Try{
-        $ConnectionTest = Test-SqlConnection -SqlServer "$Destination\$InstanceName" -SqlCredential $SqlCredential -ErrorAction Stop
+        $ConnectionTest = Test-WsmanSqlConnection -SqlServer "$Destination\$InstanceName" -SqlCredential $SqlCredential -ErrorAction Stop
         If (!$ConnectionTest.ConnectSuccess){
             Log-Write -Logpath $sLogFile -LineValue "Could not establish connection to the destination server."
         } else {

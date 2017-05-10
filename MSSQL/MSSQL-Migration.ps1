@@ -120,5 +120,3 @@ Try {
     Log-Write -LogPath $sLogFile -LineValue "An error occured when trying to run the migration."
     Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $False
 }
-
-Remove-PSSession $SQLSession
