@@ -22,12 +22,14 @@ Log-Write -LogPath $sLogFile -LineValue "Installing service-migratio-azure on SQ
 Try {
     Write-Output $PSScriptRoot
     $SMARoot = Resolve-Path -Path (Join-Path -Path $PSScriptRoot -ChildPath "..\")
+    Write-Output $SMARoot
     $SQLSession = New-PSSession -ComputerName $Source -Credential $DomainCredential
-    Invoke-Command -Session $SQLSession -FilePath (Join-Path $SMARoot -ChildPath "\Support\Install-SMModule.ps1") -ErrorAction Stop
+    #Invoke-Command -Session $SQLSession -FilePath (Join-Path $SMARoot -ChildPath "\Support\Install-SMModule.ps1") -ErrorAction Stop
 } Catch {
     Log-Write -LogPath $sLogFile -LineValue "An error occured when trying to install service-migration-azure on source host."
     Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $False
 }
+Log-Write -LogPath $sLogFile -LineValue "SMA was installed."
 
 <# Retrieve configuration file from source SQL server
 $ScriptBlock = {
@@ -112,7 +114,7 @@ $ScriptBlock = {
 
 Try {
     Log-Write -LogPath $sLogFile -LineValue "Starting the SQL Server migration..."
-    Invoke-Command -Session $SQLSession -ScriptBlock $ScriptBlock
+    #Invoke-Command -Session $SQLSession -ScriptBlock $ScriptBlock
 } Catch {
     Log-Write -LogPath $sLogFile -LineValue "An error occured when trying to run the migration."
     Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $False

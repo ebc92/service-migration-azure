@@ -47,4 +47,5 @@ Write-Output "Importing modules"
 Import-Module "$path\ADDC\ADDC-Migration.psm1" -Force
 Import-Module "$path\MSSQL\MSSQL-Migration.psm1" -Force
 Import-Module "$path\Support\SMA-Provisioning.psm1" -Force
-. Join-Path -Path $path -ChildPath "Libraries\Log-Functions.ps1"
+Write-Output "All modules imported"
+#. Join-Path -Path $path -ChildPath "Libraries\Log-Functions.ps1"
