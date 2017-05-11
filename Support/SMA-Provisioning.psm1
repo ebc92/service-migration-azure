@@ -36,8 +36,9 @@ Function New-AzureStackTenantDeployment {
         [String]$VMName,
         [Parameter(Mandatory=$true)]
         [String]$IPAddress,
+        [Parameter(Mandatory=$true)]
+        [PSCredential]$DomainCredential,
         $DomainName = "amstel.local",
-        $DomainCredential,
         $Location = "local"
     )
 
@@ -80,7 +81,9 @@ Function New-AzureStackTenantDeployment {
 
     $VMNic | % {if($_.GetType().Name -eq "PSNetworkInterface"){$result = $_}}
 
-    $ProvisionedIP = New-AzureStackWindowsVM -VMName $VMName -VMNic $result -ErrorAction Stop
+
+
+    $ProvisionedIP = New-AzureStackWindowsVM -VMName $VMName -VMNic $result -VMCredential $DomainCredential -ErrorAction Stop
 
     Log-Finish -LogPath $sLogFile -NoExit $true
 }
@@ -222,7 +225,9 @@ Function New-AzureStackWindowsVM {
   Param(
     [Parameter(Mandatory=$true)]
     [String]$VMName,
-    [String]$ComputerName = $VMName,
+    [Parameter(Mandatory=$true)]
+    [PSCredential]$VMCredential,
+    [String]$DomainName = "amstel.local",
     [Parameter(Mandatory=$true)]
     $VMNic,
     [String]$ResourceGroup = "service-migration-azure",
@@ -233,8 +238,11 @@ Function New-AzureStackWindowsVM {
   
   Process{
     Try{
-        $Username = Read-host -Prompt "Enter domain admin user"
-        $Password = Read-host -Prompt "Enter password, i swear its secure"
+
+        $Username = $VMCredential.GetNetworkCredential().username
+        $Password = $VMCredential.GetNetworkCredential().password
+        $SecureString = ConvertTo-SecureString $Password -AsPlainText -Force
+        $VMCredential = New-Object System.Management.Automation.PSCredential($Username,$SecureString)
 
         # Get the VM Image Offer
         $offer = Get-AzureRmVMImageOffer -Location $Location -PublisherName MicrosoftWindowsServer
@@ -243,9 +251,6 @@ Function New-AzureStackWindowsVM {
         # Get the VM Image SKU
         $sku = Get-AzureRMVMImageSku -Location $Location -PublisherName $offer.PublisherName -Offer $offer.Offer
         Log-Write -LogPath $sLogFile -LineValue "Retrieved the VM Image SKU."
-     
-        # Define a credential object
-        $cred = Get-Credential
 
         Try {
             $StorageAccount = Get-AzureRmStorageAccount | Where-Object {$_.StorageAccountName -eq $StorageAccountName} -ErrorAction Stop
@@ -263,9 +268,11 @@ Function New-AzureStackWindowsVM {
         $OSDiskName = $VMName + "OSDisk"
         $OSDiskUri = $StorageAccount.PrimaryEndpoints.Blob.ToString() + "vhds/" + $OSDiskName + ".vhd"
 
+        #
+
         # Create a virtual machine configuration
         $vmConfig = New-AzureRmVMConfig -VMName $VMName -VMSize $VMSize | `
-        Set-AzureRmVMOperatingSystem -Windows -ComputerName $ComputerName -Credential $cred | `
+        Set-AzureRmVMOperatingSystem -Windows -ComputerName $ComputerName -Credential $VMCredential | `
         Set-AzureRmVMSourceImage -PublisherName $offer.PublisherName -Offer $offer.Offer -Skus $sku.Skus -Version latest | `
         Set-AzureRmVMOSDisk -Name $OSDiskName -VhdUri $OSDiskUri -CreateOption FromImage | `
         Add-AzureRmVMNetworkInterface -Id $VMNic.Id
@@ -303,8 +310,7 @@ Function New-AzureStackWindowsVM {
         Restart-AzureRmVm -ResourceGroupName $ResourceGroupName -Name $VMName
 
         $NoConnectivity = $true
-        $RemotingSecureString = ConvertTo-SecureString $Password -AsPlainText -Force
-        $RemotingCredential = New-Object System.Management.Automation.PSCredential($Username,$RemotingSecureString)
+        
         Get-AzureRmPublicIpAddress | % {if($_.Id -eq $nic.IpConfigurations.PublicIpAddress.Id){$PublicIP = $_}}
         do {
             try {
@@ -346,25 +352,3 @@ Function New-AzureStackWindowsVM {
     }
   }
 }
-
-#Function New-RDPortMap must be run on MAS-BGPNAT
-Function New-RDPortMap {
-    Param(
-    [Integer]$PortNumber = "13389",
-    [String]$ExternalIP = "158.38.57.109",
-    [String]$InternalIP
-    )
-    Try {
-        $NatInstance = Get-NetNat
-        Add-NetNatStaticMapping -NatName $NatInstance.Name -ExternalIPAddress $ExternalIP -ExternalPort $PortNumber -InternalIPAddress $InternalIP
-  
-    } Catch {
-        Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $False
-        Log-Write -LogPath $sLogFile -LineValue "Port mapping failed."
-    }
-}
-#-----------------------------------------------------------[Execution]------------------------------------------------------------
-
-#Log-Start -LogPath $sLogPath -LogName $sLogName -ScriptVersion $sScriptVersion
-#Script Execution goes here
-#Log-Finish -LogPath $sLogFile
