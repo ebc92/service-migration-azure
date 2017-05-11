@@ -5,28 +5,22 @@
 #>
 
 Function Move-File {
-Param(
+  Param(
     [parameter(Mandatory=$true)]$SourceComputer,
-    [parameter(Mandatory=$true)]$TarComputer,
-    $username,
-    $SourcePath,
-    $DestPath,
-    $Credential,
-    $RobCopyArgs,
-    $MoveLog,
-    $LogPath,
-    $Date,
-    $MoveFile
+    [parameter(Mandatory=$true)]$ComputerName,
+    [parameter(Mandatory=$true)]
+    [pscredential]$DomainCredential,
+    [parameter]
+    [string]$SourcePath,
+    [parameter]
+    [string]$DestPath
     )
 
-Process {
-    $username = Read-Host("Username plx")    
-    $pw = Read-Host("password plx") -AsSecureString
-    $Credential = New-Object System.Management.Automation.PSCredential -ArgumentList $username,$pw
+  Process {
 
-    Deploy-FileShare -TarComputer $TarComputer -SourceComputer $SourceComputer -credential $Credential
+    Deploy-FileShare -TarComputer $ComputerName -SourceComputer $SourceComputer -DomainCredential $DomainCredential
 
-    Restart-Computer -ComputerName $TarComputer -Credential $Credential -Force -Wait
+    Restart-Computer -ComputerName $ComputerName -Credential $DomainCredential -Force -Wait
 
     #Do until loop that checks if the Path is a container, and valid
     do { 
@@ -63,9 +57,9 @@ Process {
 
     Write-Output("Files moved successfully")       
             
-    Get-RegValue -SourceComputer $SourceComputer -TarComputer $TarComputer -Credential $Credential -RegPath Registry::hklm\SYSTEM\CurrentControlSet\Services\LanmanServer\Shares\
+    Get-RegValue -SourceComputer $SourceComputer -ComputerName $ComputerName -DomainCredential $DomainCredential -RegPath Registry::hklm\SYSTEM\CurrentControlSet\Services\LanmanServer\Shares\
     
-    Restart-Computer -ComputerName $TarComputer -Credential $Credential -Force -Wait
+    Restart-Computer -ComputerName $ComputerName -Credential $DomainCredential -Force -Wait
     }     
 }
 
@@ -73,10 +67,10 @@ Workflow Deploy-FileShare {
     Param(
     [parameter(Mandatory)]$TarComputer,
     [parameter(Mandatory)]$SourceComputer,
-    [parameter(Mandatory)]$Credential
+    [parameter(Mandatory)]$DomainCredential
     )
     InlineScript {
-        Install-WindowsFeature -ComputerName $using:TarComputer -Credential $using:Credential -Name "FileAndStorage-Services" -IncludeAllSubFeature -IncludeManagementTools
+        Install-WindowsFeature -ComputerName $using:TarComputer -Credential $using:DomainCredential -Name "FileAndStorage-Services" -IncludeAllSubFeature -IncludeManagementTools
         }
     }
 
@@ -98,21 +92,21 @@ Function End-RoboCopy {
 Function Get-RegValue {
     Param(
         [parameter(Mandatory=$true)]$SourceComputer,
-        [parameter(Mandatory=$true)]$TarComputer,
-        [parameter(Mandatory=$true)]$Credential,
+        [parameter(Mandatory=$true)]$ComputerName,
+        [parameter(Mandatory=$true)]$DomainCredential,
         [parameter(Mandatory=$true)]$RegPath,
         $regvalue
         )
     Process {
-        $RegName = (Invoke-Command -ComputerName $SourceComp -Credential $Credential -ScriptBlock { 
+        $RegName = (Invoke-Command -ComputerName $SourceComp -Credential $DomainCredential -ScriptBlock { 
             Get-Item -path Registry::hklm\SYSTEM\CurrentControlSet\Services\LanmanServer\Shares\ | Select-Object -ExpandProperty Property
             } )
 
     foreach($element in $RegName) {
-        $RegValue = Invoke-Command -ComputerName $SourCecomp -Credential $Credential -ScriptBlock {
+        $RegValue = Invoke-Command -ComputerName $SourCecomp -Credential $DomainCredential -ScriptBlock {
                 (Get-ItemProperty -Path Registry::hklm\SYSTEM\CurrentControlSet\Services\LanmanServer\Shares\).$using:element
                 }
-        Invoke-Command -ComputerName $TarComp -Credential $Credential -ScriptBlock {
+        Invoke-Command -ComputerName $ComputerName -Credential $DomainCredential -ScriptBlock {
             if(Get-ItemProperty -name $using:element -Path $using:RegPath -ErrorAction SilentlyContinue) {
                     Set-ItemProperty -Path $using:RegPath -Name $using:element -Value $using:RegValue
                 } else {

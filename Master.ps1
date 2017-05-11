@@ -125,7 +125,7 @@ $Destination = $SMAConfig.MSSQL.destination + $CIDR
 $ExchName = "$($environmentname)-$($SMAConfig.Exchange.hostname)"
 
 #Invoke-Command -Session $AzureStackSession -ScriptBlock {New-AzureStackTenantDeployment -VMName $using:ExchName -IPAddress "192.168.59.116/24" -DomainCredential $using:DomainCredential}
-#& (Join-Path -Path $PSScriptRoot -ChildPath "\Exchange\Migrate-Exchange.ps1 $DomainCredential")
+& (Join-Path -Path $PSScriptRoot -ChildPath "\Exchange\Migrate-Exchange.ps1") + $DomainCredential
 
 #Close the azure stack session & log file
 #Remove-PSSession $AzureStackSession
