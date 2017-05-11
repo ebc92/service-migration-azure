@@ -86,7 +86,7 @@ Try {
 
 $SQLSession = New-PSSession -ComputerName $Destination -Credential $DomainCredential
 $ConfigurationPath = Resolve-Path (Join-Path -Path $PSScriptRoot -ChildPath "..\Configuration.ini")
-Copy-Item -ToSession $SQLSession -Path $ConfigurationPath
+Copy-Item -ToSession $SQLSession -Path $ConfigurationPath -Destination "C:\service-migration-azure-develop" -Force
 Remove-PSSession $SQLSession
 
 $dialog = New-Object -ComObject Wscript.Shell
