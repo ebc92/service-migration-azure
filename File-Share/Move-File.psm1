@@ -6,8 +6,10 @@
 
 Function Move-File {
   Param(
-    [parameter(Mandatory=$true)]$SourceComputer,
-    [parameter(Mandatory=$true)]$ComputerName,
+    [parameter(Mandatory=$true)]
+    [string]$SourceComputer,
+    [parameter(Mandatory=$true)]
+    [string]$ComputerName,
     [parameter(Mandatory=$true)]
     [pscredential]$DomainCredential,
     [parameter]
@@ -22,20 +24,9 @@ Function Move-File {
 
     Restart-Computer -ComputerName $ComputerName -Credential $DomainCredential -Force -Wait
 
-    #Do until loop that checks if the Path is a container, and valid
-    do { 
-        $SourcePath = Read-Host('Please input the source path for your network share, ie \\fileshare')
-        #Need an if statement, because Test-Path breaks on empty string, so this fills a non valid dummy string to negate this.
-        If ([string]::IsNullOrEmpty($SourcePath)) {
-            $SourcePath = "SomeString"
-        } else {
-            #DoNothing
-        }
-    } until (Test-Path($SourcePath) -PathType Container -ErrorAction Continue)
-
     Write-Verbose -Message "$SourcePath is valid, checking destination path next"
 
-    $DestPath = Read-Host('Please input the destination path for your network share, ie \\fileshare')
+    #$DestPath = Read-Host('Please input the destination path for your network share, ie \\fileshare')
 
     Write-Verbose -Message "Verification OK, moving files from $SourcePath to $DestPath"
 

@@ -50,7 +50,7 @@
       -ExternalURL http://$hostname/ecp
       
       #Set OWA URLs
-      Get-OwaVirtualDirectory -Server keshav-ex16| Set-OwaVirtualDirectory -InternalUrl http://www.$hostname.com/owa `
+      Get-OwaVirtualDirectory -Server $ComputerName| Set-OwaVirtualDirectory -InternalUrl http://www.$hostname.com/owa `
       -ExternalUrl http://$hostname/owa
       
       #Set EWS URLs

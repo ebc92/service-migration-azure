@@ -1,27 +1,28 @@
 ﻿<# 
         One script to rule them all 
 
-               Three::modules
+              Four::modules
           for:::the::Elven-Kings
        under:the:sky,:Seven:for:the
      Dwarf-Lords::in::their::halls:of
     stone,:Nine             for:Mortal
-    :::Men:::     ________     doomed::to
-    die.:One   _,-'...:... `-.    for:::the
-    ::Dark::  ,- .:::::::::::. `.   Lord::on
-    his:dark ,'  .:::::zzz:::::.  `.  :throne::
-    In:::the/    ::::dMMMMMb::::    \ Land::of:
-    :Mordor:\    ::::dMMmgJP::::    / :where::::
-    ::the::: '.  '::::YMMMP::::'  ,'   Shadows:
-    lie.::One `. ``:::::::::'' ,'    :Script:
-    to:rule:    `-._```:'''_,-'     ::them::
-    all,::One      `-----'        Script:to
-    ::find:::                  them,:One
-    Script:::to            bring::them
+   :::Men:::     ________     doomed::to
+ die.:One   _,-'...:... `-.    for:::the
+ ::Dark::  ,- .:::::::::::. `.   Lord::on
+his:dark ,'  .:::::zzz:::::.  `.  :throne:
+In:::the/    ::::dMMMMMb::::    \ Land::of
+:Mordor:\    ::::dMMmgJP::::    / :where::
+::the::: '.  '::::YMMMP::::'  ,'  Shadows:
+ lie.::One  `. ``:::::::::'' ,'    Ring::to
+ ::rule::    `-._```:'''_,-'     ::them::
+ all,::One      `-----'        ring::to
+   ::find:::                  them,:One
+    Ring:::::to            bring::them
       all::and::in:the:darkness:bind
         them:In:the:Land:of:Mordor
            where:::the::Shadows
                 :::lie.:::
+
 
 
 #>
@@ -75,7 +76,7 @@ $m = "Starting service migration execution.."
 Log-Write -LogPath $sLogFile -LineValue $m
 Write-Verbose $m
 
-$module = @("ADDC\ADDC-Migration.psm1", "MSSQL\MSSQL-Migration.psm1", "Support\SMA-Provisioning.psm1", "File-Share\FSS-Migration.psm1")
+$module = @("ADDC\ADDC-Migration.psm1", "MSSQL\MSSQL-Migration.psm1", "Support\SMA-Provisioning.psm1", "File-Share\Move-File.psm1", "Exchange\ExchangeMigrate\loader.psm1")
 
 $module | % {
     Try {
@@ -108,8 +109,11 @@ Invoke-Command -Session $AzureStackSession -ScriptBlock {New-AzureStackTenantDep
 & (Join-Path -Path $PSScriptRoot -ChildPath "\ADDC\ADDC-Migration.ps1")
 
 #-----------------------------------------------------------[File and sharing]---------------------------------------------------------
+$FSSName = "$($environmentname)-$($SMAConfig.FSS.hostname)"
+$FSSNewIP = $SMAConfig.FSS.newip + $CIDR
 
-#& (Join-Path -Path $PSScriptRoot -ChildPath "\File-Share\FSS-Migration.ps1")
+Invoke-Command -Session $AzureStackSession -ScriptBlock {New-AzureStackTenantDeployment -VMName $using:FSSName -IPAddress $using:FSSNewIP -DomainCredential $using:DomainCredential}
+& (Join-Path -Path $PSScriptRoot -ChildPath "\File-Share\Migrate-FSS.ps1")
 
 #-----------------------------------------------------------[SQL Server]---------------------------------------------------------------
 $SQLName = "$($environmentname)-$($SMAConfig.MSSQL.hostname)"
@@ -120,8 +124,9 @@ Invoke-Command -Session $AzureStackSession -ScriptBlock {New-AzureStackTenantDep
 
 #-----------------------------------------------------------[Exchange]-----------------------------------------------------------------
 $ExchName = "$($environmentname)-$($SMAConfig.Exchange.hostname)"
+$ExchNewIp = $SMAConfig.Exchange.newip + $CIDR
 
-#Invoke-Command -Session $AzureStackSession -ScriptBlock {New-AzureStackTenantDeployment -VMName $using:ExchName -IPAddress "192.168.59.116/24" -DomainCredential $using:DomainCredential}
+Invoke-Command -Session $AzureStackSession -ScriptBlock {New-AzureStackTenantDeployment -VMName $using:ExchName -IPAddress $using:ExchNewIp -DomainCredential $using:DomainCredential}
 & (Join-Path -Path $PSScriptRoot -ChildPath "\Exchange\Migrate-Exchange.ps1") + $DomainCredential
 
 #Close the azure stack session & log file
