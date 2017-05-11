@@ -23,11 +23,6 @@
            where:::the::Shadows
                 :::lie.:::
 
-    Credential-list
-    *AzureLocalCredential
-    *AzureTenantCredential
-    *DomainCredential
-    *LocalCredential (VMCredential)
 
 #>
 
@@ -48,20 +43,21 @@ $functions | % {
         Write-Verbose $_.Exception
     }
 }
+
+#---------------------------------------------------------[Load credentials]--------------------------------------------------------
+#$AzureLocalCredential = (Get-Credential -Message "Please insert your Local AzureStack Credentials")
+#$AzureTenantCredential = (Get-Credential -Message "Please insert your Azure Tenant Credentials")
 if(!$DomainCredential){
     $global:DomainCredential = (Get-Credential -Message "Please insert your domain administrator credentials")
 }
 if(!$SqlCredential){
     $global:SqlCredential = (Get-Credential -Message "Please insert a password for SQL Authentication")
 }
-#$AzureLocalCredential = (Get-Credential -Message "Please insert your Local AzureStack Credentials")
-#$AzureTenantCredential = (Get-Credential -Message "Please insert your Azure Tenant Credentials")
-
-#$LocalCredential = (Get-Credential -Message "Please insert a password for the local administrator on the new VMs")
-
+if(!$VMCredential){ #TODO: Pass these to vm provisioning
+    $global:VMCredential = (Get-Credential -Message "Please insert a password for the local administrator on the new VMs")
+}
 
 #----------------------------------------------------------[Global Declarations]----------------------------------------------------------
-
 $global:SMAConfig = Get-IniContent -FilePath (Join-Path -Path $PSScriptRoot -ChildPath "Configuration.ini")
 
 $sLogPath = $SMAConfig.Global.logpath
@@ -73,7 +69,6 @@ $environmentname = $SMAConfig.Global.environmentname
 $CIDR = "/$($SMAConfig.Global.network.Split("/")[1])"
 
 #-----------------------------------------------------------[Execution]------------------------------------------------------------
-
 Log-Start -LogPath $sLogPath -LogName $sLogName -ScriptVersion "1.0"
 
 $m = "Starting service migration execution.."
@@ -93,8 +88,9 @@ $module | % {
         Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $False
     }
 }
+
 #-----------------------------------------------------------[Azure Stack]---------------------------------------------------------
-<# Create the Azure Stack PSSession
+# Create the Azure Stack PSSession
 $AzureStackSession = New-PSSession -ComputerName $SMAConfig.Global.Get_Item('azurestacknat') -Credential $AzureLocalCredential -Port 13389
 
 #Pass the config to the azure stack session
@@ -103,18 +99,19 @@ Invoke-Command -Session $AzureStackSession -ScriptBlock {param($SMAConfig)$globa
 # Authenticate the session with Azure AD
 $Authenticator = Join-Path -Path $PSScriptRoot -ChildPath "\Support\Remote-ARM\Set-ArmCredential.ps1"
 & $Authenticator -ARMSession $AzureStackSession -ArmCredential $AzureTenantCredential
-#>
 
 #-----------------------------------------------------------[Active Directory]---------------------------------------------------------
+$ADDCName = "$($environmentname)-$($SMAConfig.MSSQL.hostname)"
+$ADDCDestination = $SMAConfig.MSSQL.destination + $CIDR
 
-#& (Join-Path -Path $PSScriptRoot -ChildPath "\ADDC\ADDC-Migration.ps1")
-#Invoke-Command -Session $AzureStackSession -ScriptBlock {New-AzureStackTenantDeployment -VMName "TEST2" -IPAddress "192.168.59.14/24" -DomainCredential $DomainCredential}
+Invoke-Command -Session $AzureStackSession -ScriptBlock {New-AzureStackTenantDeployment -VMName $using:ADDCName -IPAddress $using:ADDCDestination -DomainCredential $DomainCredential}
+& (Join-Path -Path $PSScriptRoot -ChildPath "\ADDC\ADDC-Migration.ps1")
 
 #-----------------------------------------------------------[SQL Server]---------------------------------------------------------------
-$Name = "$($environmentname)-$($SMAConfig.MSSQL.hostname)"
-$Destination = $SMAConfig.MSSQL.destination + $CIDR
+$SQLName = "$($environmentname)-$($SMAConfig.MSSQL.hostname)"
+$SQLDestination = $SMAConfig.MSSQL.destination + $CIDR
 
-#Invoke-Command -Session $AzureStackSession -ScriptBlock {New-AzureStackTenantDeployment -VMName $using:Name -IPAddress $using:Destination -DomainCredential $using:DomainCredential}
+Invoke-Command -Session $AzureStackSession -ScriptBlock {New-AzureStackTenantDeployment -VMName $using:SQLName -IPAddress $using:SQLDestination -DomainCredential $using:DomainCredential}
 & (Join-Path -Path $PSScriptRoot -ChildPath "\MSSQL\MSSQL-Migration.ps1")
 
 #-----------------------------------------------------------[File and sharing]---------------------------------------------------------

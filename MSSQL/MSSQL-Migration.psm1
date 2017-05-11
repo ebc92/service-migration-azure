@@ -3,8 +3,7 @@ Function Start-MSSQLInstallConfig{
     [string]$PackagePath,
     [PSCredential]$Credential
   )
-  
-  Process {
+
     Try{
 
       Log-Write -LogPath $sLogFile -LineValue "Building the MSSQL deployment configuration.."
@@ -38,12 +37,8 @@ Function Start-MSSQLInstallConfig{
       Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $False
       Log-Write -Logpath $sLogFile -LineValue "No existing configuration file was found, please provide it and rerun."
     }
-  }
-  
-    End{
-        If(Test-Path "$PackagePath\DeploymentConfig.ini"){
+    If(Test-Path "$PackagePath\DeploymentConfig.ini"){
         Log-Write -LogPath $sLogFile -LineValue "Unattended configurationfile was successfully transferred to $PackagePath."
-        }
     }
 }
 

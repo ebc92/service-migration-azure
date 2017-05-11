@@ -15,35 +15,28 @@ $xLogDate = (Get-Date -Format dd_M_yyyy_HHmm).ToString()
 $sLogName = "SMA-MSSQL-$($xLogDate).log"
 $sLogFile = Join-Path -Path $sLogPath -ChildPath $sLogName
 
-#Todo: retrieve creds & concatenate source to trustedhost
-
-#*DomainCredential
-#*SqlCredential
-
-
-
-<#Install SMA
+# Install service-migration azure on the source
 Log-Write -LogPath $sLogFile -LineValue "Installing service-migratio-azure on SQL source host..."
 Try {
-    Write-Output $PSScriptRoot
     $SMARoot = Resolve-Path -Path (Join-Path -Path $PSScriptRoot -ChildPath "..\")
-    Write-Output $SMARoot
+
     $SQLSession = New-PSSession -ComputerName $Source -Credential $DomainCredential
     Invoke-Command -Session $SQLSession -ScriptBlock {param($SMAConfig)$global:SMAConfig} -ArgumentList $SMAConfig
     Invoke-Command -Session $SQLSession -FilePath (Join-Path $SMARoot -ChildPath "\Support\Install-SMModule.ps1") -ErrorAction Stop
+    Log-Write -LogPath $sLogFile -LineValue "Service-migration-azure was successfully installed on SQL source host."
+
 } Catch {
     Log-Write -LogPath $sLogFile -LineValue "An error occured when trying to install service-migration-azure on source host."
     Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $False
-}
-Log-Write -LogPath $sLogFile -LineValue "SMA was installed."
 
-<# Retrieve configuration file from source SQL server
+}
+
+# Retrieve configuration file from SQL source host
 $ScriptBlock = {
     $sLogFile = $using:sLogFile
     $SMARoot = "C:\service-migration-azure"
 
-
-    #Dot source libraries
+    # Dot source libraries
     $functions = @("Libraries\Log-Functions.ps1", "\Libraries\Manage-Configuration.ps1")
     $functions | % {
     Try {
@@ -60,10 +53,10 @@ $ScriptBlock = {
     Start-MSSQLInstallConfig -PackagePath $using:PackagePath -Credential $using:DomainCredential
 }
 
-Invoke-Command -ComputerName $Source -ScriptBlock $ScriptBlock -Credential $DomainCredential
+Invoke-Command -Session $SQLSession -ScriptBlock $ScriptBlock
+Remove-PSSession $SQLSession
 
-
-
+# Creating DSC configuration data
 $cd = @{
     AllNodes = @(
         @{
@@ -77,8 +70,13 @@ $cd = @{
 Try {
     Log-Write -LogPath $sLogFile -LineValue "Generating MOF-file from DSC script."
     DesiredStateSQL -ConfigurationData $cd -PackagePath $PackagePath -DomainCredential $DomainCredential
-    Log-Write -LogPath $sLogFile -LineValue "Starting DSC configuration."
+
+    Log-Write -LogPath $sLogFile -LineValue "Starting DSC configuration. Writing transcript to log."
+
+    Start-Transcript -Path $sLogFile -Append
     Start-DscConfiguration -ComputerName $Destination -Path .\DesiredStateSQL -Verbose -Wait -Force -Credential $Credential -ErrorAction Stop
+    Stop-Transcript
+
     Log-Write -LogPath $sLogFile -LineValue "DSC configuration was succcessfully pushed."
 
 } Catch {
@@ -86,60 +84,13 @@ Try {
     Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $False
 }
 
+$SQLSession = New-PSSession -ComputerName $Destination -Credential $DomainCredential
+$ConfigurationPath = Resolve-Path (Join-Path -Path $PSScriptRoot -ChildPath "..\Configuration.ini")
+Copy-Item -ToSession $SQLSession -Path $ConfigurationPath
+Remove-PSSession $SQLSession
 
-$ScriptBlock = {
-    Param(
-    $Source,
-    $Destination,
-    $Instance,
-    $SqlCredential,
-    $PackagePath
-    )
-    
-    $sLogPath = $using:sLogPath
-    $sLogName = "SMA-MSSQL-$($using:xLogDate).log"
-    $sLogFile = Join-Path -Path $sLogPath -ChildPath $sLogName
+$dialog = New-Object -ComObject Wscript.Shell
+$dialog.Popup("LOG ON TO $($Source) AND RUN THE START-MSSQLMIGRATION SCRIPT MANUALLY.")
 
-    $Source = $using:Source
-    $Destination = $using:Destination
-    $Instance = $using:Instance
-    $SqlCredential = $using:SqlCredential
-    $PackagePath = $using:PackagePath
-
-    Log-Start -LogPath $sLogPath -LogName $sLogName -ScriptVersion "1.0"
-
-    Try {
-        [System.Reflection.Assembly]::LoadWithPartialName("Microsoft.SqlServer.ConnectionInfo") 
-        [System.Reflection.Assembly]::LoadWithPartialName("Microsoft.SqlServer.SMO")
-        [System.Reflection.Assembly]::LoadWithPartialName("Microsoft.SqlServer.SmoExtended") 
-
-        Start-MSSQLMigration -Source $Source -Destination $Destination -InstanceName $Instance -Credential $SqlCredential -SqlCredential $SqlCredential -Share $PackagePath -ErrorAction Stop
-
-    } Catch {
-        Log-Write -LogPath $sLogFile -LineValue "An error occured when trying to start the SQL migration."
-        Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $False
-    }
-}
-
-
-
-Try {
-    Log-Write -LogPath $sLogFile -LineValue "Starting the SQL Server migration..."
-    Invoke-Command -Session $SQLSession -ScriptBlock $ScriptBlock
-} Catch {
-    Log-Write -LogPath $sLogFile -LineValue "An error occured when trying to run the migration."
-    Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $False
-}
-#>
-
-    Log-Write -LogPath $sLogFile -LineValue "Installing DBATools for SQL Server migration."
-    Try {
-        $DbaTools = Resolve-Path (Join-Path -Path $PSScriptRoot -ChildPath "..\Libraries\Install-DBATools.ps1")
-        & $DbaTools
-
-    } Catch {
-        Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $False
-        Log-Write -Logpath $sLogFile -LineValue "dbatools installation failed.."
-    }
-
-Start-MSSQLMigration -Source $Source -Destination $Destination -InstanceName $Instance -Credential $SqlCredential -SqlCredential $SqlCredential -Share $PackagePath -ErrorAction Stop
+$dialog = New-Object -ComObject Wscript.Shell
+$dialog.Popup("I hereby confirm and solemnly swear that the`nStart-SQLMigration.ps1 script has been successfully`nrun on $($Source) and that service-migration-azure`nmay proceed with the migration.")
