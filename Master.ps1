@@ -107,16 +107,16 @@ $ADDCDestination = $SMAConfig.MSSQL.destination + $CIDR
 Invoke-Command -Session $AzureStackSession -ScriptBlock {New-AzureStackTenantDeployment -VMName $using:ADDCName -IPAddress $using:ADDCDestination -DomainCredential $DomainCredential}
 & (Join-Path -Path $PSScriptRoot -ChildPath "\ADDC\ADDC-Migration.ps1")
 
+#-----------------------------------------------------------[File and sharing]---------------------------------------------------------
+
+#& (Join-Path -Path $PSScriptRoot -ChildPath "\File-Share\FSS-Migration.ps1")
+
 #-----------------------------------------------------------[SQL Server]---------------------------------------------------------------
 $SQLName = "$($environmentname)-$($SMAConfig.MSSQL.hostname)"
 $SQLDestination = $SMAConfig.MSSQL.destination + $CIDR
 
 Invoke-Command -Session $AzureStackSession -ScriptBlock {New-AzureStackTenantDeployment -VMName $using:SQLName -IPAddress $using:SQLDestination -DomainCredential $using:DomainCredential}
 & (Join-Path -Path $PSScriptRoot -ChildPath "\MSSQL\MSSQL-Migration.ps1")
-
-#-----------------------------------------------------------[File and sharing]---------------------------------------------------------
-
-#& (Join-Path -Path $PSScriptRoot -ChildPath "\File-Share\FSS-Migration.ps1")
 
 #-----------------------------------------------------------[Exchange]-----------------------------------------------------------------
 $ExchName = "$($environmentname)-$($SMAConfig.Exchange.hostname)"
