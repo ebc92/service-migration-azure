@@ -104,7 +104,7 @@ $Authenticator = Join-Path -Path $PSScriptRoot -ChildPath "\Support\Remote-ARM\S
 $ADDCName = "$($environmentname)-$($SMAConfig.MSSQL.hostname)"
 $ADDCDestination = $SMAConfig.MSSQL.destination + $CIDR
 
-Invoke-Command -Session $AzureStackSession -ScriptBlock {New-AzureStackTenantDeployment -VMName $using:ADDCName -IPAddress $using:ADDCDestination -DomainCredential $DomainCredential}
+Invoke-Command -Session $AzureStackSession -ScriptBlock {New-AzureStackTenantDeployment -VMName $using:ADDCName -IPAddress $using:ADDCDestination -DomainCredential $using:DomainCredential}
 & (Join-Path -Path $PSScriptRoot -ChildPath "\ADDC\ADDC-Migration.ps1")
 
 #-----------------------------------------------------------[File and sharing]---------------------------------------------------------
