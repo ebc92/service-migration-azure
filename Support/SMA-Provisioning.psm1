@@ -13,6 +13,11 @@ $IpCalc = Join-Path -Path $SMARoot -ChildPath "Libraries\ipcalculator.ps1"
 
 #----------------------------------------------------------[Declarations]----------------------------------------------------------
 
+$var = "This-is-a-file.log"
+
+$newVar = $var.Split(".")[0] + "-VMNAME." + $var.Split(".")[1]
+
+
 $sScriptVersion = "1.0"
 $xLogDate = (Get-Date -Format dd_M_yyyy_HHmm).ToString()
 $sLogPath = $SMAConfig.Global.logpath
@@ -35,6 +40,8 @@ Function New-AzureStackTenantDeployment {
         $DomainCredential,
         $Location = "local"
     )
+
+    $sLogName = $sLogName.Split(".")[0] + "-$($VMName)." + $sLogName.Split(".")[1]
 
     Log-Start -LogPath $sLogPath -LogName $sLogName -ScriptVersion $sScriptVersion
 
