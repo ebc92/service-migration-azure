@@ -56,27 +56,14 @@ Function Start-MSSQLMigration {
     [PSCredential]$SqlCredential,
     [String]$Share
   )
-
-    Log-Write -LogPath $sLogFile -LineValue "Starting the MSSQL migration process.."
-    Try {
-        . "C:\service-migration-azure-develop\Libraries\Test-WsmanSqlConnection.ps1"
-        Log-Write -LogPath $sLogFile -LineValue "Installing dbatools.."
-        $DbaTools = Resolve-Path (Join-Path -Path "C:\service-migration-azure-develop\" -ChildPath "Libraries\Install-DBATools.ps1")
-        & $DbaTools
-
-    } Catch {
-        Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $False
-        Log-Write -Logpath $sLogFile -LineValue "dbatools installation failed.."
-    }
-
     Try{
-        Log-Write -Logpath $sLogFile -LineValue "Starting connectiontest on $($Destination)\$($InstanceName)."
-        $ConnectionTest = Test-WsmanSqlConnection -SqlServer "$($Destination)\$($InstanceName),1433" -SqlCredential $SqlCredential -ErrorAction Stop
+        Log-Write -Logpath $sLogFile -LineValue "Starting connectiontest on $($Destination)\$($InstanceName) using the share $($Share)."
+        $ConnectionTest = Test-SqlConnection -SqlServer "$($Destination)\$($InstanceName),1433" -SqlCredential $SqlCredential
         If (!$ConnectionTest.ConnectSuccess){
             Log-Write -Logpath $sLogFile -LineValue "Could not establish connection to the destination server."
         } else {
             Log-Write -Logpath $sLogFile -LineValue "Connectiontest was successful!"
-            Start-SqlMigration -Source "localhost\$($InstanceName)" -Destination "$($Destination)\$($InstanceName),1433" -SourceSqlCredential $SqlCredential -DestinationSqlCredential $SqlCredential -NetworkShare $Share -BackupRestore     
+            Start-SqlMigration -Source "$($Source)\$($InstanceName),1433" -Destination "$($Destination)\$($InstanceName),1433" -SourceSqlCredential $SqlCredential -DestinationSqlCredential $SqlCredential -NetworkShare $Share -BackupRestore     
         }
     } Catch {
         Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $False

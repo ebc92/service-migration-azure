@@ -22,7 +22,7 @@ $sLogFile = Join-Path -Path $sLogPath -ChildPath $sLogName
 
 
 
-#Install SMA
+<#Install SMA
 Log-Write -LogPath $sLogFile -LineValue "Installing service-migratio-azure on SQL source host..."
 Try {
     Write-Output $PSScriptRoot
@@ -86,7 +86,6 @@ Try {
     Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $False
 }
 
-#>
 
 $ScriptBlock = {
     Param(
@@ -131,3 +130,16 @@ Try {
     Log-Write -LogPath $sLogFile -LineValue "An error occured when trying to run the migration."
     Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $False
 }
+#>
+
+    Log-Write -LogPath $sLogFile -LineValue "Installing DBATools for SQL Server migration."
+    Try {
+        $DbaTools = Resolve-Path (Join-Path -Path $PSScriptRoot -ChildPath "..\Libraries\Install-DBATools.ps1")
+        & $DbaTools
+
+    } Catch {
+        Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $False
+        Log-Write -Logpath $sLogFile -LineValue "dbatools installation failed.."
+    }
+
+Start-MSSQLMigration -Source $Source -Destination $Destination -InstanceName $Instance -Credential $SqlCredential -SqlCredential $SqlCredential -Share $PackagePath -ErrorAction Stop

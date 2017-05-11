@@ -37,7 +37,7 @@
 $VerbosePreference = "Continue"
 
 #Dot source dsc, functions, scripts and libraries
-$functions = @("Support\Get-GredentialObject.ps1", "Libraries\Manage-Configuration.ps1", "Libraries\Log-Functions.ps1", "MSSQL\DesiredStateSQL.ps1", "ADDC\DesiredStateAD.ps1")
+$functions = @("Libraries\Test-WsmanSqlConnection.ps1", "Libraries\Manage-Configuration.ps1", "Libraries\Log-Functions.ps1", "MSSQL\DesiredStateSQL.ps1", "ADDC\DesiredStateAD.ps1")
 $functions | % {
     Try {
         $path = Join-Path -Path $PSScriptRoot -ChildPath $_
@@ -67,7 +67,7 @@ $global:SMAConfig = Get-IniContent -FilePath (Join-Path -Path $PSScriptRoot -Chi
 $sLogPath = $SMAConfig.Global.logpath
 $xLogDate = (Get-Date -Format dd_M_yyyy_HHmm).ToString()
 $sLogName = "SMA-Master-$($xLogDate).log"
-$sLogFile = Join-Path -Path $sLogPath -ChildPath $sLogName
+$global:sLogFile = Join-Path -Path $sLogPath -ChildPath $sLogName
 
 $environmentname = $SMAConfig.Global.environmentname
 $CIDR = "/$($SMAConfig.Global.network.Split("/")[1])"
