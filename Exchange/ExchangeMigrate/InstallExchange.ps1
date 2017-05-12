@@ -288,7 +288,7 @@ Configuration InstallExchange
     xExchInstall InstallExchange
     {
       Path       = "$ExchangeBinary\setup.exe"
-      Arguments  = "/mode:Install /role:Mailbox /IAcceptExchangeServerLicenseTerms /OrganizationName:Nikolaitl"
+      Arguments  = "/mode:Install /role:Mailbox /IAcceptExchangeServerLicenseTerms"
       Credential = $DomainCredential
 
       DependsOn  = '[xPendingReboot]BeforeExchangeInstall'
