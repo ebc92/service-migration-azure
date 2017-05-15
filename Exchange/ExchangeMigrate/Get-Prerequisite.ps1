@@ -8,7 +8,20 @@
     [parameter(Mandatory=$true)]
     [PSCredential]$DomainCredential
   )
-  
+    <#
+      .SYNOPSIS
+        Gets all required files for Exchange Server 2016, including the ISO for CU5
+      .DESCRIPTION
+        Downloads all the required files for a Excange 2016 install, to a targeted fileshare
+      .PARAMETER fileShare
+        The folder on the fileshare where the executables for the Exchange 2016 is to be downloaded.
+      .PARAMETER ComputerName
+        Name of the server you are targeting, do not use IP as it will break the script because of WinRM authentication. Name can be amstel-mail, or the FQDN amstel-mail.amstel.local
+      .PARAMETER DomainCredential
+        A credential object, for example created by running Get-Credential
+      .EXAMPLE
+        Get-Prerequisite -fileShare \\share\TempExchange\Executables -ComputerName amstel-exch -DomainCredential CredObject
+  #>
   Begin{
     $variableOutput = '        $fileShare ' + "= $fileShare `n"`
     +'        $tarComp ' + "= $ComputerName `n"`

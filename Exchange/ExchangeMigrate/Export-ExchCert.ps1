@@ -8,9 +8,28 @@
     [Parameter(Mandatory=$true)]
     [String]$Password,
     [Parameter(Mandatory=$true)]
-    [pscredential]$DomainCredential
+    [pscredential]$DomainCredential,
+    [Parameter(Mandatory=$true)]
+    [String]$Basedir
   )
-  
+  <#
+      .SYNOPSIS
+        Gets the Exchange certificates
+      .DESCRIPTION
+        Exports Exchange certificate and saves it to a targeted fileshare.
+      .PARAMETER SourceComputer
+        Name of the server you are using as migration source, do not use IP as it will break the script because of WinRM authentication. Name can be amstel-mail, or the FQDN amstel-mail.amstel.local
+      .PARAMETER fqdn
+        The fully qualified domain name of the source Exchange server used for migration, for example amstel-mail.amstel.local
+      .PARAMETER Password
+        The password used for the Exchange certificate for import
+      .PARAMETER DomainCredential
+        A credential object, for example created by running Get-Credential
+      .PARAMETER BaseDir
+        The base directory for the Temporary Exchange folder on the fileshare. \\share\TempExchange
+      .EXAMPLE
+        Export-ExchCert -SourceComputer amstel-mail -fqdn amstel-mail.amstel.local -Password Password -DomainCredential CredObject Basedir \\fileshare\TempExchange
+  #>
   Begin{
     Log-Write -LogPath $xLogFile -LineValue 'Exporting Exchange Certificate to fileshare...'
   }
@@ -70,7 +89,9 @@
           #Copies the web.config that allows for full language remoting
           Copy-Item -Path $NewPSWebAppDir\web.config -Destination ($HttpProxyDir)
           }
-      Remove-PSSession $FixRemoteSess #>    
+      Remove-PSSession $FixRemoteSess #>
+      
+      $CertPath = (Join-Path $Basedir -ChildPath Cert\exchcert.pfx )   
     
       #Creates a session to the Exchange Remote Management Shell so that we can run Exchange commands
       $ConfigSession = New-PSSession -ConfigurationName Microsoft.Exchange -ConnectionUri http://$fqdn/powershell `
@@ -85,7 +106,7 @@
       
       $Password = ConvertTo-SecureString $Password -AsPlainText -Force
       
-      Export-ExchangeCertificate -Thumbprint $ExchCert -FileName Z:\Cert\exchcert.pfx -Password $Password
+      Export-ExchangeCertificate -Thumbprint $ExchCert -FileName $CertPath -Password $Password
       
     }      
     Catch {

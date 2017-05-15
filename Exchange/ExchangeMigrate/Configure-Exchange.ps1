@@ -1,4 +1,30 @@
 ﻿Function Configure-Exchange {
+  <#
+      .SYNOPSIS
+      Configures Exchange URLs, moves mailboxes and imports an exported certificate.
+      .DESCRIPTION
+        First creates a session to Exchange Management Shell on target server. It then imports a previously exported exchange certificate, this one is gotten from the path Z:\Cert\Exchcert.pfx
+        which is a mounted file share on the server. The function then sets all Exchange URLs to this format: http://www.example.com/exchangeurl. Note that http is used because of this being a
+        proof of concept, in an actual live environment https:// would be used.
+
+      The last thing that happens, is the migration of the mailbox database. This is done by getting the existing databases, then using New-MoveRequest to move them.
+      .PARAMETER ComputerName
+        Name of the server you are targeting, do not use IP as it will break the script because of WinRM authentication. Name can be amstel-mail, or the FQDN amstel-mail.amstel.local
+      .PARAMETER SourceComputer
+        Name of the server you are using as migration source, do not use IP as it will break the script because of WinRM authentication. Name can be amstel-mail, or the FQDN amstel-mail.amstel.local
+      .PARAMETER Newfqdn
+        The fully qualified domain name of the new Exchange server, for example amstel-exch.amstel.local
+      .PARAMETER Password
+        The password used for the Exchange certificate for import
+      .PARAMETER DomainCredential
+       A credential object, for example created by running Get-Credential
+      .PARAMETER Hostname
+        The hostname of the Exchange organization. Format is wwww.example.com
+      .PARAMETER BaseDir
+        The base directory for the Temporary Exchange folder on the fileshare. \\share\TempExchange
+      .EXAMPLE
+        COnfigure-Exchange -ComputerName amstel-exch -SourceComputer amstel-mail - amstel-exch.amstel.local -Password password -DomainCredential CredObject -Hostname www.nikolaitl.no
+  #>
   [CmdletBinding()]
   Param(
     [Parameter(Mandatory=$true)]
@@ -6,23 +32,27 @@
     [Parameter(Mandatory=$true)]
     [String]$SourceComputer,
     [Parameter(Mandatory=$true)]
-    [String]$newfqdn,
+    [String]$Newfqdn,
     [Parameter(Mandatory=$true)]
     [String]$Password,
     [Parameter(Mandatory=$true)]
     [pscredential]$DomainCredential,
     [Parameter(Mandatory=$true)]
-    [String]$hostname
-  )
-  
+    [String]$Hostname,
+    [Parameter(Mandatory=$true)]
+    [String]$BaseDir
+  )  ho 
   Begin{
     Log-Write -LogPath $xLogFile -LineValue 'Configuring new Exchange Install...'
   }
   
   Process{
-    Try{   
+    Try{
+    
+      $CertPath = (Join-Path $Basedir -ChildPath Cert\exchcert.pfx )
+        
       #Creates a session to the Exchange Remote Management Shell so that we can run Exchange commands
-      $ConfigSession = New-PSSession -ConfigurationName Microsoft.Exchange -ConnectionUri http://$newfqdn/powershell `
+      $ConfigSession = New-PSSession -ConfigurationName Microsoft.Exchange -ConnectionUri http://$/powershell `
       -Credential $DomainCredential -Authentication Kerberos
       
       #Imports the module that exists in the session, in this case, Exchange Management -AllowClobber gives the imported commands presedence.
@@ -34,39 +64,35 @@
       
       $Password = ConvertTo-SecureString $Password -AsPlainText -Force
       
-      Import-ExchangeCertificate -FileName Z:\Cert\exchcert.pfx -PrivateKeyExportable $true -Password $Password -Server $ComputerName | `
+      Import-ExchangeCertificate -FileName $Basedir -PrivateKeyExportable $true -Password $Password -Server $ComputerName | `
       Enable-ExchangeCertificate -Services POP,IMAP,SMTP,IIS -DoNotRequireSsl
       
       #Now starting with setting up Exchange Virtual Directory URLs, using http:// because it is a test enviroment
       
       #Set OutlookAnywhere URLs
-      Get-OutlookAnywhere -Server $ComputerName | Set-OutlookAnywhere -InternalHostname $hostname `
-      -InternalClientAuthenticationMethod Ntlm -InternalClientsRequireSsl $false  `
-      -ExternalHostname $hostname -ExternalClientAuthenticationMethod Basic `
+      Get-OutlookAnywhere -Server $ComputerName | Set-OutlookAnywhere -InternalHostname $Hostname `
+      -InhostnameientAuthenticationMethod Ntlm -InternalClientsRequireSsl $false  `
+      -ExternalHostname $Hostname -ExternalClihostnamenticationMethod Basic `
       -ExternalClientsRequireSsl $false -IISAuthenticationMethods Negotiate,NTLM,Basic
       
       #Set ECP URLs
-      Get-EcpVirtualDirectory -Server $newfqdn | Set-EcpVirtualDirectory -InternalURL http://$hostname/ecp `
-      -ExternalURL http://$hostname/ecp
+      Get-EcpVirtualDirectory -Server $Newfqdn | Set-EcpVirtualDirectory -InternalURL http://$Hostname/ecp `
+      -Exterhostnamettp://$Hostname/ecp
       
-      #Set OWA URLs
-      Get-OwaVirtualDirectory -Server $ComputerName| Set-OwaVirtualDirectory -InternalUrl http://www.$hostname.com/owa `
-      -ExternalUrl http://$hostname/owa
+      hostname URLs
+      Get-OwaVirtualDirectory -Server $ComputerName| Set-OwaVirtualDirectory -InternalUrl http://www.$Hostname.com/owa `
+      -Ehostnamerl http://$Hostname/owa
       
-      #Set EWS URLs
-      Get-WebServicesVirtualDirectory -Server $newfqdn | Set-WebServicesVirtualDirectory -InternalUrl http://$hostname/EWS/Exchange.asmx `
-      -ExternalUrl http://$hostname/EWS/Exchange.asmx
-      
-      #Set ActiveSync URLs      Get-ActiveSyncVirtualDirectory -Server $newfqdn | Set-ActiveSyncVirtualDirectory `
-      -InternalUrl http://$hostname/Microsoft-Server-ActiveSync -ExternalUrl http://$hostname/Microsoft-Server-ActiveSync
-      
-      #Set OAB URLs
-      Get-OabVirtualDirectory -Server $newfqdn | Set-OabVirtualDirectory -InternalUrl http://$hostname/OAB -ExternalUrl http://$hostname/OAB
-      
-      #Set MAPI URLs
-      Get-MapiVirtualDirectory -Server $newfqdn | Set-MapiVirtualDirectory -InternalUrl http://$hostname/mapi -ExternalUrl http://$hostname/mapi
-      
-      #URLs are set, starting migration of data
+      hostname URLs
+      Get-WebServicesVirtualDirectory -Server $Newfqdn | Set-WebServicesVirtualDirectory -InternalUrl http://$Hostname/EWS/Exchange.asmx `
+      hostnamealUrl http://$Hostname/EWS/Exchange.asmx
+            hostnameSet ActiveSync URLs      Get-ActiveSyncVirtualDirectory -Server $Newfqdn | Set-ActiveSyncVirtualDirectory `
+      -InternalUrl http://$Hostname/Microsoft-Server-ActiveSync -Extehostnamehttp://$Hostname/Microsoft-Server-ActiveSync
+      hostname  #Set OAB URLs
+      Get-OabVirtualDirectory -Server $Newfqdn | Set-OabVirtualDirectory -InternalUrl http://$Hostname/OAB -ExternalUrl http://$Hostname/OAB
+      hostname     #Set MAPI URLs
+      hostnameiVirtualDirectory -Server $Newfqdn | Set-MapiVirtualDirectory -InternalUrl http://$Hostname/mapi -ExternalUrl http://$Hostname/mapi
+      hostname#URLs are set, starting mighostnamef data
       #Gets the name of the new Exchange Database
       $NewMailDatabase = (Get-MailboxDatabase -Server $ComputerName).Name
       $OldMailDatabase = (Get-MailboxDatabase -Server $SourceComputer).Name
