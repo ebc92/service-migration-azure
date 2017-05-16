@@ -42,23 +42,23 @@ $global:SourceInstall = New-PSSession -ComputerName $SourceComputer -Credential 
 Log-Start -LogPath $xLogPath -LogName $xLogName -ScriptVersion "1.0"
 
 #Downloads all required files
-Get-Prerequisite -fileShare $fileshare -ComputerName $ComputerName -DomainCredential $DomainCredential -Verbose
+#Get-Prerequisite -fileShare $fileshare -ComputerName $ComputerName -DomainCredential $DomainCredential -Verbose
 
 #Mount fileshare on source VM
-Mount-FileShare -DomainCredential $DomainCredential -ComputerName $SourceComputer -baseDir $baseDir -Verbose
+#Mount-FileShare -DomainCredential $DomainCredential -ComputerName $SourceComputer -baseDir $baseDir -Verbose
 
 #Mount fileshare on target VM
-Mount-FileShare -DomainCredential $DomainCredential -ComputerName $ComputerName -baseDir $baseDir -Verbose
+#Mount-FileShare -DomainCredential $DomainCredential -ComputerName $ComputerName -baseDir $baseDir -Verbose
 
 
 #Mounts the Exchange ISO
-Mount-Exchange -FileShare $fileshare -ComputerName $ComputerName -baseDir $baseDir -DomainCredential $DomainCredential -Verbose
+#Mount-Exchange -FileShare $fileshare -ComputerName $ComputerName -baseDir $baseDir -DomainCredential $DomainCredential -Verbose
 
 #Creates a new certificate to encrypt .mof DSC files
-New-DSCCertificate -ComputerName $ComputerName -DomainCredential $DomainCredential -Verbose
+#New-DSCCertificate -ComputerName $ComputerName -DomainCredential $DomainCredential -Verbose
 
 #Compiles .mof files, installs UCMA and starts DSC
-Install-Prerequisite -baseDir $baseDir -ComputerName $ComputerName -DomainCredential $DomainCredential -CertPW $Password -Verbose
+#Install-Prerequisite -baseDir $baseDir -ComputerName $ComputerName -DomainCredential $DomainCredential -CertPW $Password -Verbose
 
 
 #Check if target server needs a reboot before continuing
@@ -75,7 +75,7 @@ Do {
 } while ($DSCDone.LCMState -ne "Idle") #>
 
 #Gets the Exchange Certificate and exports it
-Export-ExchCert -SourceComputer $SourceComputer -Hostname $www -Password $Password -DomainCredential $DomainCredential -Verbose
+Export-ExchCert -SourceComputer $SourceComputer -Hostname $www -Password $Password -DomainCredential $DomainCredential -BaseDir $baseDir -Verbose
 
 
 #Configures all Exchange settings
