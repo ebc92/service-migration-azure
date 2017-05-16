@@ -4,7 +4,7 @@
     [Parameter(Mandatory=$true)]
     [String]$SourceComputer,
     [Parameter(Mandatory=$true)]
-    [String]$fqdn,
+    [String]$Hostname,
     [Parameter(Mandatory=$true)]
     [String]$Password,
     [Parameter(Mandatory=$true)]
@@ -18,8 +18,8 @@
       .DESCRIPTION
         Exports Exchange certificate and saves it to a targeted fileshare.
       .PARAMETER SourceComputer
-        Name of the server you are using as migration source, do not use IP as it will break the script because of WinRM authentication. Name can be amstel-mail, or the FQDN amstel-mail.amstel.local
-      .PARAMETER fqdn
+        Name of the server you are using as migration source, do not use IP as it will break the script because of WinRM authentication. Name can be amstel-mail, or the Hostname amstel-mail.amstel.local
+      .PARAMETER Hostname
         The fully qualified domain name of the source Exchange server used for migration, for example amstel-mail.amstel.local
       .PARAMETER Password
         The password used for the Exchange certificate for import
@@ -28,7 +28,7 @@
       .PARAMETER BaseDir
         The base directory for the Temporary Exchange folder on the fileshare. \\share\TempExchange
       .EXAMPLE
-        Export-ExchCert -SourceComputer amstel-mail -fqdn amstel-mail.amstel.local -Password Password -DomainCredential CredObject Basedir \\fileshare\TempExchange
+        Export-ExchCert -SourceComputer amstel-mail -Hostname wwww.example.com -Password Password -DomainCredential CredObject Basedir \\fileshare\TempExchange
   #>
   Begin{
     Log-Write -LogPath $xLogFile -LineValue 'Exporting Exchange Certificate to fileshare...'
@@ -94,7 +94,7 @@
       $CertPath = (Join-Path $Basedir -ChildPath Cert\exchcert.pfx )   
     
       #Creates a session to the Exchange Remote Management Shell so that we can run Exchange commands
-      $ConfigSession = New-PSSession -ConfigurationName Microsoft.Exchange -ConnectionUri http://$fqdn/powershell `
+      $ConfigSession = New-PSSession -ConfigurationName Microsoft.Exchange -ConnectionUri http://$Hostname/powershell `
       -Credential $DomainCredential -Authentication Kerberos
       
       #Imports the module that exists in the session, in this case, Exchange Management -AllowClobber gives the imported commands presedence.
