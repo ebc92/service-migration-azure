@@ -75,7 +75,7 @@ Do {
 } while ($DSCDone.LCMState -ne "Idle") #>
 
 #Gets the Exchange Certificate and exports it
-Export-ExchCert -SourceComputer $SourceComputer -Hostname $www -Password $Password -DomainCredential $DomainCredential -BaseDir $baseDir -Verbose
+Export-ExchCert -SourceComputer $SourceComputer -fqdn $fqdn -Password $Password -DomainCredential $DomainCredential -BaseDir $baseDir -Verbose
 
 
 #Configures all Exchange settings

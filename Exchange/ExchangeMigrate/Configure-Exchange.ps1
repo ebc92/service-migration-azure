@@ -49,7 +49,7 @@
   Process{
     Try{    
       #Creates a session to the Exchange Remote Management Shell so that we can run Exchange commands
-      $ConfigSession = New-PSSession -ConfigurationName Microsoft.Exchange -ConnectionUri http://$Hostname/powershell `
+      $ConfigSession = New-PSSession -ConfigurationName Microsoft.Exchange -ConnectionUri http://$newfqdn/powershell `
       -Credential $DomainCredential -Authentication Kerberos
       
       #Imports the module that exists in the session, in this case, Exchange Management -AllowClobber gives the imported commands presedence.
