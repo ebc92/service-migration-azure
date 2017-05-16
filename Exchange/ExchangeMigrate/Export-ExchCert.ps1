@@ -6,7 +6,7 @@
     [Parameter(Mandatory=$true)]
     [String]$fqdn,
     [Parameter(Mandatory=$true)]
-    [String]$Password,
+    [securestring]$Password,
     [Parameter(Mandatory=$true)]
     [pscredential]$DomainCredential,
     [Parameter(Mandatory=$true)]
@@ -103,8 +103,6 @@
       $ExchCert = Get-ExchangeCertificate
       
       $ExchCert = ($ExchCert | Where-Object {$_.Subject -eq "CN=$SourceComputer"}).Thumbprint
-      
-      $Password = ConvertTo-SecureString $Password -AsPlainText -Force
       
       Export-ExchangeCertificate -Thumbprint $ExchCert -FileName $CertPath -Password $Password
       
