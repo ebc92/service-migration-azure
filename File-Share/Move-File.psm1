@@ -89,12 +89,12 @@ Function Get-RegValue {
         $regvalue
         )
     Process {
-        $RegName = (Invoke-Command -ComputerName $SourceComp -Credential $DomainCredential -ScriptBlock { 
+        $RegName = (Invoke-Command -ComputerName $SourceComputer -Credential $DomainCredential -ScriptBlock { 
             Get-Item -path Registry::hklm\SYSTEM\CurrentControlSet\Services\LanmanServer\Shares\ | Select-Object -ExpandProperty Property
             } )
 
     foreach($element in $RegName) {
-        $RegValue = Invoke-Command -ComputerName $SourCecomp -Credential $DomainCredential -ScriptBlock {
+        $RegValue = Invoke-Command -ComputerName $SourceComputer -Credential $DomainCredential -ScriptBlock {
                 (Get-ItemProperty -Path Registry::hklm\SYSTEM\CurrentControlSet\Services\LanmanServer\Shares\).$using:element
                 }
         Invoke-Command -ComputerName $ComputerName -Credential $DomainCredential -ScriptBlock {

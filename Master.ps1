@@ -113,7 +113,7 @@ $FSSName = "$($environmentname)-$($SMAConfig.FSS.hostname)"
 $FSSNewIP = $SMAConfig.FSS.newip + $CIDR
 
 Invoke-Command -Session $AzureStackSession -ScriptBlock {New-AzureStackTenantDeployment -VMName $using:FSSName -IPAddress $using:FSSNewIP -DomainCredential $using:DomainCredential}
-& (Join-Path -Path $PSScriptRoot -ChildPath "\File-Share\Migrate-FSS.ps1")
+& (Join-Path -Path $PSScriptRoot -ChildPath "\File-Share\Migrate-FSS.ps1") $DomainCredential
 
 #-----------------------------------------------------------[SQL Server]---------------------------------------------------------------
 $SQLName = "$($environmentname)-$($SMAConfig.MSSQL.hostname)"
@@ -127,7 +127,7 @@ $ExchName = "$($environmentname)-$($SMAConfig.Exchange.hostname)"
 $ExchNewIp = $SMAConfig.Exchange.newip + $CIDR
 
 Invoke-Command -Session $AzureStackSession -ScriptBlock {New-AzureStackTenantDeployment -VMName $using:ExchName -IPAddress $using:ExchNewIp -DomainCredential $using:DomainCredential}
-& (Join-Path -Path $PSScriptRoot -ChildPath "\Exchange\Migrate-Exchange.ps1") + $DomainCredential
+& (Join-Path -Path $PSScriptRoot -ChildPath "\Exchange\Migrate-Exchange.ps1") $DomainCredential
 
 #Close the azure stack session & log file
 #Remove-PSSession $AzureStackSession

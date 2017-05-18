@@ -49,6 +49,8 @@
   Process{
     Try{    
       #Creates a session to the Exchange Remote Management Shell so that we can run Exchange commands
+      "The newfqdn is $Newfqdn, the domain cred is $DomainCredential"
+      
       $ConfigSession = New-PSSession -ConfigurationName Microsoft.Exchange -ConnectionUri http://$newfqdn/powershell `
       -Credential $DomainCredential -Authentication Kerberos
       
@@ -59,7 +61,9 @@
       
       $ExchCert = ($ExchCert | Where-Object {$_.Subject -eq "CN=$SourceComputer"}).Thumbprint
       
-      Import-ExchangeCertificate -FileName Z:\Cert\exchcert.pfx -PrivateKeyExportable $true -Password $Password -Server $ComputerName | `
+      $CertPath = (Join-Path $Basedir -ChildPath Cert\exchcert.pfx )
+      
+      Import-ExchangeCertificate -FileName $CertPath -PrivateKeyExportable $true -Password $Password -Server $ComputerName | `
       Enable-ExchangeCertificate -Services POP,IMAP,SMTP,IIS -DoNotRequireSsl
       
       #Now starting with setting up Exchange Virtual Directory URLs, using http:// because it is a test enviroment
