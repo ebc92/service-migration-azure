@@ -1,4 +1,4 @@
-﻿#Getting migration variables from configuration file
+﻿# Getting migration variables from configuration file
 $DNS =   $SMAConfig.ADDC.source
 $ComputerName = $SMAConfig.ADDC.destination
 $VMName = $SMAConfig.ADDC.hostname
@@ -6,7 +6,7 @@ $InterfaceAlias = $SMAConfig.ADDC.interfacealias
 $DomainName = $SMAConfig.ADDC.domainname
 $aLogPath = $SMAConfig.Global.logpath
 
-#Building a string with time and date to use as file name for log file.
+# Build a string with time and date to use as file name for log file.
 $xLogDate = (Get-Date -Format dd_M_yyyy_HHmm).ToString()
 $aLogName = "SMA-ADDC-$($xLogDate).log"
 $aLogFile = Join-Path -Path $aLogPath -ChildPath $aLogName
