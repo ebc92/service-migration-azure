@@ -34,36 +34,39 @@ $global:xLogFile = Join-Path -Path $xLogPath -ChildPath $xLogName
 $global:InstallSession = New-PSSession -ComputerName $ComputerName -Credential $DomainCredential
 $global:SourceInstall = New-PSSession -ComputerName $SourceComputer -Credential $DomainCredential
 
-#Copy-Item (Join-Path -Path $PSScriptRoot -ChildPath xExchange) -Destination "C:\Program Files\WindowsPowerShell\Module" -Recurse -Force
-
-#Copy-Item -ToSession $InstallSession -Path (Join-Path -Path $PSScriptRoot -ChildPath xExchange)
-
-
 Log-Start -LogPath $xLogPath -LogName $xLogName -ScriptVersion "1.0"
 
 #Downloads all required files
+Log-Write -LogPath $xLogPath -LineValue "Starting Get-Prerequisite"
 #Get-Prerequisite -fileShare $fileshare -ComputerName $ComputerName -DomainCredential $DomainCredential -Verbose
 
 #Mount fileshare on source VM
+Log-Write -LogPath $xLogPath -LineValue "Starting Mount-FileShare on $SourceComputer"
 #Mount-FileShare -DomainCredential $DomainCredential -ComputerName $SourceComputer -baseDir $baseDir -Verbose
 
 #Mount fileshare on target VM
+Log-Write -LogPath $xLogPath -LineValue "Starting Mount-FileShare on $ComputerName"
 #Mount-FileShare -DomainCredential $DomainCredential -ComputerName $ComputerName -baseDir $baseDir -Verbose
 
-
 #Mounts the Exchange ISO
+Log-Write -LogPath $xLogPath -LineValue "Starting Mount-Exchange"
 #Mount-Exchange -FileShare $fileshare -ComputerName $ComputerName -baseDir $baseDir -DomainCredential $DomainCredential -Verbose
 
 #Creates a new certificate to encrypt .mof DSC files
+Log-Write -LogPath $xLogPath -LineValue "Starting New-DSCCertificate"
 #New-DSCCertificate -ComputerName $ComputerName -DomainCredential $DomainCredential -Verbose
 
 #Compiles .mof files, installs UCMA and starts DSC
+Log-Write -LogPath $xLogPath -LineValue "Starting Install-Prerequisite"
 #Install-Prerequisite -baseDir $baseDir -ComputerName $ComputerName -DomainCredential $DomainCredential -CertPW $Password -Verbose
 
 
 #Check if target server needs a reboot before continuing
 & Join-Path -Path $PSScriptRoot -ChildPath ..\Support\Start-RebootCheck.ps1" $ComputerName $DomainCredential"
 
+#Starts a 30 minute sleep to give the server time for the end of install configuration, before moving on
+Log-Write -LogPath $xLogPath -LineValue "Sleeping for 30 minutes to give the Exchange server time to finish configuration"
+Start-Sleep -Seconds 1800
 
 <#      
 Do {
@@ -75,10 +78,11 @@ Do {
 } while ($DSCDone.LCMState -ne "Idle") #>
 
 #Gets the Exchange Certificate and exports it
+Log-Write -LogPath $xLogPath -LineValue "Exporting Exchange Certificate"
 Export-ExchCert -SourceComputer $SourceComputer -fqdn $fqdn -Password $Password -DomainCredential $DomainCredential -BaseDir $baseDir -Verbose
 
-
 #Configures all Exchange settings
+Log-Write -LogPath $xLogPath -LineValue "Starting Exchange Configuration"
 Configure-Exchange -ComputerName $ComputerName -SourceComputer $SourceComputer -newfqdn $newfqdn -Password $Password -DomainCredential $DomainCredential -hostname $www -BaseDir $baseDir -Verbose
 
 $SourceInstall | Remove-PSSession
