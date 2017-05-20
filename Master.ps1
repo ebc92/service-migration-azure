@@ -6,17 +6,17 @@
        under:the:sky,:Seven:for:the
      Dwarf-Lords::in::their::halls:of
     stone,:Nine             for:Mortal
-   :::Men:::     ________     doomed::to
- die.:One   _,-'...:... `-.    for:::the
- ::Dark::  ,- .:::::::::::. `.   Lord::on
-his:dark ,'  .:::::zzz:::::.  `.  :throne:
-In:::the/    ::::dMMMMMb::::    \ Land::of
-:Mordor:\    ::::dMMmgJP::::    / :where::
-::the::: '.  '::::YMMMP::::'  ,'  Shadows:
- lie.::One  `. ``:::::::::'' ,'    Ring::to
- ::rule::    `-._```:'''_,-'     ::them::
- all,::One      `-----'        ring::to
-   ::find:::                  them,:One
+    :::Men:::     ________     doomed::to
+    die.:One   _,-'...:... `-.    for:::the
+    ::Dark::  ,- .:::::::::::. `.   Lord::on
+    his:dark ,'  .:::::zzz:::::.  `.  :throne:
+    In:::the/    ::::dMMMMMb::::    \ Land::of
+    :Mordor:\    ::::dMMmgJP::::    / :where::
+    ::the::: '.  '::::YMMMP::::'  ,'  Shadows:
+    lie.::One  `. ``:::::::::'' ,'    Ring::to
+    ::rule::    `-._```:'''_,-'     ::them::
+    all,::One      `-----'        ring::to
+    ::find:::                  them,:One
     Ring:::::to            bring::them
       all::and::in:the:darkness:bind
         them:In:the:Land:of:Mordor
@@ -46,14 +46,22 @@ $functions | % {
 }
 
 #---------------------------------------------------------[Load credentials]--------------------------------------------------------
-#$AzureLocalCredential = (Get-Credential -Message "Please insert your Local AzureStack Credentials")
-#$AzureTenantCredential = (Get-Credential -Message "Please insert your Azure Tenant Credentials")
+if(!$AzureLocalCredential){
+  $AzureLocalCredential = (Get-Credential -Message "Please insert your Local AzureStack Credentials")
+}
+
+if(!$AzureTenantCredential){
+  $AzureTenantCredential = (Get-Credential -Message "Please insert your Azure Tenant Credentials")
+}
+
 if(!$DomainCredential){
     $global:DomainCredential = (Get-Credential -Message "Please insert your domain administrator credentials")
 }
+
 if(!$SqlCredential){
     $global:SqlCredential = (Get-Credential -Message "Please insert a password for SQL Authentication")
 }
+
 if(!$VMCredential){ #TODO: Pass these to vm provisioning
     $global:VMCredential = (Get-Credential -Message "Please insert a password for the local administrator on the new VMs")
 }
