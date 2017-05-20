@@ -1,4 +1,8 @@
-﻿function Get-IniContent ($filePath)
+﻿<# Original by
+Oliver Lipkau
+https://blogs.technet.microsoft.com/heyscriptingguy/2011/08/20/use-powershell-to-work-with-any-ini-file/ #>
+
+function Get-IniContent ($filePath)
 {
     $ini = @{}
     switch -regex -file $FilePath
