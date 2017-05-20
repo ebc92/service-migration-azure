@@ -290,7 +290,7 @@ Function New-AzureStackWindowsVM {
 
         $NoConnectivity = $true
         
-        Get-AzureRmPublicIpAddress | % {if($_.Id -eq $nic.IpConfigurations.PublicIpAddress.Id){$PublicIP = $_}}
+        Get-AzureRmPublicIpAddress | % {if($_.Id -eq $VMNic.IpConfigurations.PublicIpAddress.Id){$PublicIP = $_}}
         do {
             try {
                 Log-Write -LogPath $sLogFile -LineValue "Trying connection to $($VMName) with $($PublicIP.IpAddress) ..."
