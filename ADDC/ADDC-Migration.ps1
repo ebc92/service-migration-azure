@@ -13,7 +13,6 @@ $aLogFile = Join-Path -Path $aLogPath -ChildPath $aLogName
 
 <# Remotely install the DSC resources needed to successfully
  deploy and configure ADDC on Azure VM. #>
-
 Invoke-Command -ComputerName $ComputerName -Credential $DomainCredential -ScriptBlock {Install-Module xComputerManagement, xActiveDirectory, xNetworking -Force}
 
 <# The DSC Local Configuration Manager must allow operations as
