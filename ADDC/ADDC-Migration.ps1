@@ -32,7 +32,7 @@ $cd = @{
  The configuration data is passed to the destination Local 
  Configuration Manager in the generated document. #>
 Log-Write -LogPath $aLogFile -LineValue "Creating DSC configuration document.."
-DesiredStateAD -ComputerName $ComputerName -$InterfaceAlias -VMName $VMName -ConfigurationData $cd -DNS $DNS -DomainName $DomainName -DomainCredentials $DomainCredential -SafeModeCredentials $DomainCredential
+DesiredStateAD -ComputerName $ComputerName -InterfaceAlias $InterfaceAlias -VMName $VMName -ConfigurationData $cd -DNS $DNS -DomainName $DomainName -DomainCredentials $DomainCredential -SafeModeCredentials $DomainCredential
 $DSCDocument = Join-Path -Path (Get-Location) -ChildPath "DesiredStateAD"
 Set-DscLocalConfigurationManager -ComputerName $ADServer -Path $DSCDocument -Credential $LocalCredentials
 

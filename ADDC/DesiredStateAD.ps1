@@ -26,28 +26,29 @@
         $SafeModeCredentials
     )
 
-    <# TODO:
-        * Enable remoting from push server using e.g. template.
-        * Config must work on all nodes.
-        * Fix postdeployment configuration.
-    #>
-
+    # Custom DSC resources used for for both deployment and configuration.
     Import-DscResource -ModuleName xActiveDirectory, xNetworking, xComputerManagement
 
+    # The node is defined to ensure that the DSC only runs on the intended host.
     Node $ComputerName {
         
+        <# The LCM behavoir is specified. It wil reboot when necessary, but configuration
+        will resume on boot. The LCM will only apply the configuration, it will not
+        continue to monitor the host state after the deployment. #>
         LocalConfigurationManager {
             ActionAfterReboot = 'ContinueConfiguration'
             ConfigurationMode = 'ApplyOnly'
             RebootNodeIfNeeded = $true
         }
 
+        # Set the hosts DNS.
         xDNSServerAddress DnsServerAddress {
             Address        = $DNS
             InterfaceAlias = $InterfaceAlias
             AddressFamily  = 'IPv4'
         }
 
+        # Join the domain. This will trigger a reboot.
         xComputer JoinDomain {
             Name = $VMName
             DomainName = $DomainName 
@@ -55,12 +56,14 @@
             DependsOn = '[xDNSServerAddress]DnsServerAddress'
         }
 
+        # Install the Windows Server DNS feature.
         WindowsFeature DNS {
             Ensure = "Present"
             Name = "DNS"
 	        DependsOn = '[xComputer]JoinDomain'
         }
 
+        # Install Active Directory Domain Services with subfeatures.
         WindowsFeature ADDSInstall {
             Ensure = "Present"
             Name = "AD-Domain-Services"
@@ -68,6 +71,7 @@
             DependsOn = '[WindowsFeature]DNS'
         }
 
+        # Install remote administration tools with subfeatures.
         WindowsFeature RSATTools { 
             DependsOn= '[WindowsFeature]ADDSInstall'
             Ensure = 'Present'
@@ -75,6 +79,8 @@
             IncludeAllSubFeature = $true
         }  
 
+        <# If previous configurations are successfull, install and deploy
+         the domain controller. This will trigger a reboot. #>
         xADDomainController DomainController {
             DomainName = $DomainName
             DomainAdministratorCredential = $DomainCredentials
@@ -85,12 +91,20 @@
             DependsOn = "[WindowsFeature]ADDSInstall","[xDnsServerAddress]DnsServerAddress"
         }
 
+        <# After DC deployment the DC must replicate the pre-existing
+         Primary Domain Controller. Instead of specifying the PDC in a parameter,
+         it is programatically discovered using the "netdom" command to query the
+         domain for the current flexible single operation master (PDC).#>
         Script ReplicateDomain {
 
             DependsOn = "[xADDomainController]DomainController"
 
+            <# Executed when Get-DscConfiguration cmdlet is run. 
+            It is used to discover current host state. #>
             GetScript = { Return Get-ADDomain }  
 
+            <# Executed when Start-DscConfiguration cmdlet is run. 
+            Our migration solution only implements this script block. #>
             SetScript = {
 
                 $FSMO = netdom query fsmo
@@ -102,9 +116,20 @@
 
             }
 
+            <# Executed when Start- or Test-DscConfiguration cmdlet is run.
+            If it returns false, it wil use SetScript block to set the host
+            to the desired state. This configuration will never be used on
+            a host with the desired state so it will always return false. #>
             TestScript = { return $false }
         }
 
+        <# After the new DC has successfully replicated the PDC, it must seize
+        all master roles from the pre-existing DC:
+        * Primary Domain Controller
+        * Schema Master
+        * RID Master
+        * Infrastructure Master
+        * Domain Naming Master #>
         Script MoveControllerRoles {
 
             DependsOn = "[Script]ReplicateDomain"
