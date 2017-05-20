@@ -12,12 +12,6 @@ $LogLib = Join-Path -Path $SMARoot -ChildPath "Libraries\Log-Functions.ps1"
 $IpCalc = Join-Path -Path $SMARoot -ChildPath "Libraries\ipcalculator.ps1"
 
 #----------------------------------------------------------[Declarations]----------------------------------------------------------
-
-$var = "This-is-a-file.log"
-
-$newVar = $var.Split(".")[0] + "-VMNAME." + $var.Split(".")[1]
-
-
 $sScriptVersion = "1.0"
 $xLogDate = (Get-Date -Format dd_M_yyyy_HHmm).ToString()
 $sLogPath = $SMAConfig.Global.logpath
@@ -38,8 +32,8 @@ Function New-AzureStackTenantDeployment {
         [String]$IPAddress,
         [Parameter(Mandatory=$true)]
         [PSCredential]$DomainCredential,
-        $DomainName = "amstel.local",
-        $Location = "local"
+        [String]$DomainName = "amstel.local",
+        [String]$Location = "local"
     )
 
     $sLogName = $sLogName.Split(".")[0] + "-$($VMName)." + $sLogName.Split(".")[1]
@@ -91,11 +85,11 @@ Function New-AzureStackTenantDeployment {
 Function New-AzureStackVnet{
     [CmdletBinding()]
     Param(
-    $NetworkIP,
-    $ResourceGroupName,
-    $VNetName,
-    $VMName,
-    $Location = "local"
+    [String]$NetworkIP,
+    [String]$ResourceGroupName,
+    [String]$VNetName,
+    [String]$VMName,
+    [String]$Location = "local"
     )
 
     $Network = & $IpCalc $NetworkIP
@@ -108,9 +102,6 @@ Function New-AzureStackVnet{
 
     Try {
         $vnet = Get-AzureRmVirtualNetwork -ResourceGroupName $ResourceGroupName -Name $VNetName -ErrorAction SilentlyContinue
-        #$subnet = Get-AzureRmVirtualNetworkSubnetConfig -Name HostSubnet -VirtualNetwork $vnet
-        #$nsg = Get-AzureRmNetworkSecurityGroup -ResourceGroupName $res -Name $nsgName
-        #$nsRules = Get-AzureRmNetworkSecurityRuleConfig -NetworkSecurityGroup $nsg
         $nic = Get-AzureRmNetworkInterface -ResourceGroupName $ResourceGroupName -Name $VMNicName -ErrorAction SilentlyContinue
         $vpn = Get-AzureRmVirtualNetworkGateway -ResourceGroupName $ResourceGroupName -Name "AMSTEL-VPN" -ErrorAction SilentlyContinue
     } Catch {
@@ -129,18 +120,13 @@ Function New-AzureStackVnet{
             $VPNSubnet = New-AzureRmVirtualNetworkSubnetConfig -Name GatewaySubnet -AddressPrefix $VpnNetwork.Network
             Log-Write -LogPath $sLogFile -LineValue "Created the VPN subnet configuration."
 
-            Log-Write -LogPath $sLogFile -LineValue "Creating the virtual network and its VPN gateway."
-            Log-Write -LogPath $sLogFile -LineValue "Local Endpoint is: $LocalEndpoint, network is $Network, localnetwork is $LocalNetwork"
-            
-
+            Log-Write -LogPath $sLogFile -LineValue "Creating the virtual network and its VPN gateway."           
             $vnet = New-AzureRmVirtualNetwork -ResourceGroupName $ResourceGroupName -Location $Location -Name $VNetName -AddressPrefix $Network.Network -Subnet $subnet,$VPNSubnet
             Log-Write -LogPath $sLogFile -LineValue "Virtual network and VPN gateway was successfully created."
 
         } else {
             Log-Write -LogPath $sLogFile -LineValue "The virtual network already exists."
         }
-
-        $vpn | Out-String >> .\debug.txt
 
         if (!$vpn){
             Log-Write -LogPath $sLogFile -LineValue "Starting VPN infrastucture deployment."
@@ -178,13 +164,8 @@ Function New-AzureStackVnet{
         } else {
             Log-Write -LogPath $sLogFile -LineValue "The VPN infrastructure already exists."
         }
-
-        <# Check if subnet configuration exists
-        if(!$subnet){
-            Log-Write -LogPath $sLogFile -LineValue "Could not get the subnet configuration."
-        }
         
-        # Create an inbound network security group rule for port 3389
+        <# Create an inbound network security group rule for port 3389
         if(!$nsgRules){
             $nsgRuleRDP = New-AzureRmNetworkSecurityRuleConfig -Name InboundRDP  -Protocol Tcp -Direction Inbound -Priority 1000 -SourceAddressPrefix * -SourcePortRange * -DestinationAddressPrefix * -DestinationPortRange 3389 -Access Allow
             Log-Write -LogPath $sLogFile -LineValue "Created network security group rule for RDP."
@@ -256,7 +237,7 @@ Function New-AzureStackWindowsVM {
             $StorageAccount = Get-AzureRmStorageAccount | Where-Object {$_.StorageAccountName -eq $StorageAccountName} -ErrorAction Stop
             Log-Write -LogPath $sLogFile -LineValue "Retrieved the $($StorageAccountName) Storage Account."
         } Catch {
-        
+            Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $False
         } 
 
         #If the storage account does not exist it will be created.
@@ -268,11 +249,9 @@ Function New-AzureStackWindowsVM {
         $OSDiskName = $VMName + "OSDisk"
         $OSDiskUri = $StorageAccount.PrimaryEndpoints.Blob.ToString() + "vhds/" + $OSDiskName + ".vhd"
 
-        #
-
         # Create a virtual machine configuration
         $vmConfig = New-AzureRmVMConfig -VMName $VMName -VMSize $VMSize | `
-        Set-AzureRmVMOperatingSystem -Windows -ComputerName $ComputerName -Credential $VMCredential | `
+        Set-AzureRmVMOperatingSystem -Windows -ComputerName $VMName -Credential $VMCredential | `
         Set-AzureRmVMSourceImage -PublisherName $offer.PublisherName -Offer $offer.Offer -Skus $sku.Skus -Version latest | `
         Set-AzureRmVMOSDisk -Name $OSDiskName -VhdUri $OSDiskUri -CreateOption FromImage | `
         Add-AzureRmVMNetworkInterface -Id $VMNic.Id
