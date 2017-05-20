@@ -1,4 +1,4 @@
-﻿#requires -version 2
+﻿#requires -version 4
 
 #---------------------------------------------------------[Initialisations]--------------------------------------------------------
 
@@ -36,10 +36,13 @@ Function New-AzureStackTenantDeployment {
         [String]$Location = "local"
     )
 
+    # Build the log file name using VM name.
     $sLogName = $sLogName.Split(".")[0] + "-$($VMName)." + $sLogName.Split(".")[1]
 
+    # Start logging.
     Log-Start -LogPath $sLogPath -LogName $sLogName -ScriptVersion $sScriptVersion
 
+    # Verify that the context has a valid Azure Resource Manager association.
     Try{ 
         $context = Get-AzureRmContext -ErrorAction Stop
     } Catch {
@@ -47,6 +50,7 @@ Function New-AzureStackTenantDeployment {
         Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $False
     }
 
+    # Get the resource group, create if it does not exist.
     Try{ 
         Get-AzureRmResourceGroup -Name $ResourceGroupName -ErrorAction Stop
         Log-Write -LogPath $sLogFile -LineValue "Retrieved Azure Resource Group $ResourceGroupName."
@@ -55,14 +59,8 @@ Function New-AzureStackTenantDeployment {
         Log-Write -LogPath $sLogFile -LineValue "Created Azure Resource Group $ResourceGroupName."
     }
 
-    <#
-    if(!$exists){
-        New-AzureRmResourceGroup -Name $ResourceGroupName -Location $Location
-        
-    } else {
-        Log-Write -LogPath $sLogFile -LineValue "Resource Group already exists."
-    }#>
-
+    <# Create a network interface for the VM. If it is the first deployment,
+    New-AzureStackVnet will also deploy the necessaru Azure Stack network infrastructure. #>
     Try {
         $VMNic = New-AzureStackVnet -NetworkIP $IPAddress -ResourceGroupName $ResourceGroupName -VNetName "$($EnvironmentName)-VNET" -VMName $VMName
         Log-Write -LogPath $sLogFile -LineValue "VM Network interface was created."
@@ -72,11 +70,11 @@ Function New-AzureStackTenantDeployment {
     }
 
     Log-Write -LogPath $sLogFile -LineValue "Starting VM provisioning..."
-
+    
+    # Ensure that only PSNetworkInterface object is passed to the New-AzureStackWindowsVM function. 
     $VMNic | % {if($_.GetType().Name -eq "PSNetworkInterface"){$result = $_}}
 
-
-
+    # Provision the VM.
     $ProvisionedIP = New-AzureStackWindowsVM -VMName $VMName -VMNic $result -VMCredential $DomainCredential -ErrorAction Stop
 
     Log-Finish -LogPath $sLogFile -NoExit $true
@@ -100,6 +98,7 @@ Function New-AzureStackVnet{
     $VMNicName = $VMName + "-NIC"
     $nsgName = $VNetName + "-NSG"
 
+    # Check for existing infrastructure.
     Try {
         $vnet = Get-AzureRmVirtualNetwork -ResourceGroupName $ResourceGroupName -Name $VNetName -ErrorAction SilentlyContinue
         $nic = Get-AzureRmNetworkInterface -ResourceGroupName $ResourceGroupName -Name $VMNicName -ErrorAction SilentlyContinue
@@ -110,34 +109,43 @@ Function New-AzureStackVnet{
     
     Try {
 
-        # Create a vNet
+        # If the virtual network infrastructure does not exist, it will be created here.
         if(!$vnet){
+
+            # Create the host subnet.
             $SubnetNetwork = & $IpCalc $Network.HostMin -Netmask 255.255.255.128
             $subnet = New-AzureRmVirtualNetworkSubnetConfig -Name HostSubnet -AddressPrefix $SubnetNetwork.Network
             Log-Write -LogPath $sLogFile -LineValue "Created the host subnet configuration."
 
+            # Create the VPN Gateway subnet.
             $VpnNetwork = & $IpCalc $Network.HostMax -Netmask 255.255.255.128
             $VPNSubnet = New-AzureRmVirtualNetworkSubnetConfig -Name GatewaySubnet -AddressPrefix $VpnNetwork.Network
             Log-Write -LogPath $sLogFile -LineValue "Created the VPN subnet configuration."
 
+            # Create the virtual network with host and VPN subnet.
             Log-Write -LogPath $sLogFile -LineValue "Creating the virtual network and its VPN gateway."           
             $vnet = New-AzureRmVirtualNetwork -ResourceGroupName $ResourceGroupName -Location $Location -Name $VNetName -AddressPrefix $Network.Network -Subnet $subnet,$VPNSubnet
             Log-Write -LogPath $sLogFile -LineValue "Virtual network and VPN gateway was successfully created."
-
         } else {
             Log-Write -LogPath $sLogFile -LineValue "The virtual network already exists."
         }
 
+        # If the VPN infrastructure does not exist, it will be created here.
         if (!$vpn){
+
+            #Get the VPN subnet configuration.
             Log-Write -LogPath $sLogFile -LineValue "Starting VPN infrastucture deployment."
             $VPNSubnet = Get-AzureRmVirtualNetworkSubnetConfig -Name "GatewaySubnet" -VirtualNetwork $vnet
 
+            # Provision a public IP (management IP) for the virtual VPN gateway.
             Log-Write -LogPath $sLogFile -LineValue "Provisioning public ip."
             $pip = New-AzureRmPublicIpAddress -ResourceGroupName $ResourceGroupName -AllocationMethod Dynamic -Name "VPNGatewayIP" -Location $Location
 
+            # Create a IP configuration for the virtual VPN gateway.
             Log-Write -LogPath $sLogFile -LineValue "Creating the VPN gateway ipconfig."
             $VPNIpconfig = New-AzureRmVirtualNetworkGatewayIpConfig -Name "$($EnvironmentName)-VPN-CFG" -PublicIpAddress $pip -Subnet $VPNSubnet 
             
+            # Create the route-based virtual VPN gateway
             Log-Write -LogPath $sLogFile -LineValue "Creating the VPN gateway."                 
             $VirtualGateway = New-AzureRmVirtualNetworkGateway -Name "$($EnvironmentName)-VPN" `
             -ResourceGroupName $ResourceGroupName `
@@ -147,6 +155,7 @@ Function New-AzureStackVnet{
             -VpnType RouteBased `
             -GatewaySku Basic
 
+            # Create the local network gateway object that points to the on-premise gateway.
             Log-Write -LogPath $sLogFile -LineValue "Creating local network gateway."
             $LocalGateway = New-AzureRmLocalNetworkGateway -Name "$($EnvironmentName)-GATE" `
             -ResourceGroupName $ResourceGroupName `
@@ -154,6 +163,7 @@ Function New-AzureStackVnet{
             -GatewayIpAddress $LocalEndpoint `
             -AddressPrefix $LocalNetwork
 
+            # Create the IPsec connection between the on-premise and the virtual azure stack gateways.
             Log-Write -LogPath $sLogFile -LineValue "Creating local-virtual gateway connection."
             $Connection = New-AzureRmVirtualNetworkGatewayConnection -Name "IPsec-Connection" `
             -ResourceGroupName $ResourceGroupName -Location $Location `
@@ -220,6 +230,7 @@ Function New-AzureStackWindowsVM {
   Process{
     Try{
 
+        # Credentials are retrieved in cleartext so they can be easily passed to the CustomScriptExtension.
         $Username = $VMCredential.GetNetworkCredential().username
         $Password = $VMCredential.GetNetworkCredential().password
         $SecureString = ConvertTo-SecureString $Password -AsPlainText -Force
@@ -246,6 +257,7 @@ Function New-AzureStackWindowsVM {
                 Log-Write -LogPath $sLogFile -LineValue "Created the $($StorageAccountName) Storage Account."
         }
 
+        # Create a diskname and get the URI for the vhd.
         $OSDiskName = $VMName + "OSDisk"
         $OSDiskUri = $StorageAccount.PrimaryEndpoints.Blob.ToString() + "vhds/" + $OSDiskName + ".vhd"
 
@@ -263,6 +275,15 @@ Function New-AzureStackWindowsVM {
             Log-Write -LogPath $sLogFile -LineValue "Could not create VM with the specified configuration."
         }
 
+        <# All our VMs must:
+        * Have an unrestricted executionpolicy
+        * Be joined to the domain
+        * Have PSRemoting enabled
+
+        This is achieved by setting a pre-defined custom 
+        script extension on the virtual machine, as done here.
+        #>
+
         Try {
             Log-Write -LogPath $sLogFile -LineValue "Setting the DomainPolicy script extension..."
             Set-AzureRmVMCustomScriptExtension -ResourceGroupName $ResourceGroup `
@@ -279,6 +300,7 @@ Function New-AzureStackWindowsVM {
             Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $False
         }
 
+        # Run this test to ensure that the script extension is successfully provisioned before continuing.
         do {
             $Extension = Get-AzureRmVMCustomScriptExtension -ResourceGroupName $ResourceGroupName -VMName $VMName -Name "DomainPolicyExtension"
             Log-Write -LogPath $sLogFile -LineValue "ScriptExtension provisioning state is $($Extension.ProvisioningState)"
@@ -286,11 +308,16 @@ Function New-AzureStackWindowsVM {
             Start-Sleep -Seconds 60
         } while ($Extension.ProvisioningState -ne "Succeeded")
 
+        # Restart the VM because it has joined the domain.
         Restart-AzureRmVm -ResourceGroupName $ResourceGroupName -Name $VMName
 
-        $NoConnectivity = $true
-        
+        # Get the public IP (management IP) of the virtual machine.
         Get-AzureRmPublicIpAddress | % {if($_.Id -eq $VMNic.IpConfigurations.PublicIpAddress.Id){$PublicIP = $_}}
+        
+        <# While restarting, the VM will not accept incoming PSRemoting requests. To ensure that succeeding scripts
+        can continue safely, this test will be run to ensure that script will not continue before PowerShell
+        connectivity can be established to the new virtual machine. #>
+        $NoConnectivity = $true
         do {
             try {
                 Log-Write -LogPath $sLogFile -LineValue "Trying connection to $($VMName) with $($PublicIP.IpAddress) ..."
@@ -313,6 +340,7 @@ Function New-AzureStackWindowsVM {
     }
   }
   
+  # If the script executed successfully, write the details for the newly provisioned VM to the log.
   End{
     If($?){
 
