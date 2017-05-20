@@ -94,7 +94,8 @@
         <# After DC deployment the DC must replicate the pre-existing
          Primary Domain Controller. Instead of specifying the PDC in a parameter,
          it is programatically discovered using the "netdom" command to query the
-         domain for the current flexible single operation master (PDC).#>
+         domain for the current flexible single operation master (PDC).
+         When it is discovered, the repadmin command will force the replication. #>
         Script ReplicateDomain {
 
             DependsOn = "[xADDomainController]DomainController"
@@ -113,7 +114,6 @@
                 $DomainDN = $Root.Get("rootDomainNamingContext")
 
                 repadmin /replicate $env:COMPUTERNAME $Master[0] $DomainDN /full
-
             }
 
             <# Executed when Start- or Test-DscConfiguration cmdlet is run.
