@@ -147,7 +147,7 @@ $ExchName = "$($environmentname)-$($SMAConfig.Exchange.hostname)"
 $ExchNewIp = $SMAConfig.Exchange.newip + $CIDR
 
 #Runs the required script to start the migration of the service and deployment of the new VM
-Invoke-Command -Session $AzureStackSession -ScriptBlock {New-AzureStackTenantDeployment -VMName $using:ExchName -IPAddress $using:ExchNewIp -DomainCredential $using:DomainCredential}
+Invoke-Command -Session $AzureStackSession -ScriptBlock {New-AzureStackTenantDeployment -VMName $using:ExchName -IPAddress $using:ExchNewIp -DomainCredential $using:DomainCredential -VMSize "D4v2"}
 & (Join-Path -Path $PSScriptRoot -ChildPath "\Exchange\Migrate-Exchange.ps1") $DomainCredential
 
 #Close the azure stack session & log file
