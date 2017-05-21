@@ -139,7 +139,7 @@ $SQLName = "$($environmentname)-$($SMAConfig.MSSQL.hostname)"
 $SQLDestination = $SMAConfig.MSSQL.destination + $CIDR
 
 #Runs the required script to start the migration of the service and deployment of the new VM
-Invoke-Command -Session $AzureStackSession -ScriptBlock {New-AzureStackTenantDeployment -VMName $using:SQLName -IPAddress $using:SQLDestination -DomainCredential $using:DomainCredential}
+#Invoke-Command -Session $AzureStackSession -ScriptBlock {New-AzureStackTenantDeployment -VMName $using:SQLName -IPAddress $using:SQLDestination -DomainCredential $using:DomainCredential}
 & (Join-Path -Path $PSScriptRoot -ChildPath "\MSSQL\MSSQL-Migration.ps1")
 
 <#-----------------------------------------------------------[Exchange]-----------------------------------------------------------------
