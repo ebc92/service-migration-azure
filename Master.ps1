@@ -92,7 +92,7 @@ Log-Write -LogPath $sLogFile -LineValue $m
 Write-Verbose $m
 
 #Loads all the modules into an array.
-$module = @("ADDC\ADDC-Migration.psm1", "MSSQL\MSSQL-Migration.psm1", "Support\SMA-Provisioning.psm1", "File-Share\Move-File.psm1", "Exchange\ExchangeMigrate\loader.psm1")
+$module = @("MSSQL\MSSQL-Migration.psm1", "Support\SMA-Provisioning.psm1", "File-Share\Move-File.psm1", "Exchange\ExchangeMigrate\Exchange-Module.psm1")
 
 #Goes through each module in the array, and then imports it.
 $module | % {
