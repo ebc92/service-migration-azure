@@ -92,7 +92,7 @@ Try {
     the deployment process. To achieve a high log level, the 
     verbose output of the DSC deployment is written to the service log file. #>
     Start-Transcript -Path $sLogFile -Append
-    Start-DscConfiguration -ComputerName $Destination -Path .\DesiredStateSQL -Verbose -Wait -Force -Credential $Credential -ErrorAction Stop
+    Start-DscConfiguration -ComputerName $Destination -Path .\DesiredStateSQL -Verbose -Wait -Force -Credential $DomainCredential -ErrorAction Stop
     Stop-Transcript
 
     Log-Write -LogPath $sLogFile -LineValue "DSC configuration was succcessfully pushed."
