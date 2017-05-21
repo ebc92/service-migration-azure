@@ -45,6 +45,7 @@ $ScriptBlock = {
     $sLogPath = $using:sLogPath
     $sLogFile = $using:sLogFile
     $SMARoot = "C:\service-migration-azure-develop"
+    $sLogName = $using:sLogName
 
     # Dot source libraries
     $functions = @("Libraries\Log-Functions.ps1", "\Libraries\Manage-Configuration.ps1")
@@ -57,7 +58,7 @@ $ScriptBlock = {
     } Catch {
         Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception
     }
-}
+  }
     Log-Start -LogPath $sLogPath -LogName $sLogName -ScriptVersion "1.0"
     Import-Module (Join-Path -Path $SMARoot -ChildPath "MSSQL\MSSQL-Migration.psm1") -Force
     Start-MSSQLInstallConfig -PackagePath $using:PackagePath -Credential $using:DomainCredential
