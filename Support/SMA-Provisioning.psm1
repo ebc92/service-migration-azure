@@ -33,7 +33,8 @@ Function New-AzureStackTenantDeployment {
         [Parameter(Mandatory=$true)]
         [PSCredential]$DomainCredential,
         [String]$DomainName = "amstel.local",
-        [String]$Location = "local"
+        [String]$Location = "local",
+        [String]$VMSize = "Standard_A1"
     )
 
     # Build the log file name using VM name.
@@ -75,7 +76,7 @@ Function New-AzureStackTenantDeployment {
     $VMNic | % {if($_.GetType().Name -eq "PSNetworkInterface"){$result = $_}}
 
     # Provision the VM.
-    $ProvisionedIP = New-AzureStackWindowsVM -VMName $VMName -VMNic $result -VMCredential $DomainCredential -ErrorAction Stop
+    $ProvisionedIP = New-AzureStackWindowsVM -VMName $VMName -VMNic $result -VMCredential $DomainCredential -VMSize $VMSize -ErrorAction Stop
 
     Log-Finish -LogPath $sLogFile -NoExit $true
 }
