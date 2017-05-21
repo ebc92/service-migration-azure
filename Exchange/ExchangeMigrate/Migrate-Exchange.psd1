@@ -11,7 +11,7 @@
 @{
 
 # Module Loader File
-RootModule = 'loader.psm1'
+RootModule = 'Exchange-Module.psm1'
 
 # Version Number
 ModuleVersion = '1.0'

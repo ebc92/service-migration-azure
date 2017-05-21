@@ -1,22 +1,22 @@
 ﻿<# 
-        One script to rule them all 
+        One script to rule them all                        
 
               Four::modules
           for:::the::Elven-Kings
        under:the:sky,:Seven:for:the
      Dwarf-Lords::in::their::halls:of
     stone,:Nine             for:Mortal
-    :::Men:::     ________     doomed::to
-    die.:One   _,-'...:... `-.    for:::the
-    ::Dark::  ,- .:::::::::::. `.   Lord::on
-    his:dark ,'  .:::::zzz:::::.  `.  :throne:
-    In:::the/    ::::dMMMMMb::::    \ Land::of
-    :Mordor:\    ::::dMMmgJP::::    / :where::
-    ::the::: '.  '::::YMMMP::::'  ,'  Shadows:
-    lie.::One  `. ``:::::::::'' ,'    Ring::to
-    ::rule::    `-._```:'''_,-'     ::them::
-    all,::One      `-----'        ring::to
-    ::find:::                  them,:One
+   :::Men:::     ________     doomed::to
+ die.:One   _,-'...:... `-.    for:::the
+ ::Dark::  ,- .:::::::::::. `.   Lord::on
+his:dark ,'  .:::::zzz:::::.  `.  :throne:
+In:::the/    ::::dMMMMMb::::    \ Land::of
+:Mordor:\    ::::dMMmgJP::::    / :where::
+::the::: '.  '::::YMMMP::::'  ,'  Shadows:
+ lie.::One  `. ``:::::::::'' ,'    Ring::to
+ ::rule::    `-._```:'''_,-'     ::them::
+ all,::One      `-----'        ring::to
+   ::find:::                  them,:One
     Ring:::::to            bring::them
       all::and::in:the:darkness:bind
         them:In:the:Land:of:Mordor
@@ -92,7 +92,7 @@ Log-Write -LogPath $sLogFile -LineValue $m
 Write-Verbose $m
 
 #Loads all the modules into an array.
-$module = @("ADDC\ADDC-Migration.psm1", "MSSQL\MSSQL-Migration.psm1", "Support\SMA-Provisioning.psm1", "File-Share\Move-File.psm1", "Exchange\ExchangeMigrate\loader.psm1")
+$module = @("MSSQL\MSSQL-Migration.psm1", "Support\SMA-Provisioning.psm1", "File-Share\Move-File.psm1", "Exchange\ExchangeMigrate\Exchange-Module.psm1")
 
 #Goes through each module in the array, and then imports it.
 $module | % {
@@ -147,7 +147,7 @@ $ExchName = "$($environmentname)-$($SMAConfig.Exchange.hostname)"
 $ExchNewIp = $SMAConfig.Exchange.newip + $CIDR
 
 #Runs the required script to start the migration of the service and deployment of the new VM
-Invoke-Command -Session $AzureStackSession -ScriptBlock {New-AzureStackTenantDeployment -VMName $using:ExchName -IPAddress $using:ExchNewIp -DomainCredential $using:DomainCredential}
+Invoke-Command -Session $AzureStackSession -ScriptBlock {New-AzureStackTenantDeployment -VMName $using:ExchName -IPAddress $using:ExchNewIp -DomainCredential $using:DomainCredential -VMSize "D4v2"}
 & (Join-Path -Path $PSScriptRoot -ChildPath "\Exchange\Migrate-Exchange.ps1") $DomainCredential
 
 #Close the azure stack session & log file
