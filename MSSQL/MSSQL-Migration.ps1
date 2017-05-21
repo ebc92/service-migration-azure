@@ -42,6 +42,7 @@ Try {
 
 # Retrieve configuration file from SQL source host
 $ScriptBlock = {
+    $sLogPath = $using:sLogPath
     $sLogFile = $using:sLogFile
     $SMARoot = "C:\service-migration-azure"
 
@@ -74,6 +75,7 @@ $cd = @{
         @{
             NodeName = $Destination
             Role = "SqlServer"
+            PSDscAllowDomainUser = $true
             PSDscAllowPlainTextPassword = $true
         }
     );
@@ -104,7 +106,7 @@ $SQLSession = New-PSSession -ComputerName $Destination -Credential $DomainCreden
 
 # Copy the SMA Configuration file to the destination SQL host and remove the session.
 $ConfigurationPath = Resolve-Path (Join-Path -Path $PSScriptRoot -ChildPath "..\Configuration.ini")
-Copy-Item -ToSession $SQLSession -Path $ConfigurationPath -Destination "C:\service-migration-azure-develop" -Force
+Copy-Item -ToSession $SQLSession -Path $ConfigurationPath -Destination "C:\" -Force
 Remove-PSSession $SQLSession
 
 # Instruct the user to run the Start-MSSQLMigration script on the destination SQL host.
