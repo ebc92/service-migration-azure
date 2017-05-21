@@ -43,7 +43,7 @@ Try {
 # Retrieve configuration file from SQL source host
 $ScriptBlock = {
     $sLogFile = $using:sLogFile
-    $SMARoot = "C:\service-migration-azure"
+    $SMARoot = "C:\service-migration-azure-develop"
 
     # Dot source libraries
     $functions = @("Libraries\Log-Functions.ps1", "\Libraries\Manage-Configuration.ps1")
