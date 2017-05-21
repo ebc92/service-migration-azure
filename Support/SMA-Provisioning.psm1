@@ -38,6 +38,7 @@ Function New-AzureStackTenantDeployment {
   )
 
   # Build the log file name using VM name.
+  $global:DomainCredential = $DomainCredential
   $sLogName = $sLogName.Split(".")[0] + "-$($VMName)." + $sLogName.Split(".")[1]
   $global:sLogFile = Join-Path -Path $sLogPath -ChildPath $sLogName
   # Start logging.
@@ -329,7 +330,7 @@ Function New-AzureStackWindowsVM {
       do {
         try {
           Log-Write -LogPath $sLogFile -LineValue "Trying connection to $($VMName) with $($PublicIP.IpAddress) ..."
-          if ($s = New-PSSession -ComputerName $PublicIP.IpAddress -Credential $VMCredential -ErrorAction Stop){
+          if ($s = New-PSSession -ComputerName $PublicIP.IpAddress -Credential $DomainCredential -ErrorAction Stop){
             Log-Write -LogPath $sLogFile -LineValue "VM successfully restarted after applying ScriptExtension." 
             Remove-PSSession $s
           $NoConnectivity = $false}
