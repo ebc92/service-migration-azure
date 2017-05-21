@@ -118,9 +118,9 @@ Invoke-Command -Session $AzureStackSession -ScriptBlock {param($SMAConfig)$globa
 $Authenticator = Join-Path -Path $PSScriptRoot -ChildPath "\Support\Remote-ARM\Set-ArmCredential.ps1"
 & $Authenticator -ARMSession $AzureStackSession -ArmCredential $AzureTenantCredential
 
-#-----------------------------------------------------------[Active Directory]---------------------------------------------------------
-$ADDCName = "$($environmentname)-$($SMAConfig.MSSQL.hostname)"
-$ADDCDestination = $SMAConfig.MSSQL.destination + $CIDR
+<#-----------------------------------------------------------[Active Directory]---------------------------------------------------------
+$ADDCName = "$($environmentname)-$($SMAConfig.ADDC.hostname)"
+$ADDCDestination = $SMAConfig.ADDC.destination + $CIDR
 
 #Runs the required script to start the migration of the service and deployment of the new VM
 Invoke-Command -Session $AzureStackSession -ScriptBlock {New-AzureStackTenantDeployment -VMName $using:ADDCName -IPAddress $using:ADDCDestination -DomainCredential $using:DomainCredential}
@@ -134,7 +134,7 @@ $FSSNewIP = $SMAConfig.FSS.newip + $CIDR
 Invoke-Command -Session $AzureStackSession -ScriptBlock {New-AzureStackTenantDeployment -VMName $using:FSSName -IPAddress $using:FSSNewIP -DomainCredential $using:DomainCredential}
 & (Join-Path -Path $PSScriptRoot -ChildPath "\File-Share\Migrate-FSS.ps1") $DomainCredential
 
-#-----------------------------------------------------------[SQL Server]---------------------------------------------------------------
+#-----------------------------------------------------------[SQL Server]---------------------------------------------------------------#>
 $SQLName = "$($environmentname)-$($SMAConfig.MSSQL.hostname)"
 $SQLDestination = $SMAConfig.MSSQL.destination + $CIDR
 
@@ -142,7 +142,7 @@ $SQLDestination = $SMAConfig.MSSQL.destination + $CIDR
 Invoke-Command -Session $AzureStackSession -ScriptBlock {New-AzureStackTenantDeployment -VMName $using:SQLName -IPAddress $using:SQLDestination -DomainCredential $using:DomainCredential}
 & (Join-Path -Path $PSScriptRoot -ChildPath "\MSSQL\MSSQL-Migration.ps1")
 
-#-----------------------------------------------------------[Exchange]-----------------------------------------------------------------
+<#-----------------------------------------------------------[Exchange]-----------------------------------------------------------------
 $ExchName = "$($environmentname)-$($SMAConfig.Exchange.hostname)"
 $ExchNewIp = $SMAConfig.Exchange.newip + $CIDR
 
@@ -150,6 +150,6 @@ $ExchNewIp = $SMAConfig.Exchange.newip + $CIDR
 Invoke-Command -Session $AzureStackSession -ScriptBlock {New-AzureStackTenantDeployment -VMName $using:ExchName -IPAddress $using:ExchNewIp -DomainCredential $using:DomainCredential -VMSize "D4v2"}
 & (Join-Path -Path $PSScriptRoot -ChildPath "\Exchange\Migrate-Exchange.ps1") $DomainCredential
 
-#Close the azure stack session & log file
+#Close the azure stack session & log file#>
 #Remove-PSSession $AzureStackSession
 Log-Finish -LogPath $sLogFile -NoExit $true
