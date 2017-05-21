@@ -15,3 +15,5 @@ Add-Computer -DomainName $DomainName -Credential $Credential
 Enable-PSRemoting -Force
 
 Set-Item wsman::localhost\Client\TrustedHosts -Value "*" -Force
+
+Set-NetFirewallRule -Name "WINRM-HTTP-In-TCP-PUBLIC" -RemoteAddress Any
