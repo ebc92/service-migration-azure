@@ -1,10 +1,4 @@
-﻿# Verify that SQL Credentials have been defined in the Master script.
-if(!$SqlCredential){
-    Write-Output "No SQL credentials in scope, aborting!"
-    break
-}
-
-# Get migration variables from configuration file
+﻿# Get migration variables from configuration file
 $EnvironmentName = $SMAConfig.Global.environmentname
 $Source = $SMAConfig.MSSQL.source
 $Destination = $SMAConfig.MSSQL.destination
@@ -84,7 +78,6 @@ $cd = @{
 }
 
 Try {
-    Invoke-command -ComputerName $Destination -ScriptBlock {Install-Module xNetworking -Force} -Credential $DomainCredential
     # The AD DSC configuration is used to generate a DSC document.
     Log-Write -LogPath $sLogFile -LineValue "Generating MOF-file from DSC script."
     DesiredStateSQL -ConfigurationData $cd -PackagePath $PackagePath -DomainCredential $DomainCredential -InstanceName $Instance
