@@ -1,9 +1,14 @@
-﻿# Get migration variables from configuration file
-$EnvironmentName = $SMAConfig.Global.environmentname
+﻿# Verify that SQL Credentials have been defined in the Master script.
+if(!$SqlCredential){
+    Write-Output "No SQL credentials in scope, aborting!"
+    break
+}
+
+# Get migration variables from configuration file
 $Source = $SMAConfig.MSSQL.source
 $Destination = $SMAConfig.MSSQL.destination
 $Instance = $SMAConfig.MSSQL.instance
-$HostName = $SMAConfig.MSSQL.hostname
+$ComputerName = $SMAConfig.MSSQL.hostname
 $PackagePath = Join-Path -Path $SMAConfig.Global.fileshare -ChildPath $SMAConfig.MSSQL.packagepath
 
 
@@ -78,15 +83,17 @@ $cd = @{
 }
 
 Try {
+    Invoke-command -ComputerName $Destination -ScriptBlock {Install-Module xNetworking -Force} -Credential $DomainCredential
     # The AD DSC configuration is used to generate a DSC document.
     Log-Write -LogPath $sLogFile -LineValue "Generating MOF-file from DSC script."
-    DesiredStateSQL -ConfigurationData $cd -PackagePath $PackagePath -DomainCredential $DomainCredential -InstanceName $Instance
+    DesiredStateSQL -ConfigurationData $cd -PackagePath $PackagePath -DomainCredential $DomainCredential
     Log-Write -LogPath $sLogFile -LineValue "Starting DSC configuration. Writing transcript to log."
 
     <# DSC document is passed to the destination host and starts
     the deployment process. To achieve a high log level, the 
     verbose output of the DSC deployment is written to the service log file. #>
-    Start-Transcript -Path $sLogFile -Append
+    $dscLogName = "SMA-MSSQL-$($xLogDate)-DSC.log"
+    Start-Transcript -Path (Join-path -Path $sLogPath -ChildPath $dscLogName) -Append
     Start-DscConfiguration -ComputerName $Destination -Path .\DesiredStateSQL -Verbose -Wait -Force -Credential $DomainCredential -ErrorAction Stop
     Stop-Transcript
 
@@ -97,25 +104,7 @@ Try {
     Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $False
 }
 
-<# Leverage DBATools to run the SQL Server Instance migration using the detach/copy/attach method. #>
-
-$DestinationHostname = "$($Environmentname)-$($HostName)"
-
-Try{
-    Log-Write -Logpath $sLogFile -LineValue "Starting connectiontest on $($DestinationHostname)\$($Instance) using the share $($Share)."
-    $ConnectionTest = Test-SqlConnection -SqlServer "$($DestinationHostname)\$($Instance),1433"
-    If (!$ConnectionTest.ConnectSuccess){
-        Log-Write -Logpath $sLogFile -LineValue "Could not establish connection to the destination server."
-    } else {
-        Log-Write -Logpath $sLogFile -LineValue "Connectiontest was successful!"
-        Start-SqlMigration -Source "$($Source)\$($InstanceName),1433" -Destination "$($DestinationHostname)\$($InstanceName),1433" -BackupRestore -Share $Share
-    }
-} Catch {
-    Log-Write -Logpath $sLogFile -LineValue "The SQL Server instance migration failed, consult dbatools logs."
-    Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $False
-}
-
-<# Create a new PSSession to the destination SQL host.
+# Create a new PSSession to the destination SQL host.
 $SQLSession = New-PSSession -ComputerName $Destination -Credential $DomainCredential
 
 # Copy the SMA Configuration file to the destination SQL host and remove the session.
@@ -128,4 +117,4 @@ $dialog = New-Object -ComObject Wscript.Shell
 $dialog.Popup("LOG ON TO $($Source) AND RUN THE START-MSSQLMIGRATION SCRIPT MANUALLY.")
 
 $dialog = New-Object -ComObject Wscript.Shell
-$dialog.Popup("I hereby confirm and solemnly swear that the`nStart-SQLMigration.ps1 script has been successfully`nrun on $($Source) and that service-migration-azure`nmay proceed with the migration.") #>
+$dialog.Popup("I hereby confirm and solemnly swear that the`nStart-SQLMigration.ps1 script has been successfully`nrun on $($Source) and that service-migration-azure`nmay proceed with the migration.")
