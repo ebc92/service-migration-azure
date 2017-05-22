@@ -103,7 +103,7 @@ Try {
 }
 
 Try {
-    Import-Module dbatools
+    Import-Module dbatools -ErrorAction Stop
 } Catch {
     Install-Module dbatools -Force
 }
