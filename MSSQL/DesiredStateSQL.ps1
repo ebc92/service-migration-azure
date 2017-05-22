@@ -11,7 +11,11 @@ Configuration DesiredStateSQL {
 
         [Parameter(Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
-        [PSCredential]$DomainCredential
+        [PSCredential]$DomainCredential,
+
+        [Parameter(Mandatory=$true)]
+        [ValidateNotNullOrEmpty()]
+        [String]$InstanceName
     )
 
     # Custom DSC resources used for for both deployment and configuration. 
@@ -129,19 +133,12 @@ Configuration DesiredStateSQL {
             Our migration solution only implements this script block. #>
             SetScript = {
 
-                # Import the SQL PowerShell Module.
-                Try {
-                    Import-Module -Name Sqlps -ErrorAction Stop
-                } Catch {
-                    # If it is not found, the SQL Tools PowerShell folder must be added to the environment PSModulePath.
-                    $env:PSModulePath = $env:PSModulePath + ";C|<:\Program Files (x86)\Microsoft SQL Server\130\Tools\PowerShell\Modules"
+                    # The SQL Tools PowerShell folder must be added to the environment PSModulePath so Sqlps can be imported.
+                    $env:PSModulePath = $env:PSModulePath + ";C:\Program Files (x86)\Microsoft SQL Server\130\Tools\PowerShell\Modules"
+
+                    # Import the SQL PowerShell Module.
                     Import-Module -Name Sqlps
-                }
-                
-
-                # TODO: Get instancename from .ini-file.
-                $InstanceName = "AMSTELSQL"
-
+     
                 # T-SQL Query to enable remote access to the instance."
                 Invoke-Sqlcmd -ServerInstance localhost\$InstanceName -Query "EXEC sp_configure 'remote access', 1; RECONFIGURE;"
 

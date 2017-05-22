@@ -61,10 +61,10 @@ if(!$DomainCredential){
     $global:DomainCredential = (Get-Credential -Message "Please insert your domain administrator credentials")
 }
 
-#The Local SQL instance account for SQL authentication
+<#The Local SQL instance account for SQL authentication
 if(!$SqlCredential){
     $global:SqlCredential = (Get-Credential -Message "Please insert a password for SQL Authentication")
-}
+}#>
 
 #The local administartor account on the new VMs, can be set to any account
 #Remember to note it down in case it is needed in the future
