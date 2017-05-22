@@ -1,14 +1,9 @@
-﻿# Verify that SQL Credentials have been defined in the Master script.
-if(!$SqlCredential){
-    Write-Output "No SQL credentials in scope, aborting!"
-    break
-}
-
-# Get migration variables from configuration file
+﻿# Get migration variables from configuration file
 $Source = $SMAConfig.MSSQL.source
 $Destination = $SMAConfig.MSSQL.destination
 $Instance = $SMAConfig.MSSQL.instance
-$ComputerName = $SMAConfig.MSSQL.hostname
+$HostName = $SMAConfig.MSSQL.hostname
+$EnvironmentName = $SMAConfig.Global.environmentname
 $PackagePath = Join-Path -Path $SMAConfig.Global.fileshare -ChildPath $SMAConfig.MSSQL.packagepath
 
 
@@ -86,7 +81,7 @@ Try {
     Invoke-command -ComputerName $Destination -ScriptBlock {Install-Module xNetworking -Force} -Credential $DomainCredential
     # The AD DSC configuration is used to generate a DSC document.
     Log-Write -LogPath $sLogFile -LineValue "Generating MOF-file from DSC script."
-    DesiredStateSQL -ConfigurationData $cd -PackagePath $PackagePath -DomainCredential $DomainCredential
+    DesiredStateSQL -ConfigurationData $cd -PackagePath $PackagePath -DomainCredential $DomainCredential -Instance $Instance
     Log-Write -LogPath $sLogFile -LineValue "Starting DSC configuration. Writing transcript to log."
 
     <# DSC document is passed to the destination host and starts
@@ -104,17 +99,18 @@ Try {
     Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $False
 }
 
-# Create a new PSSession to the destination SQL host.
-$SQLSession = New-PSSession -ComputerName $Destination -Credential $DomainCredential
-
-# Copy the SMA Configuration file to the destination SQL host and remove the session.
-$ConfigurationPath = Resolve-Path (Join-Path -Path $PSScriptRoot -ChildPath "..\Configuration.ini")
-Copy-Item -ToSession $SQLSession -Path $ConfigurationPath -Destination "C:\" -Force
-Remove-PSSession $SQLSession
-
-# Instruct the user to run the Start-MSSQLMigration script on the destination SQL host.
-$dialog = New-Object -ComObject Wscript.Shell
-$dialog.Popup("LOG ON TO $($Source) AND RUN THE START-MSSQLMIGRATION SCRIPT MANUALLY.")
-
-$dialog = New-Object -ComObject Wscript.Shell
-$dialog.Popup("I hereby confirm and solemnly swear that the`nStart-SQLMigration.ps1 script has been successfully`nrun on $($Source) and that service-migration-azure`nmay proceed with the migration.")
+$DestinationHostname = "$($Environmentname)-$($HostName)"
+ 
+ Try{
+     Log-Write -Logpath $sLogFile -LineValue "Starting connectiontest on $($DestinationHostname)\$($Instance)."
+     $ConnectionTest = Test-SqlConnection -SqlServer "$($DestinationHostname)\$($Instance),1433"
+     If (!$ConnectionTest.ConnectSuccess){
+         Log-Write -Logpath $sLogFile -LineValue "Could not establish connection to the destination server."
+     } else {
+         Log-Write -Logpath $sLogFile -LineValue "Connectiontest was successful!"
+         Start-SqlMigration -Source "$($Source)\$($InstanceName),1433" -Destination "$($DestinationHostname)\$($InstanceName),1433" -BackupRestore -Share $PackagePath
+     }
+ } Catch {
+     Log-Write -Logpath $sLogFile -LineValue "The SQL Server instance migration failed, consult dbatools logs."
+     Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $False
+ }
