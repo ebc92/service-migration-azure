@@ -319,9 +319,6 @@ Function New-AzureStackWindowsVM {
 
       # Restart the VM because it has joined the domain.
       Restart-AzureRmVm -ResourceGroupName $ResourceGroupName -Name $VMName
-
-      # Get the public IP (management IP) of the virtual machine.
-      Get-AzureRmPublicIpAddress | % {if($_.Id -eq $VMNic.IpConfigurations.PublicIpAddress.Id){$PublicIP = $_}}
         
       <# While restarting, the VM will not accept incoming PSRemoting requests. To ensure that succeeding scripts
           can continue safely, this test will be run to ensure that script will not continue before PowerShell
@@ -329,7 +326,10 @@ Function New-AzureStackWindowsVM {
       $NoConnectivity = $true
       do {
         try {
+          # Get the public IP (management IP) of the virtual machine.
+          Get-AzureRmPublicIpAddress | % {if($_.Id -eq $VMNic.IpConfigurations.PublicIpAddress.Id){$PublicIP = $_}}
           Log-Write -LogPath $sLogFile -LineValue "Trying connection to $($VMName) with $($PublicIP.IpAddress) ..."
+          # Test for PowerShell connectivity
           if ($s = New-PSSession -ComputerName $PublicIP.IpAddress -Credential $DomainCredential -ErrorAction Stop){
             Log-Write -LogPath $sLogFile -LineValue "VM successfully restarted after applying ScriptExtension." 
             Remove-PSSession $s
@@ -337,7 +337,6 @@ Function New-AzureStackWindowsVM {
         } catch {
           $RetryTime = 30
           Log-Write -LogPath $sLogFile -LineValue "Cannot establish PowerShell connectivity to the VM. Retrying in $RetryTime seconds."
-          Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $False
           start-sleep -s $RetryTime
         }
       } while ($NoConnectivity)
