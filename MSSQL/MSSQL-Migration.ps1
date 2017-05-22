@@ -102,9 +102,15 @@ Try {
   Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $False
 }
 
-$DestinationHostname = "$($Environmentname)-$($HostName)"
+Try {
+    Import-Module dbatools
+} Catch {
+    Install-Module dbatools -Force
+}
+
  
 Try{
+    $DestinationHostname = "$($Environmentname)-$($HostName)"
   Log-Write -Logpath $sLogFile -LineValue "Starting connectiontest on $($DestinationHostname)\$($Instance)."
   $ConnectionTest = Test-SqlConnection -SqlServer "$($DestinationHostname)\$($Instance),1433"
   If (!$ConnectionTest.ConnectSuccess){
