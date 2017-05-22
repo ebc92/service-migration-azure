@@ -84,6 +84,7 @@ $cd = @{
 }
 
 Try {
+    Invoke-command -ComputerName $Destination -ScriptBlock {Install-Module xNetworking -Force} -Credential $DomainCredential
     # The AD DSC configuration is used to generate a DSC document.
     Log-Write -LogPath $sLogFile -LineValue "Generating MOF-file from DSC script."
     DesiredStateSQL -ConfigurationData $cd -PackagePath $PackagePath -DomainCredential $DomainCredential -InstanceName $Instance
