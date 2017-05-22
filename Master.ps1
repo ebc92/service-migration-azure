@@ -65,12 +65,11 @@ if(!$DomainCredential){
 if(!$SqlCredential){
     $global:SqlCredential = (Get-Credential -Message "Please insert a password for SQL Authentication")
 }#>
-
-#The local administartor account on the new VMs, can be set to any account
+<#The local administartor account on the new VMs, can be set to any account
 #Remember to note it down in case it is needed in the future
 if(!$VMCredential){ #TODO: Pass these to vm provisioning
     $global:VMCredential = (Get-Credential -Message "Please insert a password for the local administrator on the new VMs")
-}
+}#>
 
 #----------------------------------------------------------[Global Declarations]----------------------------------------------------
 #Sets the global variables that are used, mostly for logging purposes. Also loads the Configuration.ini file to the $SMAConfig variable
@@ -139,7 +138,7 @@ $SQLName = "$($environmentname)-$($SMAConfig.MSSQL.hostname)"
 $SQLDestination = $SMAConfig.MSSQL.destination + $CIDR
 
 #Runs the required script to start the migration of the service and deployment of the new VM
-#Invoke-Command -Session $AzureStackSession -ScriptBlock {New-AzureStackTenantDeployment -VMName $using:SQLName -IPAddress $using:SQLDestination -DomainCredential $using:DomainCredential}
+Invoke-Command -Session $AzureStackSession -ScriptBlock {New-AzureStackTenantDeployment -VMName $using:SQLName -IPAddress $using:SQLDestination -DomainCredential $using:DomainCredential}
 & (Join-Path -Path $PSScriptRoot -ChildPath "\MSSQL\MSSQL-Migration.ps1")
 
 <#-----------------------------------------------------------[Exchange]-----------------------------------------------------------------
