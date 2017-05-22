@@ -10,7 +10,7 @@ $SecureString = ConvertTo-SecureString $Password -AsPlainText -Force
 
 $Credential = New-Object System.Management.Automation.PSCredential($Username,$SecureString)
 
-Add-Computer -DomainName $DomainName -Credential $Credential
+Add-Computer -LocalCredential $Credential -DomainName $DomainName -Credential $Credential
 
 Enable-PSRemoting -Force
 
