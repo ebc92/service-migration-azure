@@ -117,7 +117,7 @@ Try{
     Log-Write -Logpath $sLogFile -LineValue "Could not establish connection to the destination server."
   } else {
     Log-Write -Logpath $sLogFile -LineValue "Connectiontest was successful!"
-    Start-SqlMigration -Source "$($Source)\$($InstanceName),1433" -Destination "$($DestinationHostname)\$($InstanceName),1433" -BackupRestore -NetworkShare $PackagePath
+    Start-SqlMigration -Source "$($Source)\$($InstanceName),1433" -Destination "$($DestinationHostname)\$($InstanceName),1433" -DetachAttach -Reattach
   }
 } Catch {
   Log-Write -Logpath $sLogFile -LineValue "The SQL Server instance migration failed, consult dbatools logs."
