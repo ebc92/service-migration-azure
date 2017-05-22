@@ -134,9 +134,14 @@ Configuration DesiredStateSQL {
 
                     # Import the SQL PowerShell Module.
                     Import-Module -Name Sqlps
+
+                Write-Output "Waiting for SQL services to start.."
+                Start-Sleep -Seconds 300
+                $Instance = "AMSTELSQL"
      
                 # T-SQL Query to enable remote access to the instance."
-                Invoke-Sqlcmd -ServerInstance localhost\$Instance -Query "EXEC sp_configure 'remote access', 1; RECONFIGURE;"
+                Invoke-Sqlcmd -ServerInstance localhost\$Instance -Query "EXEC sp_configure 'remote access', 1;"
+                Invoke-Sqlcmd -ServerInstance localhost\$Instance -Query "RECONFIGURE;"
 
                 # Import SQL Server Management Objects.
                 [reflection.assembly]::LoadWithPartialName("Microsoft.SqlServer.Smo")
