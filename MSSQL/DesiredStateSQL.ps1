@@ -3,19 +3,15 @@
     http://www.colinsalmcorner.com/post/install-and-configure-sql-server-using-powershell-dsc #>
 
 Configuration DesiredStateSQL {
-    Param (
+    Param(
         [Parameter(Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
         [String]
         $PackagePath,
-
         [Parameter(Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
         [PSCredential]$DomainCredential,
-
-        [Parameter(Mandatory=$true)]
-        [ValidateNotNullOrEmpty()]
-        [String]$InstanceName
+        [String]$Instance
     )
 
     # Custom DSC resources used for for both deployment and configuration. 
@@ -43,7 +39,7 @@ Configuration DesiredStateSQL {
         WindowsFeature NetFramework45Core {
             Name = "NET-Framework-45-Core"
             Ensure = "Present"
-            Source = $WinSources
+            Source = Join-Path -Path $PackagePath -ChildPath "sxs"
         }
  
         # copy the sqlserver iso
@@ -140,7 +136,7 @@ Configuration DesiredStateSQL {
                     Import-Module -Name Sqlps
      
                 # T-SQL Query to enable remote access to the instance."
-                Invoke-Sqlcmd -ServerInstance localhost\$InstanceName -Query "EXEC sp_configure 'remote access', 1; RECONFIGURE;"
+                Invoke-Sqlcmd -ServerInstance localhost\$Instance -Query "EXEC sp_configure 'remote access', 1; RECONFIGURE;"
 
                 # Import SQL Server Management Objects.
                 [reflection.assembly]::LoadWithPartialName("Microsoft.SqlServer.Smo")
@@ -151,14 +147,14 @@ Configuration DesiredStateSQL {
 
                 Write-Output "Enabling Named Pipes for the SQL Service Instance"
                 # Enable the named pipes protocol for the default instance.
-                $uri = "ManagedComputer[@Name='localhost']/ ServerInstance[@Name='$InstanceName']/ServerProtocol[@Name='Np']"
+                $uri = "ManagedComputer[@Name='localhost']/ ServerInstance[@Name='$Instance']/ServerProtocol[@Name='Np']"
                 $Np = $Mc.GetSmoObject($uri)
                 $Np.IsEnabled = $true
                 $Np.Alter()
                 $Np
 
                 # Configure static TCP port.
-                $uri = "ManagedComputer[@Name='localhost']/ ServerInstance[@Name='$InstanceName']/ ServerProtocol[@Name='Tcp']"
+                $uri = "ManagedComputer[@Name='localhost']/ ServerInstance[@Name='$Instance']/ ServerProtocol[@Name='Tcp']"
                 $Tcp = $Mc.GetSmoObject($uri)
                 $Tcp.IPAddresses | % { 
                     if($_.Name -eq "IPAll"){
