@@ -6,11 +6,11 @@
 
 Set-ExecutionPolicy Unrestricted
 
+$Username = "$($DomainName.Split(".")[0])\$($Username)"
 $SecureString = ConvertTo-SecureString $Password -AsPlainText -Force
-
 $Credential = New-Object System.Management.Automation.PSCredential($Username,$SecureString)
 
-Add-Computer -LocalCredential $Credential -DomainName $DomainName -Credential $Credential
+Add-Computer -DomainName $DomainName -Credential $Credential
 
 Enable-PSRemoting -Force
 
