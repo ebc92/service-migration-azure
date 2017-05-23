@@ -1,4 +1,10 @@
-﻿Remove-Module dbatools -ErrorAction SilentlyContinue
+﻿<#
+Installation script by dbatools
+http://dbatools.io
+(c) 2017 dbatools / Chrissy LeMaire
+#>
+
+Remove-Module dbatools -ErrorAction SilentlyContinue
 $url = 'https://github.com/ctrlbold/dbatools/archive/master.zip'
 $path = Join-Path -Path $home -ChildPath '\Documents\Modules\dbatools'
 $temp = ([System.IO.Path]::GetTempPath()).TrimEnd("\")

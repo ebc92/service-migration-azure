@@ -1,6 +1,7 @@
-﻿<# Original by
-Oliver Lipkau
-https://blogs.technet.microsoft.com/heyscriptingguy/2011/08/20/use-powershell-to-work-with-any-ini-file/ #>
+﻿<#
+.ini management script by Oliver Lipkau
+https://blogs.technet.microsoft.com/heyscriptingguy/2011/08/20/use-powershell-to-work-with-any-ini-file/ 
+#>
 
 function Get-IniContent ($filePath)
 {
