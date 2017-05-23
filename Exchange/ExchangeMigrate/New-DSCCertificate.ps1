@@ -10,8 +10,11 @@
       Invoke-Command  -Session $InstallSession -ScriptBlock {
         [bool]$createcert = $false
         "$createcert as it is at start of running cert creation"
-        #Function to create certificate gotten from 
-        #https://github.com/adbertram/Random-PowerShell-Work/blob/master/Security/New-SelfSignedCertificateEx.ps1
+        <#
+            Function to create certificate gotten from 
+            https://github.com/adbertram/Random-PowerShell-Work/blob/master/Security/New-SelfSignedCertificateEx.ps1
+            The function is used to create a certificate with more options than the default -New-SelfSignedCertificate
+        #>
         Function New-SelfSignedCertificateEx
         {
           [CmdletBinding(DefaultParameterSetName = 'Store')]
@@ -369,9 +372,11 @@
 	
           $ErrorActionPreference = [System.Management.Automation.ActionPreference]::Continue;
         }
-        #Checks if the certificate used already exists
-    
+        
+        #Checks if the certificate used already exists    
         $certverifypath = [bool](Get-ChildItem cert:\LocalMachine\My\ | Where-Object { $_.subject -like "cn=$using:ComputerName-dsccert" })
+        
+        #Creates the certificate with the given parameters
         if(!($certverifypath)) {
           New-SelfSignedCertificateEx `
           -Subject "CN=$using:ComputerName-dsccert" `
@@ -390,8 +395,11 @@
           "Created cert and moving on CN=$using:computername-dsccert"
           $createcert = $true
         }else{
+          #First removes the existing certificate to ensure that a duplicate cert object does not exist
           Get-ChildItem Cert:\LocalMachine\My | Where-Object { $_.subject -like "cn=$using:ComputerName-dsccert" } | Remove-Item
-          "$createcert where the cert was deleted"        
+          "$createcert where the cert was deleted"
+          
+          #Creates the certificate with the given parameters        
           New-SelfSignedCertificateEx `
           -Subject "CN=$using:ComputerName-dsccert" `
           -EKU 'Document Encryption' `

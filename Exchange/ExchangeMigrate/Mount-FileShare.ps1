@@ -20,7 +20,7 @@
         New-PSDrive -Name "Z" -PSProvider FileSystem -Root $using:baseDir -Persist -Credential $using:DomainCredential -Scope Global -ErrorAction SilentlyContinue -Verbose
       }
       
-      
+      #Mounts the PSDrive on the target computer
       Invoke-Command -Session $InstallSession -ScriptBlock { 
         Write-Verbose -Message "Mounting new PSDrive"
         New-PSDrive -Name "Z" -PSProvider FileSystem -Root $using:baseDir -Persist -Credential $using:DomainCredential -Scope Global -ErrorAction SilentlyContinue -Verbose

@@ -45,6 +45,7 @@
         $CertThumb
       }
 
+      #Session to export the certificate to the mounted PSDrive
       Log-Write -LogPath $xLogFile -LineValue "Exporting the certificate to the file share. Thumb = $CertThumb"
       Write-Verbose -Message "Exporting the certificate to the file share. Thumb = $CertThumb"
       Invoke-Command -Session $InstallSession -ScriptBlock {
@@ -52,13 +53,16 @@
         
         #Exporting Certificate            
         Write-Verbose -Message "Exporting cert to $using:CertExportPath"
-              
+        
+        #Sets certificate export paths      
         $CertTargetPath = Join-Path -Path Cert:\LocalMachine\My -ChildPath $using:CertThumb
         $CertExport = (Get-ChildItem -Path $CertTargetPath)
       
+        #Exports the DSC certificate to the mounted PSDrive
         Export-Certificate -Cert $CertExport -FilePath $using:CertExportPath -Type CERT
         $CertExport | Export-PfxCertificate -FilePath Z:\Cert\cert.pfx -Password $using:CertPW
         
+        #Test-Path to verify that the ISO exists
         $isoexists = Test-Path -Path C:\TempExchange\EXCHANGESERVER2016-X64-CU5.iso
 
         If (!($isoexists)) {
@@ -78,6 +82,7 @@
         #Test-path to see if UCMA is installed
         $ucmatest = Test-Path -Path "C:\Program Files\Microsoft UCMA 4.0"
         
+        #Checks if UCMA is installed
         if(!($ucmatest)) {
           #InstallUCMA          
           Write-Verbose -Message "Starting Install of UCMA"
@@ -88,16 +93,17 @@
         }
       }
       
+      #Imports the DSC certificate on the server running the script so it can encrypt the DSC configuration
       Log-Write -LogPath $xLogFile -LineValue "Importing PFX certificate"
       Write-Verbose -Message "Importing PFX certificate"
       Import-PfxCertificate -FilePath "$baseDir\Cert\cert.pfx" -CertStoreLocation Cert:\LocalMachine\My\ -Password $CertPW -Verbose
-      #$CertLocalExport = (Get-ChildItem -Path "Cert:\LocalMachine\My\$CertThumb")
       
       Log-Write -LogPath $xLogFile -LineValue "Running DSC configuration on $ComputerName"
       Log-Write -LogPath $xLogFile -LineValue "With Thumb = $CertThumb"
       Write-Verbose -Message "Running DSC configuration on $ComputerName"
       Write-Verbose -Message "CertThumb = $CertThumb"
       
+      #Gets the certificate path on the local server
       $CertPath = Join-Path -Path Cert:\LocalMachine\My -ChildPath $CertThumb
       
       Log-Write -LogPath $xLogFile -LineValue "$CertPath is the target certificate"
@@ -109,6 +115,7 @@
       Write-Verbose -Message "Installing xExchange and xPending DSC modules"
       Install-Module -Name xPendingReboot -Force -Verbose
       
+      #Dot source InstallExchange DSC configuration
       $DSC = (Join-Path -Path $PSScriptRoot -ChildPath InstallExchange.ps1)
       . $DSC
       "$DSC"
@@ -132,10 +139,13 @@
       Log-Write -LogPath $xLogFile -LineValue "Starting DSC"
       Write-Verbose -Message "Starting DSC"
       
+      #Starts a transcript of the console output, which is used as a DSC log
       Start-Transcript -Path ( Join-Path -Path $xLogPath -ChildPath dsclog-$xlogDate.txt )
       
+      #Sets the location to the script root, so that the InstallExchange DSC resources creates the .mof files in the correct directory.
       Set-Location $PSScriptRoot
       
+      #Gets the drive letter for the Exchange ISO
       $ExchangeBinary = Get-Content -Path ( Join-Path $baseDir -ChildPath Executables\ExchangeBinary.txt )
       "$ExchangeBinary before compiling DSC script"
       

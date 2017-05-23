@@ -85,6 +85,7 @@ Export-ExchCert -SourceComputer $SourceComputer -fqdn $fqdn -Password $Password 
 Log-Write -LogPath $xLogPath -LineValue "Starting Exchange Configuration"
 Configure-Exchange -ComputerName $ComputerName -SourceComputer $SourceComputer -newfqdn $newfqdn -Password $Password -DomainCredential $DomainCredential -hostname $www -BaseDir $baseDir -Verbose
 
+#Removes the sessions used
 $SourceInstall | Remove-PSSession
 $InstallSession | Remove-PSSession
 

@@ -21,6 +21,7 @@
         New-PSDrive -Name "Z" -PSProvider FileSystem -Root $using:baseDir -Persist -Credential $using:DomainCredential -Scope Global -ErrorAction SilentlyContinue -Verbose | Out-Null
         #Do while to make sure correct file is mounted
         $SourceFile = "Z:\executables"
+        
         #Makes sure $ExchangeBinary variable is emtpy       
         $ExchangeBinary = $null
         $ExchangeBinary = (Get-WmiObject win32_volume | Where-Object -Property Label -eq "EXCHANGESERVER2016-X64-CU5").Name

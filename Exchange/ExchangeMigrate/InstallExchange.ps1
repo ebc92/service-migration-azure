@@ -18,11 +18,13 @@ Configuration InstallExchange
     [String]$ExchangeBinary
   )
 
+  #Imports the necessary DSC modules
   Import-DscResource -ModuleName xExchange, xPendingReboot, PSDesiredStateConfiguration
   $ExchangeBinary
 
   Node $AllNodes.NodeName
   {
+    #Specifies the local configuration manager settings. 
     LocalConfigurationManager
     {
       CertificateId      = $Node.Thumbprint
@@ -36,7 +38,8 @@ Configuration InstallExchange
     {
       Name      = "BeforeServerRoles"
     }
-  
+    
+    #Installs all the required roles for Exchange
     WindowsFeature NetFW45
     {
       DependsOn = '[xPendingReboot]BeforeServerRoles'
@@ -262,7 +265,7 @@ Configuration InstallExchange
       DependsOn  = '[WindowsFeature]NETWCF45'
     }
   
-
+    #Mounts the Exchange ISO so it can be used by DSC
     Script MountExchange {
       GetScript = {
       }

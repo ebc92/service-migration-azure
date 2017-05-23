@@ -67,6 +67,7 @@
         Log-Write -LogPath $xLogFile -LineValue "NuGet already installed, continuing prerequisite checks"
       }    
       
+      #Checks if UCMA executable exists
       if (!($UCMAExist)) {
         #Downloading UCMA 4.0 Runtime      
         Write-Verbose -Message "Starting download of UCMA Runtime 4.0"
@@ -83,6 +84,7 @@
         Log-Write -LogPath $xLogFile -LineValue "UCMA already exist, no need to download"
       }
 
+      #Checks if the ISO exists
       if (!($ExchangeExist)) {
         #Downloading Exchange 2016
         #Write-Verbose -Message "Starting download of Exchange 2016 CU5"

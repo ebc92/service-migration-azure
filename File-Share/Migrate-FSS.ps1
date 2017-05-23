@@ -8,4 +8,5 @@ $SourceComputer = $SMAConfig.FSS.SourceComputer
 $SourcePath = $SMAConfig.FSS.SourcePath
 $DestPath = $SMAConfig.FSS.DestPath
 
+#Runs the Move-File module
 Move-File -DomainCredential $DomainCredential -ComputerName $ComputerName -SourceComputer $SourceComputer -SourcePath $SourcePath -DestPath $DestPath

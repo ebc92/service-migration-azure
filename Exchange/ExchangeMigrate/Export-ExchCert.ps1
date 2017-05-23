@@ -99,11 +99,14 @@
       
       #Imports the module that exists in the session, in this case, Exchange Management -AllowClobber gives the imported commands presedence.
       Import-Module (Import-PSSession $ConfigSession -AllowClobber)
-            
+      
+      #Saves the Exchange certificate to a variable      
       $ExchCert = Get-ExchangeCertificate
       
+      #Extracts the thumbprint from the certificate
       $ExchCert = ($ExchCert | Where-Object {$_.Subject -eq "CN=$SourceComputer"}).Thumbprint
       
+      #Exports the certificate to a mounted fileshare
       Export-ExchangeCertificate -Thumbprint $ExchCert -FileName $CertPath -Password $Password
       
     }      
